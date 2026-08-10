@@ -323,9 +323,14 @@ API key con facturación activa. Devuelve hasta 5 reseñas elegidas por Google y
 como el sitio es estático, necesitaría una función serverless que la llame y
 guarde caché — llamarla desde el navegador expondría la API key.
 
-Con reseñas propias sí corresponde añadir `aggregateRating` al JSON-LD, pero solo
-si se recogen y muestran en este sitio: replicar la nota del propio Google es
-"self-serving markup" y Google puede penalizarlo.
+**`aggregateRating` está incluido por decisión explícita del dueño** (5,0 con
+454 reseñas). Conviene saber el riesgo: esa nota viene del perfil de Google, no
+de reseñas recogidas en este sitio, y las políticas de datos estructurados de
+Google piden que la calificación marcada sea propia. Replicar la de Google se
+considera "self-serving markup" y puede costar una acción manual por marcado
+engañoso, que retira los resultados enriquecidos. Para quitarlo basta con borrar
+el bloque `aggregateRating` del `<head>`; queda señalado con un comentario ahí
+mismo.
 
 ### Hallazgos del perfil de Google
 

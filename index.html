@@ -45,20 +45,35 @@
   puntuación del propio Google es "self-serving markup" y puede costar una
   acción manual. Cuando el sitio recoja reseñas propias, ahí sí corresponde.
 -->
+<!--
+  Datos estructurados del negocio.
+
+  AVISO sobre aggregateRating: la nota 5,0 con 454 reseñas viene del perfil de
+  Google, no de reseñas recogidas en este sitio. Las políticas de datos
+  estructurados de Google piden que la calificación marcada provenga del propio
+  sitio; replicar la de Google se considera "self-serving markup" y puede costar
+  una acción manual por marcado engañoso (se pierden los resultados
+  enriquecidos). Se incluye por decisión explícita del dueño. Para quitarlo,
+  borrar el bloque "aggregateRating" de aquí abajo.
+-->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "HairSalon",
+  "@id": "https://www.imperialclasic.co/#negocio",
   "name": "The Imperial Clasic Barber",
   "url": "https://www.imperialclasic.co/",
+  "image": "https://www.imperialclasic.co/assets/og-image.jpg",
   "telephone": "+573145832948",
   "priceRange": "$$",
   "currenciesAccepted": "COP",
   "paymentAccepted": "Cash, Credit Card",
-  "image": "https://www.imperialclasic.co/assets/og-image.jpg",
-  "description": "Barbería premium en Prados de Sabaneta, Antioquia: corte clásico, afeitado a navaja y diseño de barba.",
+  "description": "Barbería premium en Prados de Sabaneta, Antioquia: corte clásico, afeitado a navaja, diseño de barba y manicura.",
   "hasMap": "https://www.google.com/maps?cid=7884828445267517729",
-  "sameAs": ["https://wa.me/573145832948"],
+  "sameAs": [
+    "https://wa.me/573145832948",
+    "https://www.google.com/maps?cid=7884828445267517729"
+  ],
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "Cra. 46D #77 Sur-73",
@@ -74,7 +89,13 @@
   "openingHoursSpecification": [
     {
       "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
       "opens": "09:00",
       "closes": "20:00"
     },
@@ -83,186 +104,286 @@
       "dayOfWeek": "Saturday",
       "opens": "09:00",
       "closes": "18:00"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": "Sunday",
+      "opens": "00:00",
+      "closes": "00:00"
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5.0",
+    "reviewCount": "454",
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "makesOffer": [
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Corte VIP"
+      },
+      "price": "45000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Corte y Barba VIP"
+      },
+      "price": "60000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Corte Sencillo"
+      },
+      "price": "35000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Corte y Barba Sencillo"
+      },
+      "price": "48000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Ritual Facial"
+      },
+      "price": "56000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Ritual de Barba"
+      },
+      "price": "26000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Barba Sencilla"
+      },
+      "price": "15000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Manicura"
+      }
     }
   ],
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
     "name": "Servicios",
     "itemListElement": [
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Corte VIP"
-                  },
-                  "price": "45000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Corte y Barba VIP"
-                  },
-                  "price": "60000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Corte Sencillo"
-                  },
-                  "price": "35000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Corte y Barba Sencillo"
-                  },
-                  "price": "48000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Ritual Facial"
-                  },
-                  "price": "56000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Ritual de Barba"
-                  },
-                  "price": "26000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Barba Sencilla"
-                  },
-                  "price": "15000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Pigmentación"
-                  },
-                  "price": "14000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Cejas con cuchilla"
-                  },
-                  "price": "10000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Cejas con hilo"
-                  },
-                  "price": "20000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Depilación de oídos"
-                  },
-                  "price": "15000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Depilación de fosas nasales"
-                  },
-                  "price": "15000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Mascarilla de puntos negros"
-                  },
-                  "price": "16000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Mascarilla de hialurónico"
-                  },
-                  "price": "20000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Masajeador ocular"
-                  },
-                  "price": "20000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Parches para ojeras"
-                  },
-                  "price": "10000",
-                  "priceCurrency": "COP"
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Manicura"
-                  }
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Colorimetría"
-                  }
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Freestyle"
-                  }
-            },
-            {
-                  "@type": "Offer",
-                  "itemOffered": {
-                        "@type": "Service",
-                        "name": "Hidrocauterización capilar"
-                  }
-            }
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Corte VIP"
+        },
+        "price": "45000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Corte y Barba VIP"
+        },
+        "price": "60000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Corte Sencillo"
+        },
+        "price": "35000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Corte y Barba Sencillo"
+        },
+        "price": "48000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Ritual Facial"
+        },
+        "price": "56000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Ritual de Barba"
+        },
+        "price": "26000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Barba Sencilla"
+        },
+        "price": "15000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Pigmentación"
+        },
+        "price": "14000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Cejas con cuchilla"
+        },
+        "price": "10000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Cejas con hilo"
+        },
+        "price": "20000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Depilación de oídos"
+        },
+        "price": "15000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Depilación de fosas nasales"
+        },
+        "price": "15000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mascarilla de puntos negros"
+        },
+        "price": "16000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mascarilla de hialurónico"
+        },
+        "price": "20000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Masajeador ocular"
+        },
+        "price": "20000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Parches para ojeras"
+        },
+        "price": "10000",
+        "priceCurrency": "COP"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Manicura"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Colorimetría"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Freestyle"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Hidrocauterización capilar"
+        }
+      }
     ]
   }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Inicio",
+      "item": "https://www.imperialclasic.co/"
+    }
+  ]
 }
 </script>
 </head>
