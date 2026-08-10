@@ -55,7 +55,12 @@
        destacadas la mencionan, así que tiene que ser reservable. Va como
        servicio principal —hay clientas que vienen solo por esto— con precio
        pendiente: nunca llegó en la lista de precios. */
-    { id: 'manicura',         group: 'rituales', name: 'Manicura', price: null, nota: 'Consultar', desc: 'Manos cuidadas, con diseño y masaje incluido.' },
+    { id: 'manicura',         group: 'rituales', name: 'Manicura', price: null, nota: 'Consultar',
+      desc: 'Manos cuidadas, con diseño y masaje incluido.',
+      /* Se puede pedir sola o sumada a un corte, así que aparece en el paso 1 y
+         también en el 2. Y la atiende una sola especialista: no hay barbero que
+         elegir, por eso ese paso se salta cuando es el servicio principal. */
+      tambienAdicional: true, sinBarbero: true },
 
     // — Color y tratamiento (precio variable) —
     { id: 'colorimetria',     group: 'color', name: 'Colorimetría',              price: null, nota: 'Según diseño, color y cabello', desc: 'Platinados, rayos, plumillas y otros trabajos de color.' },
@@ -68,7 +73,7 @@
      Ritual Facial de $56.000, que es el segundo más caro de la carta. */
   const PRIMARIOS   = SERVICES.filter(s => s.group === 'cortes' || s.group === 'rituales');
   /* Complementos del paso 2, selección múltiple. */
-  const ADICIONALES = SERVICES.filter(s => s.group === 'detalles' || s.group === 'color');
+  const ADICIONALES = SERVICES.filter(s => s.group === 'detalles' || s.group === 'color' || s.tambienAdicional);
 
   const byId = id => SERVICES.find(s => s.id === id);
 
@@ -215,6 +220,17 @@
   let lastFocused   = null;
 
   const PASOS = 6;
+  const PASO_BARBERO = 3;
+
+  /* El paso de barbero no siempre aplica: la manicura la atiende una sola
+     especialista, así que no hay nada que elegir. Se calcula la secuencia real
+     para que la numeración diga "Paso 3 de 5" y no salte del 2 al 4. */
+  function pasosActivos() {
+    const s = state.service ? byId(state.service) : null;
+    const salta = !!(s && s.sinBarbero);
+    return [1, 2, 3, 4, 5, 6].filter(n => !(salta && n === PASO_BARBERO));
+  }
+  const saltaBarbero = () => !pasosActivos().includes(PASO_BARBERO);
   const TITLES = [
     'Elige un <em>servicio</em>',
     '¿Algo <em>más</em>?',
@@ -253,11 +269,12 @@
   function summaryFor(step) {
     const s = state.service ? byId(state.service) : null;
     const b = state.barber !== null ? BARBERS[state.barber] : null;
+    const especialista = saltaBarbero() ? 'Especialista' : null;
     const extras = state.extras.length ? '+' + state.extras.length : '';
     if (step === 1) return '⚜ Reserva';
     if (step === 2) return s ? s.name : '⚜ Reserva';
     if (step === 3) return [s && s.name, extras].filter(Boolean).join(' ');
-    if (step === 4) return [s && s.name, b && b.name].filter(Boolean).join(' · ');
+    if (step === 4) return [s && s.name, (b && b.name) || especialista].filter(Boolean).join(' · ');
     if (step === 5) return state.date && state.slot ? shortDate(state.date) + ' · ' + state.slot : '';
     return 'Confirmada';
   }
@@ -266,9 +283,15 @@
      más adelante de donde sus datos alcanzan: si entra por un atajo (p. ej.
      tocando un barbero en la portada) se le lleva al primer hueco real.
      El paso 2 (adicionales) es opcional, así que nunca frena el avance. */
+  /* Qué agenda se consulta. Con barbero, la suya; sin barbero (manicura) la de
+     la especialista, que es una persona distinta y por tanto otra ocupación. */
+  function agendaDe() {
+    return state.barber !== null ? state.barber : 'especialista';
+  }
+
   function firstIncompleteStep() {
     if (!state.service) return 1;
-    if (state.barber === null) return 3;
+    if (!saltaBarbero() && state.barber === null) return PASO_BARBERO;
     if (!state.date || !state.slot) return 4;
     return 5;
   }
@@ -278,7 +301,7 @@
      sin servicio y la confirmación reventaba al leer su precio. */
   function canAdvance() {
     if (!state.service) return false;
-    if (state.step >= 3 && state.barber === null) return false;
+    if (!saltaBarbero() && state.step >= PASO_BARBERO && state.barber === null) return false;
     if (state.step >= 4 && !(state.date && state.slot)) return false;
     return true;
   }
@@ -291,15 +314,24 @@
       s.hidden = Number(s.dataset.step) !== step;
     });
 
-    counter.textContent = 'Paso ' + step + ' de ' + PASOS;
+    const pasos = pasosActivos();
+    const pos = pasos.indexOf(step) + 1;
+    counter.textContent = 'Paso ' + pos + ' de ' + pasos.length;
     summary.textContent = summaryFor(step);
     heading.innerHTML = TITLES[step - 1];
     heading.hidden = step === PASOS;
 
+    /* La barra se dibuja con un segmento por paso aplicable: si el de barbero
+       se salta, quedan cinco y no un hueco. */
+    if (progress.children.length !== pasos.length) {
+      progress.textContent = '';
+      pasos.forEach(() => progress.appendChild(el('span')));
+    }
     Array.prototype.forEach.call(progress.children, (bar, i) => {
-      bar.className = i + 1 < step ? 'is-done' : (i + 1 === step ? 'is-now' : '');
+      bar.className = i + 1 < pos ? 'is-done' : (i + 1 === pos ? 'is-now' : '');
     });
-    progress.setAttribute('aria-valuenow', String(step));
+    progress.setAttribute('aria-valuemax', String(pasos.length));
+    progress.setAttribute('aria-valuenow', String(pos));
 
     stepFoot.hidden = step === PASOS;
     backBtn.hidden = step === 1;
@@ -353,6 +385,12 @@
       btn.querySelector('.pick__price').textContent = precioTexto(s);
       btn.addEventListener('click', () => {
         state.service = s.id;
+        /* Manicura vive en las dos listas; si ya estaba como adicional se quita
+           para no cobrarla ni mostrarla dos veces. */
+        const dup = state.extras.indexOf(s.id);
+        if (dup !== -1) state.extras.splice(dup, 1);
+        /* Cambiar de servicio puede activar o desactivar el paso de barbero. */
+        if (saltaBarbero()) state.barber = null;
         track('service_selected', { service_name: s.name, service_price: s.price });
         render();
       });
@@ -410,6 +448,9 @@
     const list = $('#pick-extras');
     if (!list) return;
     list.querySelectorAll('.pick').forEach(btn => {
+      /* Si ya es el servicio principal, no tiene sentido ofrecerlo de nuevo. */
+      const esPrincipal = btn.dataset.id === state.service;
+      btn.closest('li').hidden = esPrincipal;
       const on = state.extras.indexOf(btn.dataset.id) !== -1;
       btn.setAttribute('aria-pressed', String(on));
       btn.querySelector('.pick__check').textContent = on ? '⚜' : '';
@@ -463,7 +504,7 @@
       btn.setAttribute('aria-label', longDate(date));
 
       const past = date < today;
-      const free = availableTimes(date, state.barber || 0).some(s => s.free);
+      const free = availableTimes(date, agendaDe()).some(s => s.free);
       btn.disabled = past || isClosed(date) || !free;
       btn.setAttribute('aria-pressed', String(!!state.date && ymd(state.date) === ymd(date)));
 
@@ -493,7 +534,7 @@
       return;
     }
 
-    const slots = availableTimes(state.date, state.barber || 0);
+    const slots = availableTimes(state.date, agendaDe());
     const free  = slots.filter(s => s.free).length;
     dayEl.textContent = WEEKDAYS[state.date.getDay()] + ' ' + state.date.getDate();
     count.textContent = free === 0 ? 'Sin horas' : 'Quedan ' + free + (free === 1 ? ' hora' : ' horas');
@@ -592,7 +633,10 @@
     if (state.extras.length) {
       rows.push(['Adicionales', state.extras.map(id => byId(id).name).join(', ')]);
     }
-    rows.push(['Barbero', BARBERS[state.barber].name]);
+    /* Sin barbero (manicura) no se inventa un nombre: se dice quién atiende. */
+    rows.push(state.barber !== null
+      ? ['Barbero', BARBERS[state.barber].name]
+      : ['Atiende', 'Nuestra especialista en manicura']);
     rows.push(['Fecha y hora', shortDate(state.date) + ' · ' + state.slot]);
     /* Si hay algo de precio variable no se inventa un total: se suma lo fijo y
        se advierte que el resto se cotiza en el local. */
@@ -624,7 +668,7 @@
       extras:  state.extras.map(byId),
       total:   t.fijo,
       requiereCotizacion: t.variables.map(s => s.name),
-      barber:  BARBERS[state.barber],
+      barber:  state.barber !== null ? BARBERS[state.barber] : null,
       date:    ymd(state.date),
       time:    state.slot,
       customer: state.customer
@@ -664,7 +708,7 @@
       'DTEND:'   + icsStamp(state.date, state.slot, ICS_BLOQUE_MIN),
       'SUMMARY:' + titulo + ' · ' + SHOP.name,
       'LOCATION:' + SHOP.address,
-      'DESCRIPTION:Barbero: ' + BARBERS[state.barber].name + '. Llega cinco minutos antes.',
+      'DESCRIPTION:' + (state.barber !== null ? 'Barbero: ' + BARBERS[state.barber].name : 'Atiende nuestra especialista en manicura') + '. Llega cinco minutos antes.',
       'END:VEVENT',
       'END:VCALENDAR'
     ];
@@ -700,7 +744,7 @@
           currency: 'COP',
           service_name: byId(state.service).name,
           extras_count: state.extras.length,
-          barber_name: BARBERS[state.barber].name,
+          barber_name: state.barber !== null ? BARBERS[state.barber].name : '(especialista manicura)',
           booking_date: ymd(state.date),
           booking_time: state.slot
         };
@@ -717,8 +761,10 @@
     }
     if (!canAdvance()) return;
     track('booking_step_completed', { step_number: state.step, step_name: STEP_NAMES[state.step - 1] });
-    const entraAlFormulario = state.step === PASO_DATOS - 1;
-    state.step = Math.min(PASOS, state.step + 1);
+    const pasos = pasosActivos();
+    const siguiente = pasos[pasos.indexOf(state.step) + 1] || PASOS;
+    const entraAlFormulario = siguiente === PASO_DATOS;
+    state.step = siguiente;
     render();
     panel.scrollTop = 0;
     /* Autofoco al primer campo: quien ya llenó cuatro pasos no debería tener
@@ -727,7 +773,8 @@
   }
 
   function goBack() {
-    state.step = Math.max(1, state.step - 1);
+    const pasos = pasosActivos();
+    state.step = pasos[Math.max(0, pasos.indexOf(state.step) - 1)];
     render();
     panel.scrollTop = 0;
   }

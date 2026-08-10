@@ -219,6 +219,32 @@ carta— y alguien puede venir solo por él. Están en el paso 1 junto a los cor
 `price: null`. No suman al total: el recibo muestra `$X + según diseño` y una
 nota diciendo cuáles se cotizan en el local. Nunca se inventa una cifra.
 
+### Manicura: doble rol y sin barbero
+
+Es el único servicio que aparece **en las dos listas**: como principal en el
+paso 1 y como adicional en el paso 2. Al elegirlo como principal se retira solo
+de los adicionales, para no cobrarlo ni mostrarlo dos veces.
+
+Y **la atiende una sola especialista**, así que cuando es el servicio principal
+el paso de barbero desaparece: no hay nada que elegir. El flujo pasa de 6 a 5
+pasos y la numeración se recalcula (`pasosActivos()`), de modo que dice
+"Paso 3 de 5" en vez de saltar del 2 al 4; la barra de progreso también se
+redibuja con cinco segmentos.
+
+Consecuencias que hubo que cubrir:
+
+- Cinco puntos del código leían `BARBERS[state.barber]` y reventaban con `null`
+  (recibo, envío, `.ics`, analítica y resumen del encabezado). Todos protegidos.
+- El recibo no inventa un nombre: dice **"Atiende: Nuestra especialista en
+  manicura"**. Cuando llegue su nombre, va en `BARBERS` o en ese texto.
+- La disponibilidad usa una agenda propia (`agendaDe()`), no la de Ema: es otra
+  persona y por tanto otra ocupación.
+- Cambiar de manicura a un corte —o al revés— recalcula los pasos y limpia el
+  barbero, para que no quede uno pegado de una selección anterior.
+
+**Falta el nombre de la especialista.** Hoy el recibo la nombra de forma
+genérica; con el nombre real se puede mostrar igual que a Ema y Simon.
+
 ### Flujo de reserva: 6 pasos
 
 `1 servicio → 2 adicionales → 3 barbero → 4 fecha y hora → 5 datos → 6 confirmación`
