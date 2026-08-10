@@ -237,6 +237,13 @@
                   "@type": "Offer",
                   "itemOffered": {
                         "@type": "Service",
+                        "name": "Manicura"
+                  }
+            },
+            {
+                  "@type": "Offer",
+                  "itemOffered": {
+                        "@type": "Service",
                         "name": "Colorimetría"
                   }
             },
@@ -343,23 +350,141 @@
   -->
   <div class="carta-wrap">
   <div class="carta">
-    <p class="carta__p reveal">
-      Todo empieza por el <em>corte</em>. <b>Sencillo</b>, con lavado y peinado.
-      O <b>VIP</b>, que suma bebida de cortesía, limpieza facial y tratamiento de
-      vapor ozono. Con barba o sin ella.
-    </p>
-    <p class="carta__p reveal">
-      Desde ahí la cita se arma a tu medida: <b>ritual de barba</b> con afeitado
-      al vapor o <b>barba sencilla</b> a navaja; <b>ritual facial</b> completo,
-      <b>mascarillas</b> de puntos negros e hialurónico, <b>masajeador ocular</b>
-      y <b>parches</b> para ojeras; <b>cejas</b> a cuchilla o a hilo,
-      <b>depilación</b> de oídos y fosas nasales, <b>pigmentación</b> para
-      densificar. Y si buscas cambiar de raíz: <b>colorimetría</b>,
-      <b>freestyle</b> e <b>hidrocauterización capilar</b>.
-    </p>
+    <!-- Menú escaneable en tres grupos. La agrupación es propia de la portada
+         (Cabello / Barba y rostro / Detalle): sigue cómo busca el cliente, no la
+         del flujo de reserva. Algunas filas juntan dos servicios de la carta
+         (mascarillas, depilación). Generado desde SERVICES en assets/app.js. -->
+    <div class="menu">
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cabello</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
+          <span class="menu__name">Corte Sencillo</span>
+          <span class="menu__desc">Lavado de cabello y peinado incluidos.</span>
+          <span class="menu__price">$35.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row menu__row--destacado">
+          <span class="menu__name">Corte VIP <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Bebida de cortesía, limpieza facial y vapor ozono.</span>
+          <span class="menu__price">$45.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Corte y Barba Sencillo</span>
+          <span class="menu__desc">Corte y barba, con lavado y peinado.</span>
+          <span class="menu__price">$48.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row menu__row--destacado">
+          <span class="menu__name">Corte y Barba VIP <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Todo el VIP, con la barba incluida.</span>
+          <span class="menu__price">$60.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Colorimetría</span>
+          <span class="menu__desc">Platinados, rayos, plumillas y más.</span>
+          <span class="menu__price">Según diseño, color y cabello</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Freestyle</span>
+          <span class="menu__desc">Dibujo tallado en el cuero cabelludo.</span>
+          <span class="menu__price">Según diseño</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Hidrocauterización capilar</span>
+          <span class="menu__desc">Sella la cutícula y controla el frizz.</span>
+          <span class="menu__price">Según largo y densidad</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Barba y rostro</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
+          <span class="menu__name">Ritual de barba</span>
+          <span class="menu__desc">Afeitado al vapor, limpieza facial y diseño.</span>
+          <span class="menu__price">$26.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Barba sencilla</span>
+          <span class="menu__desc">Diseño y afeitado a navaja.</span>
+          <span class="menu__price">$15.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Ritual facial</span>
+          <span class="menu__desc">Limpieza profunda con vapor, mascarillas y masaje.</span>
+          <span class="menu__price">$56.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Mascarillas</span>
+          <span class="menu__desc">Puntos negros o ácido hialurónico.</span>
+          <span class="menu__price">$16.000 / $20.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Masajeador ocular</span>
+          <span class="menu__desc">Calor y masaje contra líneas y ojeras.</span>
+          <span class="menu__price">$20.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Parches para ojeras</span>
+          <span class="menu__desc">Hidratan y mejoran el contorno de ojos.</span>
+          <span class="menu__price">$10.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Detalle</h3>
+      <ul class="menu__list">
+        <li class="menu__row menu__row--destacado">
+          <span class="menu__name">Manicura <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Manos cuidadas, con diseño y masaje incluido.</span>
+          <span class="menu__price">$ —</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Cejas a cuchilla</span>
+          <span class="menu__desc">Perfilado y diseño con cuchilla.</span>
+          <span class="menu__price">$10.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Cejas a hilo</span>
+          <span class="menu__desc">Perfilado y diseño con hilo.</span>
+          <span class="menu__price">$20.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Depilación de oídos y fosas nasales</span>
+          <span class="menu__desc">Depilación con cera, rápida y limpia.</span>
+          <span class="menu__price">$15.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Pigmentación</span>
+          <span class="menu__desc">Densifica barba o cuero cabelludo.</span>
+          <span class="menu__price">$14.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+
+    </div>
 
     <dl class="carta__cifras reveal">
-      <div><dt>Servicios</dt><dd>19</dd></div>
+      <div><dt>Servicios</dt><dd>20</dd></div>
       <div><dt>Cortes desde</dt><dd>$35.000</dd></div>
       <div><dt>Complementos desde</dt><dd>$10.000</dd></div>
     </dl>

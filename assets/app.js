@@ -51,6 +51,12 @@
     { id: 'masajeador',       group: 'detalles', sub: 'Mirada', name: 'Masajeador ocular',           price: 20000, desc: 'Con calefacción y música relajante. Reduce líneas de expresión y ojeras.' },
     { id: 'parches-ojeras',   group: 'detalles', sub: 'Mirada', name: 'Parches para ojeras',         price: 10000, desc: 'Hidrata y mejora el aspecto del contorno de ojos.' },
 
+    /* Manicura: aparece en la carta de la portada y dos de las tres reseñas
+       destacadas la mencionan, así que tiene que ser reservable. Va como
+       servicio principal —hay clientas que vienen solo por esto— con precio
+       pendiente: nunca llegó en la lista de precios. */
+    { id: 'manicura',         group: 'rituales', name: 'Manicura', price: null, nota: 'Consultar', desc: 'Manos cuidadas, con diseño y masaje incluido.' },
+
     // — Color y tratamiento (precio variable) —
     { id: 'colorimetria',     group: 'color', name: 'Colorimetría',              price: null, nota: 'Según diseño, color y cabello', desc: 'Platinados, rayos, plumillas y otros trabajos de color.' },
     { id: 'freestyle',        group: 'color', name: 'Freestyle',                 price: null, nota: 'Según diseño',                 desc: 'Dibujo en el cuero cabelludo, para quien lleva la personalidad por delante.' },
@@ -236,6 +242,14 @@
     };
   }
 
+  /* Texto del total. Si todo lo elegido es de precio variable, el fijo es 0 y
+     mostrar "$0 + según diseño" se lee como si algo estuviera roto. */
+  function totalTexto() {
+    const t = totales();
+    if (!t.variables.length) return money(t.fijo);
+    return t.fijo > 0 ? money(t.fijo) + ' + según diseño' : 'Según diseño';
+  }
+
   function summaryFor(step) {
     const s = state.service ? byId(state.service) : null;
     const b = state.barber !== null ? BARBERS[state.barber] : null;
@@ -403,9 +417,7 @@
     const t = totales();
     const resumen = $('#extras-total');
     if (resumen) {
-      resumen.textContent = t.variables.length
-        ? money(t.fijo) + ' + según diseño'
-        : money(t.fijo);
+      resumen.textContent = totalTexto();
     }
   }
 
@@ -584,7 +596,7 @@
     rows.push(['Fecha y hora', shortDate(state.date) + ' · ' + state.slot]);
     /* Si hay algo de precio variable no se inventa un total: se suma lo fijo y
        se advierte que el resto se cotiza en el local. */
-    rows.push(['Total', t.variables.length ? money(t.fijo) + ' + según diseño' : money(t.fijo)]);
+    rows.push(['Total', totalTexto()]);
 
     rows.forEach(([k, v], i) => {
       const row = el('div', 'receipt__row' + (i === rows.length - 1 ? ' receipt__row--total' : ''));

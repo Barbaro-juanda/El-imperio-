@@ -369,7 +369,7 @@ a:hover { color: var(--gold); }
 @media (min-width: 900px) {
   .carta-wrap {
     grid-template-columns: minmax(0, 1fr) clamp(220px, 24vw, 300px);
-    align-items: stretch; /* el video se estira al alto del texto, no al revés */
+    align-items: start;
   }
 }
 
@@ -381,11 +381,16 @@ a:hover { color: var(--gold); }
      sección, que es justo lo que se pidió recortar. */
   aspect-ratio: 5 / 4;
 }
-/* En escritorio no fija proporción: se estira al alto que marca el texto, así
-   ocupa la columna que estaba vacía sin alargar la sección. object-fit recorta
-   lo que sobre del 9:16 original. */
+/* Estirarlo al alto de la columna funcionaba con dos párrafos; con un menú de
+   18 filas el video se disparaba a 1277px. Ahora mantiene su proporción y queda
+   fijo mientras se recorre la lista, así acompaña sin estorbar. */
 @media (min-width: 900px) {
-  .carta__video { aspect-ratio: auto; height: 100%; min-height: 380px; }
+  .carta__video {
+    aspect-ratio: 9 / 16;
+    max-height: 64vh;
+    position: sticky;
+    top: calc(var(--nav-h, 84px) + 24px);
+  }
 }
 
 .carta__video video {
@@ -424,6 +429,71 @@ a:hover { color: var(--gold); }
    debe leerlos con entonación distinta. */
 .carta__p b { font-weight: 500; color: var(--ink); }
 .carta__p em { font-style: normal; font-weight: 500; color: var(--wine); }
+
+/* --- Menú de servicios: tres grupos escaneables --- */
+.menu { display: flex; flex-direction: column; gap: clamp(30px, 3.6vw, 42px); }
+
+.menu__group-title {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 4px;
+  font: 400 11px/1 var(--sans);
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--wine);
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(13, 13, 13, .14);
+}
+.menu__motif { color: var(--wine); font-size: .92em; line-height: 1; }
+
+.menu__list { list-style: none; margin: 0; padding: 0; }
+
+/* Móvil: nombre y precio en la primera línea, descripción debajo y la duración
+   al lado del precio. Escritorio: cuatro columnas alineadas para poder barrer
+   la lista de arriba abajo. */
+.menu__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 16px; row-gap: 3px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(13, 13, 13, .08);
+}
+.menu__row:last-child { border-bottom: 0; }
+
+.menu__name  { font: 400 clamp(1rem, 1.5vw, 1.1875rem)/1.25 var(--serif); color: var(--ink); }
+.menu__desc  { grid-column: 1; font: 300 11.5px/1.5 var(--sans); color: rgba(13, 13, 13, .58); }
+.menu__price {
+  grid-column: 2; grid-row: 1;
+  font: 400 clamp(.9375rem, 1.35vw, 1.0625rem)/1.25 var(--serif);
+  color: var(--gold-on-light); text-align: right; white-space: nowrap;
+}
+.menu__dur {
+  grid-column: 2; grid-row: 2;
+  font: 300 10px/1.5 var(--sans);
+  letter-spacing: .16em; color: rgba(13, 13, 13, .42);
+  text-align: right;
+}
+
+@media (min-width: 720px) {
+  .menu__row {
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) auto 4.5rem;
+    align-items: baseline;
+    column-gap: 22px; row-gap: 0;
+    padding: 14px 0;
+  }
+  .menu__desc  { grid-column: 2; grid-row: 1; }
+  .menu__price { grid-column: 3; grid-row: 1; }
+  .menu__dur   { grid-column: 4; grid-row: 1; }
+}
+
+/* Destacados: el corte insignia y la manicura. La manicura va marcada porque
+   dos de las tres reseñas del sitio hablan de ella; dejarla como una fila más
+   al final desperdiciaría esa señal. */
+.menu__row--destacado {
+  background: rgba(155, 48, 64, .05);
+  border-left: 2px solid var(--wine);
+  padding-left: 14px; padding-right: 14px;
+  margin-left: -14px; margin-right: -14px;
+}
+.menu__row--destacado .menu__name { font-weight: 500; }
 
 /* Cifras ancla: dan el rango de precio sin listar los 19. */
 .carta__cifras {
