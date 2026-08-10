@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editores
+*.swp
+*~
+
+# Dependencias (por si el proyecto adopta un build más adelante)
+node_modules/

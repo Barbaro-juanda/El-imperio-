@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "imperial-clasic",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/juandavidescobarguiral/Downloads/Personal/The imperial classic /.claude/serve.js"],
+      "port": 4321
+    }
+  ]
+}
