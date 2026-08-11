@@ -228,7 +228,10 @@ a:hover { color: var(--gold); }
   letter-spacing: .18em; text-transform: uppercase; color: var(--cream);
 }
 .nav__links a:hover { color: var(--wine); }
-@media (min-width: 720px) { .nav__links { display: flex; } }
+/* 860px, no 720: con cinco enlaces el menú medía 441px y, sumado a marca y
+   botón, desbordaba el nav a ~765px aplastando el nombre de la marca. Por
+   debajo de ese ancho se navega con el scroll y el botón de reservar. */
+@media (min-width: 860px) { .nav__links { display: flex; } }
 
 .nav__cta { padding: 11px 16px; font-size: 9px; letter-spacing: .2em; }
 @media (min-width: 900px) { .nav__cta { padding: 14px 26px; font-size: 11px; } }
@@ -516,6 +519,38 @@ a:hover { color: var(--gold); }
   color: var(--gold-on-light);
 }
 
+/* El menú se escribió para papel: sus tonos son tinta sobre crema, con las
+   opacidades y los bordes fijados en rgb(13,13,13), así que heredar el color
+   de texto no alcanza. Va por tema y no por #servicios para que siga sirviendo
+   si la sección cambia de fondo otra vez. Contrastes sobre --ink (#0D0D0D). */
+.section--ink .menu__group-title {
+  color: var(--cream);                          /* 15.6:1 */
+  border-bottom-color: rgba(237, 230, 214, .16);
+}
+.section--ink .menu__row { border-bottom-color: rgba(237, 230, 214, .10); }
+.section--ink .menu__name  { color: var(--cream); }
+.section--ink .menu__desc  { color: rgba(237, 230, 214, .58); } /* 5.7:1 */
+.section--ink .menu__dur   { color: rgba(237, 230, 214, .5); }  /* 4.5:1 */
+/* --gold-on-light se oscureció para pasar sobre crema; sobre tinta el oro
+   original ya da 7.0:1 y luce como es. */
+.section--ink .menu__price { color: var(--gold); }
+/* Al 5% el tinte del destacado se pierde contra el negro. */
+.section--ink .menu__row--destacado { background: rgba(155, 48, 64, .18); }
+.section--ink .carta__cifras { border-top-color: rgba(237, 230, 214, .16); }
+.section--ink .carta__cifras dt { color: rgba(237, 230, 214, .58); }
+.section--ink .carta__cifras dd { color: var(--gold); }
+
+/* Las fichas de barbero son el caso inverso: nacieron sobre tinta. */
+.section--paper .barber {
+  background: rgba(13, 13, 13, .035);
+  border-color: rgba(13, 13, 13, .14);
+}
+.section--paper .barber__name  { color: var(--ink); }
+/* La contraparte sobre tinta es .62 de crema, pero ese mismo valor sobre crema
+   solo da 4.05:1 — la curva no es simétrica. Sube a .62 para llegar a 5.1:1. */
+.section--paper .barber__tag   { color: rgba(13, 13, 13, .62); } /* 5.1:1 */
+.section--paper .barber__photo { background: rgba(13, 13, 13, .08); }
+
 /* --- Entrada en cascada --- */
 .reveal { opacity: 0; transform: translateY(16px); }
 .reveal.is-in {
@@ -621,6 +656,69 @@ a:hover { color: var(--gold); }
   border: 1px solid rgba(155, 48, 64, .35);
   pointer-events: none;
 }
+
+/* ---------------------------------------------------------
+   Lightbox de la galería
+   --------------------------------------------------------- */
+.tile {
+  padding: 0; border: 0; background: var(--ink-frame);
+  cursor: pointer; font: inherit;
+}
+.tile:hover img, .tile:hover video { transform: scale(1.03); }
+.tile img, .tile video { transition: transform .4s cubic-bezier(.2, .7, .3, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .tile img, .tile video { transition: none; }
+  .tile:hover img, .tile:hover video { transform: none; }
+}
+
+.lightbox { position: fixed; inset: 0; z-index: 70; display: flex; }
+.lightbox[hidden] { display: none; }
+.lightbox__backdrop { position: absolute; inset: 0; background: rgba(13, 13, 13, .92); }
+
+.lightbox__panel {
+  position: relative; margin: auto;
+  width: min(1100px, 100%); height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px clamp(4px, 2vw, 18px);
+  padding: clamp(52px, 8vh, 88px) clamp(8px, 2vw, 20px) clamp(20px, 4vh, 34px);
+}
+
+.lightbox__figura {
+  grid-column: 2; grid-row: 1;
+  margin: 0; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox__figura img, .lightbox__figura video {
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto;
+  object-fit: contain; /* completa, sin recortar: es el punto del lightbox */
+  display: block;
+}
+
+.lightbox__cerrar, .lightbox__nav {
+  background: none; border: 0; cursor: pointer;
+  color: rgba(237, 230, 214, .75);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; /* mínimo táctil */
+  transition: color .2s ease;
+}
+.lightbox__cerrar:hover, .lightbox__nav:hover { color: var(--cream); }
+.lightbox__cerrar { position: absolute; top: 10px; right: 10px; font-size: 17px; }
+.lightbox__nav { font: 300 30px/1 var(--sans); }
+.lightbox__nav--prev { grid-column: 1; grid-row: 1; }
+.lightbox__nav--next { grid-column: 3; grid-row: 1; }
+
+.lightbox__pie {
+  grid-column: 1 / -1; grid-row: 2;
+  margin: 0; text-align: center;
+  font: 300 11px/1.6 var(--sans);
+  letter-spacing: .12em;
+  color: rgba(237, 230, 214, .62);
+}
+.lightbox__contador { color: var(--wine); margin-left: 8px; white-space: nowrap; }
 
 /* ---------------------------------------------------------
    Reseñas
