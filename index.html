@@ -39,13 +39,6 @@
 </script>
 
 <!--
-  AggregateRating queda fuera a propósito, aunque el perfil de Google marque 5,0.
-  Las políticas de datos estructurados de Google exigen que la calificación
-  marcada provenga de reseñas recogidas y mostradas en este sitio; replicar la
-  puntuación del propio Google es "self-serving markup" y puede costar una
-  acción manual. Cuando el sitio recoja reseñas propias, ahí sí corresponde.
--->
-<!--
   Datos estructurados del negocio.
 
   AVISO sobre aggregateRating: la nota 5,0 con 454 reseñas viene del perfil de
@@ -394,7 +387,7 @@
 <!-- ============================= NAV ============================= -->
 <header class="nav" id="nav">
   <a class="brand" href="#top" aria-label="The Imperial Clasic Barber — inicio">
-    <img class="logo logo--sm" src="assets/logo.png" alt="" width="360" height="360" decoding="async">
+    <img class="logo logo--sm" src="assets/logo.png" alt="Emblema circular de The Imperial Clasic Barber" width="360" height="360" decoding="async">
     <span class="brand__text">
       <span class="brand__name">The Imperial Clasic</span>
       <span class="brand__sub">Barber · Sabaneta</span>
@@ -404,6 +397,8 @@
   <nav class="nav__links" aria-label="Principal">
     <a href="#servicios">Servicios</a>
     <a href="#barberos">Barberos</a>
+    <a href="#galeria">Galería</a>
+    <a href="#resenas">Reseñas</a>
     <a href="#ubicacion">Ubicación</a>
   </nav>
 
@@ -637,8 +632,8 @@
     <h2>Las <em class="wine">Manos</em></h2>
   </div>
   <div class="barbers" id="barbers-list">
-    <button type="button" class="barber" aria-pressed="false"><img class="barber__photo" src="assets/barbero-ema.jpg" alt="" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Ema</span><span class="barber__tag">Elegir</span></span></button>
-    <button type="button" class="barber" aria-pressed="false"><img class="barber__photo" src="assets/barbero-simon.jpg" alt="" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
+    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Ema"><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Ema, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Ema</span><span class="barber__tag">Elegir</span></span></button>
+    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon"><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
   </div>
 </section>
 
@@ -649,24 +644,24 @@
       <span class="eyebrow">03 — Galería</span>
       <h2>Trabajo <em>Reciente</em></h2>
     </div>
-    <a class="link-underline" href="#galeria">Ver todo ⚜</a>
+    <button class="link-underline" type="button" id="ver-galeria">Ver todo ⚜</button>
   </div>
   <!-- Aquí el alt sí describe: son trabajos reales y no hay texto cerca que
        cuente lo que muestra cada imagen. -->
   <div class="gallery">
-    <figure class="tile">
+    <button class="tile" type="button" data-lightbox="0">
       <img src="assets/trabajo-1.jpg" alt="Afeitado tradicional: aplicación de aceite sobre barba con toalla y espuma" width="800" height="1100" loading="lazy" decoding="async">
-    </figure>
-    <figure class="tile">
+    </button>
+    <button class="tile" type="button" data-lightbox="1">
       <img src="assets/trabajo-2.jpg" alt="Corte con máquina perfilando un fade sobre la sien" width="800" height="1145" loading="lazy" decoding="async">
-    </figure>
-    <figure class="tile">
+    </button>
+    <button class="tile" type="button" data-lightbox="2">
       <img src="assets/trabajo-3.jpg" alt="Perfilado de barba a navaja, vista de perfil" width="800" height="759" loading="lazy" decoding="async">
-    </figure>
-    <figure class="tile tile--video">
+    </button>
+    <button class="tile tile--video" type="button" data-lightbox="3" aria-label="Ver el diseño freestyle tallado a máquina sobre el cabello">
       <video src="assets/trabajo-4.mp4" poster="assets/trabajo-4-poster.webp"
-             muted loop playsinline preload="none" aria-label="Diseño freestyle tallado a máquina sobre el cabello"></video>
-    </figure>
+             muted loop playsinline preload="none" aria-hidden="true"></video>
+    </button>
   </div>
 </section>
 
@@ -770,7 +765,7 @@
 <footer class="footer">
   <div class="footer__cta">
     <div class="footer__lockup">
-      <img class="logo logo--lg" src="assets/logo.png" alt="" width="360" height="360" loading="lazy" decoding="async">
+      <img class="logo logo--lg" src="assets/logo.png" alt="Emblema circular de The Imperial Clasic Barber" width="360" height="360" loading="lazy" decoding="async">
       <span class="footer__pitch">¿Listo para tu<br><em>próximo corte?</em></span>
     </div>
     <button class="btn btn--gold btn--lg" type="button" data-book data-book-location="footer">Reservar</button>
@@ -780,12 +775,25 @@
       <a href="#servicios">Servicios</a>
       <a href="#barberos">Barberos</a>
       <a href="#ubicacion">Ubicación</a>
-      <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a data-instagram target="_blank" rel="noopener noreferrer">Instagram</a>
       <a href="https://wa.me/573145832948" target="_blank" rel="noopener noreferrer">WhatsApp</a>
     </nav>
     <span class="footer__copy">⚜ © 2026 The Imperial Clasic Barber</span>
   </div>
 </footer>
+
+<!-- ============================= LIGHTBOX ============================= -->
+<!-- Muestra cada pieza completa: en la retícula van recortadas a 3:4. -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox__backdrop" data-cerrar-lightbox></div>
+  <div class="lightbox__panel" role="dialog" aria-modal="true" aria-label="Galería de trabajos" tabindex="-1">
+    <button class="lightbox__cerrar" type="button" data-cerrar-lightbox aria-label="Cerrar galería">✕</button>
+    <button class="lightbox__nav lightbox__nav--prev" type="button" id="lb-prev" aria-label="Anterior">‹</button>
+    <figure class="lightbox__figura" id="lb-figura"></figure>
+    <button class="lightbox__nav lightbox__nav--next" type="button" id="lb-next" aria-label="Siguiente">›</button>
+    <p class="lightbox__pie"><span id="lb-texto"></span> <span class="lightbox__contador" id="lb-contador"></span></p>
+  </div>
+</div>
 
 <!-- ============================= RESERVA ============================= -->
 <div class="booking" id="booking" hidden>

@@ -82,8 +82,10 @@
      sé cuál es la especialidad real de Ema y Simon — inventarla sería atribuirle
      una destreza a una persona real. Al llenarla, la línea aparece sola. */
   const BARBERS = [
-    { name: 'Ema',   spec: '', photo: 'assets/barbero-ema.jpg' },
-    { name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg' }
+    { name: 'Ema',   spec: '', photo: 'assets/barbero-ema.jpg',
+      alt: 'Ema, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
+    { name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg',
+      alt: 'Simon, barbero de The Imperial Clasic, de brazos cruzados en el local' }
   ];
 
   /* REVIEWS se eliminó: los tres testimonios eran inventados por el diseño.
@@ -100,6 +102,11 @@
                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const WEEKDAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  /* Perfil de Instagram. Placeholder a propósito: el href del pie se toma de
+     aquí, así queda un solo sitio que tocar cuando llegue el definitivo.
+     Mientras esté vacío, el enlace se oculta en vez de llevar a ninguna parte. */
+  const INSTAGRAM_URL = '';
 
   const SHOP = {
     name: 'The Imperial Clasic Barber',
@@ -150,7 +157,7 @@
     card.setAttribute('aria-pressed', 'false');
     card.dataset.barber = String(index);
     card.innerHTML =
-      '<img class="barber__photo" alt="" loading="lazy" decoding="async">' +
+      '<img class="barber__photo" loading="lazy" decoding="async">' +
       '<span class="barber__body">' +
         '<span class="barber__name"></span>' +
         '<span class="barber__spec"></span>' +
@@ -158,8 +165,11 @@
       '</span>';
     const img = card.querySelector('.barber__photo');
     img.src = b.photo;
-    /* alt vacío: el nombre va en texto justo debajo, así que describir el
-       retrato solo haría que el lector de pantalla repita la misma info. */
+    /* El alt describe la foto (sirve para buscadores y si la imagen no carga),
+       y el botón lleva su propio aria-label para que el lector de pantalla no
+       lea el nombre dos veces. */
+    img.alt = b.alt || '';
+    card.setAttribute('aria-label', 'Elegir a ' + b.name);
     card.querySelector('.barber__name').textContent = b.name;
     const spec = card.querySelector('.barber__spec');
     if (b.spec) spec.textContent = b.spec; else spec.remove();
@@ -993,8 +1003,119 @@
 
 
   /* ------------------------------------------------------
+     Enlaces externos configurables
+     ------------------------------------------------------ */
+  function setupEnlacesExternos() {
+    document.querySelectorAll('[data-instagram]').forEach(a => {
+      if (INSTAGRAM_URL) { a.href = INSTAGRAM_URL; return; }
+      /* Sin perfil configurado se retira el enlace en vez de dejarlo muerto o
+         llevando al inicio de Instagram, que no es el de la barbería. */
+      a.remove();
+    });
+  }
+
+  /* ------------------------------------------------------
+     Lightbox de la galería
+     ------------------------------------------------------ */
+  function setupLightbox() {
+    const caja = $('#lightbox');
+    if (!caja) return;
+    const panel   = caja.querySelector('.lightbox__panel');
+    const figura  = $('#lb-figura');
+    const texto   = $('#lb-texto');
+    const contador= $('#lb-contador');
+    const disparadores = [...document.querySelectorAll('[data-lightbox]')];
+    if (!disparadores.length) return;
+
+    /* Las piezas se leen del propio marcado: una sola fuente, y si mañana se
+       agrega una foto a la galería el lightbox la toma sin tocar el JS. */
+    const piezas = disparadores.map(btn => {
+      const img = btn.querySelector('img');
+      const vid = btn.querySelector('video');
+      return img
+        ? { tipo: 'img', src: img.src, texto: img.alt }
+        : { tipo: 'video', src: vid.currentSrc || vid.getAttribute('src'),
+            poster: vid.getAttribute('poster'),
+            texto: (btn.getAttribute('aria-label') || '').replace(/^Ver el /, '') };
+    });
+
+    let i = 0;
+    let ultimoFoco = null;
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function pintar() {
+      const p = piezas[i];
+      figura.textContent = '';
+      let nodo;
+      if (p.tipo === 'img') {
+        nodo = el('img');
+        nodo.src = p.src;
+        nodo.alt = p.texto;
+      } else {
+        nodo = el('video');
+        nodo.src = p.src;
+        nodo.poster = p.poster;
+        nodo.muted = true; nodo.loop = true; nodo.playsInline = true;
+        nodo.setAttribute('aria-label', p.texto);
+        /* Con movimiento reducido queda el póster y controles para verlo a mano. */
+        if (reducido.matches) nodo.controls = true;
+        else nodo.play().catch(() => {});
+      }
+      figura.appendChild(nodo);
+      texto.textContent = p.texto;
+      contador.textContent = (i + 1) + ' / ' + piezas.length;
+    }
+
+    function mover(paso) {
+      i = (i + paso + piezas.length) % piezas.length; // circular
+      pintar();
+    }
+
+    function abrir(indice) {
+      ultimoFoco = document.activeElement;
+      i = indice;
+      caja.hidden = false;
+      document.body.classList.add('is-locked');
+      pintar();
+      panel.focus();
+      track('gallery_opened', { index: indice });
+    }
+
+    function cerrar() {
+      caja.hidden = true;
+      figura.textContent = ''; // suelta el video para que no siga corriendo
+      document.body.classList.remove('is-locked');
+      if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
+    }
+
+    disparadores.forEach((btn, n) => btn.addEventListener('click', () => abrir(n)));
+    const verTodo = $('#ver-galeria');
+    if (verTodo) verTodo.addEventListener('click', () => abrir(0));
+
+    caja.querySelectorAll('[data-cerrar-lightbox]').forEach(b => b.addEventListener('click', cerrar));
+    $('#lb-prev').addEventListener('click', () => mover(-1));
+    $('#lb-next').addEventListener('click', () => mover(1));
+
+    document.addEventListener('keydown', e => {
+      if (caja.hidden) return;
+      if (e.key === 'Escape')     { cerrar(); return; }
+      if (e.key === 'ArrowLeft')  { mover(-1); return; }
+      if (e.key === 'ArrowRight') { mover(1);  return; }
+      if (e.key !== 'Tab') return;
+      // Foco atrapado dentro del panel mientras esté abierto
+      const focoables = [...panel.querySelectorAll('button')].filter(n => n.offsetParent !== null);
+      if (!focoables.length) return;
+      const primero = focoables[0], ultimo = focoables[focoables.length - 1];
+      if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+    });
+  }
+
+  /* ------------------------------------------------------
      Init
      ------------------------------------------------------ */
+  setupEnlacesExternos();
+  setupLightbox();
   setupHeroVideo();
   setupServiceMenu();
   setupReviewsMarquee();
