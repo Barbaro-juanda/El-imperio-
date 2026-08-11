@@ -103,10 +103,10 @@
   const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const WEEKDAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-  /* Perfil de Instagram. Placeholder a propósito: el href del pie se toma de
-     aquí, así queda un solo sitio que tocar cuando llegue el definitivo.
-     Mientras esté vacío, el enlace se oculta en vez de llevar a ninguna parte. */
-  const INSTAGRAM_URL = '';
+  /* Perfil de Instagram. El href del pie se toma de aquí, así queda un solo
+     sitio que tocar si cambia. Si se deja vacío, el enlace se oculta en vez
+     de llevar a ninguna parte. */
+  const INSTAGRAM_URL = 'https://instagram.com/theimperialclasic_/';
 
   const SHOP = {
     name: 'The Imperial Clasic Barber',
