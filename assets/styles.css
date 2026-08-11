@@ -519,6 +519,38 @@ a:hover { color: var(--gold); }
   color: var(--gold-on-light);
 }
 
+/* El menú se escribió para papel: sus tonos son tinta sobre crema, con las
+   opacidades y los bordes fijados en rgb(13,13,13), así que heredar el color
+   de texto no alcanza. Va por tema y no por #servicios para que siga sirviendo
+   si la sección cambia de fondo otra vez. Contrastes sobre --ink (#0D0D0D). */
+.section--ink .menu__group-title {
+  color: var(--cream);                          /* 15.6:1 */
+  border-bottom-color: rgba(237, 230, 214, .16);
+}
+.section--ink .menu__row { border-bottom-color: rgba(237, 230, 214, .10); }
+.section--ink .menu__name  { color: var(--cream); }
+.section--ink .menu__desc  { color: rgba(237, 230, 214, .58); } /* 5.7:1 */
+.section--ink .menu__dur   { color: rgba(237, 230, 214, .5); }  /* 4.5:1 */
+/* --gold-on-light se oscureció para pasar sobre crema; sobre tinta el oro
+   original ya da 7.0:1 y luce como es. */
+.section--ink .menu__price { color: var(--gold); }
+/* Al 5% el tinte del destacado se pierde contra el negro. */
+.section--ink .menu__row--destacado { background: rgba(155, 48, 64, .18); }
+.section--ink .carta__cifras { border-top-color: rgba(237, 230, 214, .16); }
+.section--ink .carta__cifras dt { color: rgba(237, 230, 214, .58); }
+.section--ink .carta__cifras dd { color: var(--gold); }
+
+/* Las fichas de barbero son el caso inverso: nacieron sobre tinta. */
+.section--paper .barber {
+  background: rgba(13, 13, 13, .035);
+  border-color: rgba(13, 13, 13, .14);
+}
+.section--paper .barber__name  { color: var(--ink); }
+/* La contraparte sobre tinta es .62 de crema, pero ese mismo valor sobre crema
+   solo da 4.05:1 — la curva no es simétrica. Sube a .62 para llegar a 5.1:1. */
+.section--paper .barber__tag   { color: rgba(13, 13, 13, .62); } /* 5.1:1 */
+.section--paper .barber__photo { background: rgba(13, 13, 13, .08); }
+
 /* --- Entrada en cascada --- */
 .reveal { opacity: 0; transform: translateY(16px); }
 .reveal.is-in {
