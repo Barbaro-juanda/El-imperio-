@@ -106,7 +106,7 @@
   /* Perfil de Instagram. El href del pie se toma de aquí, así queda un solo
      sitio que tocar si cambia. Si se deja vacío, el enlace se oculta en vez
      de llevar a ninguna parte. */
-  const INSTAGRAM_URL = 'https://instagram.com/theimperialclasic_/';
+  const INSTAGRAM_URL = 'https://www.instagram.com/theimperialclasic_/';
 
   const SHOP = {
     name: 'The Imperial Clasic Barber',
