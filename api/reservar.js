@@ -20,14 +20,14 @@ export default async function handler(req, res) {
   if (!telefono) return json(res, 400, { error: 'El celular debe ser un número colombiano de 10 dígitos' });
 
   try {
-    const { rows: servs } = await sql`
+    const servs = await sql`
       SELECT id, minutos, precio FROM servicio WHERE id = ANY(${servicios}) AND activo`;
     if (servs.length !== servicios.length) return json(res, 400, { error: 'Servicio no disponible' });
 
     /* Que el profesional preste TODOS los servicios de la cita. Sin esta
        comprobación, una petición armada a mano puede citar a alguien para algo
        que no hace. */
-    const { rows: ok } = await sql`
+    const ok = await sql`
       SELECT COUNT(DISTINCT servicio_id)::int AS n
         FROM servicio_profesional
        WHERE profesional_id = ${profesional} AND servicio_id = ANY(${servicios})`;
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
     const total = servs.reduce((t, s) => t + (s.precio || 0), 0);
 
-    const { rows: cl } = await sql`
+    const cl = await sql`
       INSERT INTO cliente (nombre, telefono, email)
       VALUES (${String(cliente.nombre).trim()}, ${telefono}, ${cliente.email || null})
       ON CONFLICT (telefono) DO UPDATE SET nombre = EXCLUDED.nombre
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
         VALUES (${codigo}, ${cl[0].id}, ${profesional},
                 ${inicio.toISOString()}, ${fin.toISOString()}, ${total})
         RETURNING id, codigo`;
-      cita = r.rows[0];
+      cita = r[0];
     } catch (e) {
       /* 23P01 = lo rechazó la restricción de solape: alguien tomó ese cupo
          entre que se pintó la pantalla y se pulsó el botón. Es un caso normal,

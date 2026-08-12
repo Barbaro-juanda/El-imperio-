@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (!ids.length) return json(res, 400, { error: 'servicios es obligatorio' });
 
   try {
-    const { rows: servs } = await sql`
+    const servs = await sql`
       SELECT id, minutos FROM servicio WHERE id = ANY(${ids}) AND activo`;
     if (servs.length !== ids.length) {
       return json(res, 400, { error: 'Hay servicios que no existen o están inactivos' });
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     /* Quién puede atender TODA la selección: el profesional tiene que prestar
        cada uno de los servicios, no solo alguno. Si no, se ofrecerían cupos
        con alguien que no hace la mitad de la cita. */
-    const { rows: profs } = await sql`
+    const profs = await sql`
       SELECT p.id, p.nombre
         FROM profesional p
         JOIN servicio_profesional sp ON sp.profesional_id = p.id
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       : profs;
 
     const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
-    const { rows: hor } = await sql`
+    const hor = await sql`
       SELECT abre, cierra, abierto FROM horario WHERE dow = ${dow}`;
     if (!hor.length || !hor[0].abierto) {
       return json(res, 200, { duracion, profesionales: profs, cupos: {}, cerrado: true });
@@ -59,10 +59,10 @@ export default async function handler(req, res) {
 
     const desde = new Date(Date.now() + COLCHON_MIN * 60000);
 
-    const { rows: ocupado } = await sql`
+    const ocupado = await sql`
       SELECT profesional_id, inicio, fin FROM cita
        WHERE estado = 'confirmada' AND inicio < ${cierra.toISOString()} AND fin > ${abre.toISOString()}`;
-    const { rows: bloqueos } = await sql`
+    const bloqueos = await sql`
       SELECT profesional_id, inicio, fin FROM bloqueo
        WHERE inicio < ${cierra.toISOString()} AND fin > ${abre.toISOString()}`;
 

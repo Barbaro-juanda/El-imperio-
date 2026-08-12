@@ -1,8 +1,16 @@
 /* Conexión y utilidades compartidas por las funciones de /api.
-   Vercel Functions, Node. Única dependencia: @vercel/postgres. */
-import { sql } from '@vercel/postgres';
+   Vercel Functions, Node. Única dependencia: @neondatabase/serverless.
 
-export { sql };
+   Se usa el conector de Neon y no @vercel/postgres porque Vercel dejó de
+   ofrecer base propia: hoy Postgres se contrata en su Marketplace y Neon es el
+   mismo motor sobre el que corría el suyo. La integración inyecta DATABASE_URL
+   sola; no hay que copiar credenciales a ningún lado.
+
+   Ojo al migrar código de ejemplo: aquí `sql` devuelve el arreglo de filas
+   directamente, no un objeto { rows }. */
+import { neon } from '@neondatabase/serverless';
+
+export const sql = neon(process.env.DATABASE_URL);
 
 export const ZONA = 'America/Bogota';
 
