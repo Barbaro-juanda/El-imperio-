@@ -1063,24 +1063,27 @@ a:hover { color: var(--gold); }
 .step__foot #back[hidden] { display: none; }
 
 /* ---- paso 1: servicio principal ---- */
-.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .pick {
   width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 6px 16px;
-  padding: 18px 12px;
-  border: 0;
-  border-bottom: 1px solid var(--line-cream);
-  border-left: 2px solid transparent;
+  padding: 18px 16px;
+  /* Cada servicio en su propio cuadro: con seis segmentos y listas de hasta
+     doce filas, los filetes sueltos no dejaban claro dónde empieza y termina
+     cada opción ni qué se está tocando. */
+  border: 1px solid rgba(237, 230, 214, .16);
   background: transparent;
   color: inherit; font: inherit; text-align: left;
   cursor: pointer;
   transition: background-color .2s ease, border-color .2s ease;
 }
-.pick:hover { background: rgba(155, 48, 64, .05); }
-.pick[aria-pressed="true"] { background: rgba(155, 48, 64, .09); border-left-color: var(--wine); }
+.pick:hover { border-color: rgba(237, 230, 214, .4); }
+/* Seleccionado: vino pleno. Texto crema encima da 5.8:1. */
+.pick[aria-pressed="true"] { background: var(--wine); border-color: var(--wine); }
+.pick[aria-pressed="true"]:hover { border-color: var(--cream); }
 
 .pick__name  { font: 400 clamp(1.25rem, 2vw, 1.625rem)/1.15 var(--serif); color: var(--cream); }
 .pick__desc  {
@@ -1092,8 +1095,14 @@ a:hover { color: var(--gold); }
 .pick__price {
   grid-column: 2; grid-row: 1 / span 2;
   font: 400 clamp(1rem, 1.5vw, 1.1875rem)/1.3 var(--serif);
-  color: var(--wine); text-align: right;
+  /* Oro, no vino: iguala la carta de la portada y sube de 2.7:1 a 7.0:1.
+     En vino sobre tinta el precio era lo menos legible de la fila. */
+  color: var(--gold); text-align: right;
 }
+
+/* Sobre el vino del seleccionado hay que subir los tonos apagados. */
+.pick[aria-pressed="true"] .pick__desc  { color: rgba(237, 230, 214, .88); }
+.pick[aria-pressed="true"] .pick__price { color: var(--cream); }
 .pick__check { display: none; }
 
 /* Encabezado de grupo dentro de la lista (Cortes / Rituales / Piel...). */
