@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Fuera de buscadores: es una herramienta interna, no una página del sitio. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Agenda · The Imperial Clasic</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/styles.css?v=5">
+<link rel="stylesheet" href="assets/panel.css?v=1">
+</head>
+<body class="panel">
+
+<!-- Entrada. Se muestra hasta que la sesión sea válida. -->
+<section class="panel__login" id="login">
+  <h1>Agenda</h1>
+  <p class="panel__sub">The Imperial Clasic</p>
+  <form id="form-login" autocomplete="off">
+    <label class="sr-only" for="clave">Clave del local</label>
+    <input id="clave" type="password" inputmode="numeric" placeholder="Clave" required
+           autocomplete="current-password">
+    <button class="btn btn--gold" type="submit">Entrar</button>
+    <p class="panel__error" id="login-error" role="alert" hidden></p>
+  </form>
+</section>
+
+<!-- Agenda -->
+<main class="panel__app" id="app" hidden>
+  <header class="panel__top">
+    <button class="panel__nav" type="button" id="dia-ant" aria-label="Día anterior">‹</button>
+    <div class="panel__fecha">
+      <strong id="dia-titulo">—</strong>
+      <span id="dia-resumen"></span>
+    </div>
+    <button class="panel__nav" type="button" id="dia-sig" aria-label="Día siguiente">›</button>
+  </header>
+
+  <div class="panel__acciones">
+    <button class="panel__chip" type="button" id="ir-hoy">Hoy</button>
+    <button class="panel__chip" type="button" id="abrir-bloqueo">Bloquear horas</button>
+    <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
+  </div>
+
+  <div id="lista" class="panel__lista" aria-live="polite"></div>
+
+  <!-- Bloqueo de horas -->
+  <dialog id="dlg-bloqueo" class="panel__dlg">
+    <form method="dialog" id="form-bloqueo">
+      <h2>Bloquear horas</h2>
+      <label>Profesional
+        <select id="bq-prof"><option value="">Todo el local</option></select>
+      </label>
+      <div class="panel__fila">
+        <label>Desde <input id="bq-desde" type="time" required value="12:00"></label>
+        <label>Hasta <input id="bq-hasta" type="time" required value="13:00"></label>
+      </div>
+      <label>Motivo <input id="bq-motivo" type="text" placeholder="Almuerzo, cita médica…"></label>
+      <p class="panel__error" id="bq-error" role="alert" hidden></p>
+      <menu>
+        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
+        <button class="btn btn--wine" id="bq-guardar" type="button">Bloquear</button>
+      </menu>
+    </form>
+  </dialog>
+</main>
+
+<script src="assets/panel.js?v=1"></script>
+</body>
+</html>

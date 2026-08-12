@@ -1,0 +1,150 @@
+/* =========================================================
+   Panel del local. Hereda los tokens de styles.css.
+   Se diseña para el móvil: la agenda se mira de pie, entre
+   corte y corte, no sentado frente a un computador.
+   ========================================================= */
+
+.panel {
+  background: var(--ink);
+  color: var(--cream);
+  min-height: 100dvh;
+}
+
+/* --- Entrada --- */
+.panel__login {
+  min-height: 100dvh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 24px;
+  text-align: center;
+}
+.panel__login h1 {
+  font: 300 clamp(2.5rem, 12vw, 3.5rem)/1 var(--serif);
+  color: var(--cream);
+}
+.panel__sub {
+  margin: 0 0 22px;
+  font: 300 10px/1 var(--sans);
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--wine);
+}
+.panel__login form { display: flex; flex-direction: column; gap: 12px; width: min(320px, 100%); }
+
+.panel input, .panel select {
+  width: 100%;
+  min-height: 48px;                 /* dedo, no ratón */
+  padding: 0 14px;
+  background: var(--ink-soft);
+  border: 1px solid rgba(237, 230, 214, .2);
+  color: var(--cream);
+  font: 300 16px/1 var(--sans);     /* 16px o iOS hace zoom al enfocar */
+}
+.panel input:focus, .panel select:focus { border-color: var(--gold); outline: none; }
+
+.panel__error { margin: 4px 0 0; font: 300 12.5px/1.5 var(--sans); color: var(--wine); }
+
+/* --- Cabecera con el día --- */
+.panel__top {
+  position: sticky; top: 0; z-index: 5;
+  display: grid; grid-template-columns: 48px 1fr 48px; align-items: center;
+  padding: 10px 8px;
+  background: rgba(13, 13, 13, .95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(237, 230, 214, .12);
+}
+.panel__nav {
+  min-height: 44px; background: none; border: 0; cursor: pointer;
+  color: var(--cream); font: 300 26px/1 var(--serif);
+}
+.panel__fecha { text-align: center; display: flex; flex-direction: column; gap: 3px; }
+.panel__fecha strong {
+  font: 400 clamp(1.05rem, 4.5vw, 1.35rem)/1.1 var(--serif);
+  text-transform: capitalize;
+}
+.panel__fecha span { font: 300 11px/1 var(--sans); letter-spacing: .1em; color: var(--gold); }
+
+.panel__acciones { display: flex; gap: 8px; padding: 12px; overflow-x: auto; scrollbar-width: none; }
+.panel__acciones::-webkit-scrollbar { display: none; }
+.panel__chip {
+  flex: none; min-height: 40px; padding: 0 14px;
+  background: transparent; border: 1px solid rgba(237, 230, 214, .2);
+  color: rgba(237, 230, 214, .75);
+  font: 300 10.5px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap;
+}
+.panel__chip:hover { color: var(--cream); border-color: var(--cream); }
+.panel__chip--salir { margin-left: auto; border-color: rgba(155, 48, 64, .6); }
+
+/* --- Lista de citas --- */
+.panel__lista { padding: 0 12px 48px; display: flex; flex-direction: column; gap: 10px; }
+
+.cita {
+  border: 1px solid rgba(237, 230, 214, .16);
+  border-left: 3px solid var(--gold);
+  padding: 13px 14px;
+  display: grid; gap: 5px;
+}
+.cita--cumplida   { border-left-color: #3E7D5A; opacity: .62; }
+.cita--no_asistio { border-left-color: var(--wine); opacity: .62; }
+.cita--cancelada  { border-left-color: rgba(237,230,214,.25); opacity: .45; }
+
+.cita__cab { display: flex; align-items: baseline; gap: 10px; }
+.cita__hora { font: 400 1.25rem/1 var(--serif); color: var(--cream); }
+.cita__prof {
+  margin-left: auto;
+  font: 300 9.5px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase;
+  color: var(--gold);
+}
+.cita__cliente { font: 400 1.05rem/1.2 var(--serif); }
+.cita__serv    { font: 300 12px/1.5 var(--sans); color: rgba(237, 230, 214, .62); }
+.cita__pie     { display: flex; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+.cita__total   { font: 400 1rem/1 var(--serif); color: var(--gold); }
+.cita__estado  {
+  font: 300 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(237, 230, 214, .5);
+}
+
+/* Acciones de cada cita. Objetivo táctil de 44px: se pulsan de pie. */
+.cita__btns { display: flex; gap: 6px; margin-left: auto; }
+.cita__btn {
+  min-height: 44px; min-width: 44px; padding: 0 11px;
+  background: transparent; border: 1px solid rgba(237, 230, 214, .22);
+  color: rgba(237, 230, 214, .8);
+  font: 300 10px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer;
+}
+.cita__btn:hover { border-color: var(--cream); color: var(--cream); }
+.cita__btn--wa { border-color: rgba(62, 125, 90, .7); color: #7FBF9B; }
+
+.bloqueo {
+  border: 1px dashed rgba(237, 230, 214, .28);
+  padding: 11px 14px;
+  display: flex; align-items: center; gap: 10px;
+  font: 300 12px/1.4 var(--sans); color: rgba(237, 230, 214, .6);
+}
+
+.panel__vacio {
+  padding: 44px 14px; text-align: center;
+  font: 300 13px/1.7 var(--sans); color: rgba(237, 230, 214, .5);
+}
+
+/* --- Diálogo --- */
+.panel__dlg {
+  border: 1px solid rgba(237, 230, 214, .2);
+  background: var(--ink-soft); color: var(--cream);
+  width: min(420px, calc(100vw - 32px)); padding: 20px;
+}
+.panel__dlg::backdrop { background: rgba(0, 0, 0, .7); }
+.panel__dlg h2 { font: 300 1.6rem/1 var(--serif); margin: 0 0 16px; }
+.panel__dlg label {
+  display: block; margin-bottom: 12px;
+  font: 300 10px/1.8 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(237, 230, 214, .6);
+}
+.panel__fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.panel__dlg menu { display: flex; gap: 8px; justify-content: flex-end; margin: 18px 0 0; padding: 0; }
+.panel__dlg .btn { padding: 13px 20px; }
+
+@media (min-width: 760px) {
+  .panel__lista { max-width: 760px; margin-inline: auto; }
+  .panel__acciones { max-width: 760px; margin-inline: auto; }
+}

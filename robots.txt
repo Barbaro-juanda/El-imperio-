@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# Herramienta interna del local: ni se indexa ni se rastrea.
+Disallow: /panel
+Disallow: /api/
+
 Sitemap: https://www.imperialclasic.co/sitemap.xml
