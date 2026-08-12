@@ -40,6 +40,12 @@
     unas:       'Uñas'
   };
 
+  /* Segmentos de los que solo tiene sentido llevar una cosa: no se piden dos
+     cortes en la misma cita, ni dos diseños de cejas. Elegir otro reemplaza al
+     anterior en vez de sumarlo. Depilación facial y limpieza facial sí admiten
+     varios: son zonas y tratamientos que se combinan. */
+  const UNICO = ['cortes', 'color', 'cejas', 'unas'];
+
   const SERVICES = [
     // — Cortes —
     { id: 'corte-sencillo', group: 'cortes', name: 'Corte Sencillo', price: 35000, desc: 'Lavado de cabello y peinado.' },
@@ -386,6 +392,14 @@
      resto como `extras`, que es la forma que esperan el recibo y el .ics. */
   let segActivo = 'cortes';
 
+  /* Saca un id de la selección venga de donde venga. Si era el principal,
+     asciende el primer adicional para que no queden extras huérfanos. */
+  function quitar(id) {
+    if (state.service === id) { state.service = state.extras.shift() || null; return; }
+    const i = state.extras.indexOf(id);
+    if (i !== -1) state.extras.splice(i, 1);
+  }
+
   function alternar(id) {
     if (state.service === id) {
       /* Se quita el principal: asciende el primer adicional para que la cita
@@ -397,12 +411,21 @@
       if (i !== -1) {
         state.extras.splice(i, 1);
         track('service_removed', { service_name: byId(id).name });
-      } else if (!state.service) {
-        state.service = id;
-        track('service_selected', { service_name: byId(id).name, service_price: byId(id).price });
       } else {
-        state.extras.push(id);
-        track('extra_added', { service_name: byId(id).name, service_price: byId(id).price });
+        /* Segmento de elección única: lo que hubiera de ese segmento sale. */
+        const grupo = byId(id).group;
+        if (UNICO.indexOf(grupo) !== -1) {
+          seleccion().forEach(otro => {
+            if (otro !== id && byId(otro) && byId(otro).group === grupo) quitar(otro);
+          });
+        }
+        if (!state.service) {
+          state.service = id;
+          track('service_selected', { service_name: byId(id).name, service_price: byId(id).price });
+        } else {
+          state.extras.push(id);
+          track('extra_added', { service_name: byId(id).name, service_price: byId(id).price });
+        }
       }
     }
     /* Cambiar la selección puede activar o desactivar el paso de barbero. */

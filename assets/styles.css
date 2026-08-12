@@ -552,61 +552,58 @@ a:hover { color: var(--gold); }
 .section--paper .barber__photo { background: rgba(13, 13, 13, .08); }
 
 /* --- Paso 1: pestañas de segmento ---
-   Sin cajas: el sistema visual del sitio es tipográfico —versalitas espaciadas
-   y filetes de un pixel—, así que las pestañas van como rótulos con subrayado
-   activo, igual que .link-underline. Scroll horizontal en móvil en vez de
-   envolver a tres filas, que empujaría la lista fuera de la pantalla. */
+   Cada segmento en su cuadro y el activo relleno de vino: con seis pestañas
+   que no caben en pantalla, el subrayado fino no bastaba para ver dónde
+   estabas parado. Scroll horizontal en móvil en vez de envolver a tres filas,
+   que empujaría la lista fuera de la pantalla. */
 .segs {
   display: flex;
-  gap: clamp(16px, 3.4vw, 30px);
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid rgba(237, 230, 214, .13);
-  margin: 0 0 2px;
+  margin: 0 0 6px;
+  padding-bottom: 2px;
 }
 .segs::-webkit-scrollbar { display: none; }
 
 .seg {
   flex: none;
-  position: relative;
   display: inline-flex; align-items: center; gap: 7px;
-  min-height: 44px;                 /* objetivo táctil, aunque el texto sea bajo */
-  padding: 0 0 13px;
-  background: none;
-  border: 0;
-  color: rgba(237, 230, 214, .5);   /* 4.5:1 sobre tinta */
+  min-height: 44px;                 /* objetivo táctil */
+  padding: 0 16px;
+  border: 1px solid rgba(237, 230, 214, .2);
+  background: transparent;
+  color: rgba(237, 230, 214, .62);  /* 5.6:1 sobre tinta */
   font: 300 10.5px/1 var(--sans);
-  letter-spacing: .22em;
+  letter-spacing: .2em;
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: color .22s ease;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
 }
-.seg:hover { color: rgba(237, 230, 214, .85); }
+.seg:hover { color: var(--cream); border-color: rgba(237, 230, 214, .45); }
 
-/* El filete se dibuja sobre el borde del contenedor, no debajo. */
-.seg::after {
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: -1px;
-  height: 1px;
+.seg[aria-pressed="true"] {
   background: var(--wine);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform .25s ease;
+  border-color: var(--wine);
+  color: var(--cream);              /* 5.8:1 sobre vino */
 }
-.seg[aria-pressed="true"] { color: var(--cream); }
-.seg[aria-pressed="true"]::after { transform: scaleX(1); }
 
 /* Un segmento con algo elegido se marca aunque no sea el activo: son seis
    listas y solo se ve una, así que lo de las otras tiene que seguir presente. */
-.seg[data-con-seleccion="true"] { color: rgba(237, 230, 214, .82); }
+.seg[data-con-seleccion="true"]:not([aria-pressed="true"]) {
+  border-color: rgba(155, 48, 64, .75);
+  color: var(--cream);
+}
 .seg__count {
   display: inline-grid; place-items: center;
-  min-width: 15px; height: 15px; padding: 0 3px;
+  min-width: 16px; height: 16px; padding: 0 4px;
   border-radius: 999px;
-  background: var(--wine); color: var(--cream);   /* 5.8:1 */
+  background: var(--wine); color: var(--cream);
   font-size: 9px; font-weight: 400; letter-spacing: 0;
 }
+/* Sobre la pestaña activa el vino se pierde contra el vino: se invierte. */
+.seg[aria-pressed="true"] .seg__count { background: var(--cream); color: var(--wine); }
 .seg__count:empty { display: none; }
 
 /* --- Entrada en cascada --- */
@@ -1063,27 +1060,24 @@ a:hover { color: var(--gold); }
 .step__foot #back[hidden] { display: none; }
 
 /* ---- paso 1: servicio principal ---- */
-.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .pick {
   width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 6px 16px;
-  padding: 18px 16px;
-  /* Cada servicio en su propio cuadro: con seis segmentos y listas de hasta
-     doce filas, los filetes sueltos no dejaban claro dónde empieza y termina
-     cada opción ni qué se está tocando. */
-  border: 1px solid rgba(237, 230, 214, .16);
+  padding: 18px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line-cream);
+  border-left: 2px solid transparent;
   background: transparent;
   color: inherit; font: inherit; text-align: left;
   cursor: pointer;
   transition: background-color .2s ease, border-color .2s ease;
 }
-.pick:hover { border-color: rgba(237, 230, 214, .4); }
-/* Seleccionado: vino pleno. Texto crema encima da 5.8:1. */
-.pick[aria-pressed="true"] { background: var(--wine); border-color: var(--wine); }
-.pick[aria-pressed="true"]:hover { border-color: var(--cream); }
+.pick:hover { background: rgba(155, 48, 64, .05); }
+.pick[aria-pressed="true"] { background: rgba(155, 48, 64, .09); border-left-color: var(--wine); }
 
 .pick__name  { font: 400 clamp(1.25rem, 2vw, 1.625rem)/1.15 var(--serif); color: var(--cream); }
 .pick__desc  {
@@ -1095,14 +1089,8 @@ a:hover { color: var(--gold); }
 .pick__price {
   grid-column: 2; grid-row: 1 / span 2;
   font: 400 clamp(1rem, 1.5vw, 1.1875rem)/1.3 var(--serif);
-  /* Oro, no vino: iguala la carta de la portada y sube de 2.7:1 a 7.0:1.
-     En vino sobre tinta el precio era lo menos legible de la fila. */
-  color: var(--gold); text-align: right;
+  color: var(--wine); text-align: right;
 }
-
-/* Sobre el vino del seleccionado hay que subir los tonos apagados. */
-.pick[aria-pressed="true"] .pick__desc  { color: rgba(237, 230, 214, .88); }
-.pick[aria-pressed="true"] .pick__price { color: var(--cream); }
 .pick__check { display: none; }
 
 /* Encabezado de grupo dentro de la lista (Cortes / Rituales / Piel...). */
