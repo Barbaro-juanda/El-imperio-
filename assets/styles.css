@@ -551,6 +551,52 @@ a:hover { color: var(--gold); }
 .section--paper .barber__tag   { color: rgba(13, 13, 13, .62); } /* 5.1:1 */
 .section--paper .barber__photo { background: rgba(13, 13, 13, .08); }
 
+/* --- Paso 1: pestañas de segmento ---
+   Seis segmentos y una sola lista visible. El contador en la pestaña evita que
+   lo elegido en otra se sienta perdido. Scroll horizontal en móvil en vez de
+   envolver a tres filas, que empujaría la lista fuera de la pantalla. */
+.segs {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 0 4px;
+  padding-bottom: 4px;
+}
+.segs::-webkit-scrollbar { display: none; }
+
+.seg {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 44px;                      /* objetivo táctil */
+  padding: 0 15px;
+  background: transparent;
+  border: 1px solid rgba(237, 230, 214, .22);
+  color: rgba(237, 230, 214, .72);
+  font: 300 11px/1 var(--sans);
+  letter-spacing: .16em; text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.seg:hover { color: var(--cream); border-color: rgba(237, 230, 214, .45); }
+.seg[aria-pressed="true"] {
+  background: var(--cream);
+  border-color: var(--cream);
+  color: var(--ink);
+}
+/* Un segmento con algo elegido se marca aunque no sea el activo. */
+.seg[data-con-seleccion="true"]:not([aria-pressed="true"]) {
+  border-color: var(--wine);
+  color: var(--cream);
+}
+.seg__count {
+  display: inline-grid; place-items: center;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  background: var(--wine); color: var(--cream);
+  font-size: 9.5px; letter-spacing: 0;
+}
+.seg__count:empty { display: none; }
+
 /* --- Entrada en cascada --- */
 .reveal { opacity: 0; transform: translateY(16px); }
 .reveal.is-in {
@@ -948,7 +994,7 @@ a:hover { color: var(--gold); }
   .booking__panel { max-height: min(92svh, 1000px); padding: 56px 64px 40px; gap: 40px; }
 }
 
-.booking__panel[data-step="6"] { background: var(--cream); color: var(--ink); }
+.booking__panel[data-step="5"] { background: var(--cream); color: var(--ink); }
 
 .booking__close {
   position: absolute; top: 8px; right: 8px;
@@ -959,8 +1005,8 @@ a:hover { color: var(--gold); }
   width: 44px; height: 44px; /* mínimo táctil 2.5.5 — antes ~31px */
 }
 .booking__close:hover { color: var(--wine); }
-.booking__panel[data-step="6"] .booking__close { color: rgba(13, 13, 13, .6); }
-.booking__panel[data-step="6"] .booking__close:hover { color: var(--wine); }
+.booking__panel[data-step="5"] .booking__close { color: rgba(13, 13, 13, .6); }
+.booking__panel[data-step="5"] .booking__close:hover { color: var(--wine); }
 
 /* header */
 .step__head { display: flex; flex-direction: column; gap: 18px; }
@@ -971,7 +1017,7 @@ a:hover { color: var(--gold); }
   letter-spacing: .2em; text-transform: uppercase; text-align: right;
   color: rgba(237, 230, 214, .62);
 }
-.booking__panel[data-step="6"] .step__summary { color: rgba(13, 13, 13, .7); }
+.booking__panel[data-step="5"] .step__summary { color: rgba(13, 13, 13, .7); }
 @media (min-width: 940px) {
   .step__head { gap: 22px; }
   .step__meta .eyebrow { font-size: 11px; letter-spacing: .34em; }
@@ -984,9 +1030,9 @@ a:hover { color: var(--gold); }
 .progress span { height: 2px; background: rgba(237, 230, 214, .15); }
 .progress span.is-done { background: rgba(155, 48, 64, .4); }
 .progress span.is-now  { background: var(--wine); }
-.booking__panel[data-step="6"] .progress span { background: rgba(13, 13, 13, .12); }
-.booking__panel[data-step="6"] .progress span.is-done { background: rgba(155, 48, 64, .4); }
-.booking__panel[data-step="6"] .progress span.is-now  { background: var(--wine); }
+.booking__panel[data-step="5"] .progress span { background: rgba(13, 13, 13, .12); }
+.booking__panel[data-step="5"] .progress span.is-done { background: rgba(155, 48, 64, .4); }
+.booking__panel[data-step="5"] .progress span.is-now  { background: var(--wine); }
 @media (min-width: 940px) { .progress { gap: 10px; } }
 
 .step__title {
@@ -994,7 +1040,7 @@ a:hover { color: var(--gold); }
   line-height: 1;
 }
 .step__title em { color: var(--wine); }
-.booking__panel[data-step="6"] .step__title { display: none; }
+.booking__panel[data-step="5"] .step__title { display: none; }
 
 .step__body { flex: 1; }
 .step[hidden] { display: none; }

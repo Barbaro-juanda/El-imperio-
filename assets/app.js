@@ -25,11 +25,12 @@
      Precios y segmentos tomados de la página de reservas del propio local
      (beunik.co/entity-view/1414), que es donde se agenda hoy de verdad.
 
-     `group` es el segmento y define en qué bloque aparece, tanto en la carta de
-     la portada como en el paso 2 de la reserva. `principal` marca los que pueden
-     abrir una cita por sí solos; el resto son complementos. `destacado` resalta
-     la fila en la carta. `sinBarbero` salta el paso de barbero: las uñas las
-     atiende una sola especialista, no hay a quién elegir. */
+     `group` es el segmento: agrupa la carta de la portada y las pestañas del
+     paso 1 de la reserva. Cualquier servicio puede abrir una cita —quien viene
+     solo por las cejas no debería tener que elegir un corte primero—, así que
+     no hay lista de «principales». `destacado` resalta la fila en la carta.
+     `sinBarbero` salta el paso de barbero: las uñas las atiende una sola
+     especialista, no hay a quién elegir. */
   const SEGMENTOS = {
     cortes:     'Cortes',
     color:      'Color y tratamiento',
@@ -41,12 +42,12 @@
 
   const SERVICES = [
     // — Cortes —
-    { id: 'corte-sencillo', group: 'cortes', name: 'Corte Sencillo', price: 35000, desc: 'Lavado de cabello y peinado.', principal: true },
-    { id: 'corte-vip', group: 'cortes', name: 'Corte VIP', price: 45000, desc: 'Bebida de cortesía, limpieza facial y vapor ozono.', principal: true, destacado: true },
-    { id: 'corte-barba-senc', group: 'cortes', name: 'Corte y Barba Sencillo', price: 48000, desc: 'Corte y barba, con lavado y peinado.', principal: true },
-    { id: 'corte-barba-vip', group: 'cortes', name: 'Corte y Barba VIP', price: 60000, desc: 'Todo el VIP, con la barba incluida.', principal: true, destacado: true },
-    { id: 'ritual-barba', group: 'cortes', name: 'Ritual de Barba', price: 26000, desc: 'Limpieza facial, afeitado con vapor y diseño.', principal: true },
-    { id: 'barba-sencilla', group: 'cortes', name: 'Barba Sencilla', price: 15000, desc: 'Diseño de barba y afeitado.', principal: true },
+    { id: 'corte-sencillo', group: 'cortes', name: 'Corte Sencillo', price: 35000, desc: 'Lavado de cabello y peinado.' },
+    { id: 'corte-vip', group: 'cortes', name: 'Corte VIP', price: 45000, desc: 'Bebida de cortesía, limpieza facial y vapor ozono.', destacado: true },
+    { id: 'corte-barba-senc', group: 'cortes', name: 'Corte y Barba Sencillo', price: 48000, desc: 'Corte y barba, con lavado y peinado.' },
+    { id: 'corte-barba-vip', group: 'cortes', name: 'Corte y Barba VIP', price: 60000, desc: 'Todo el VIP, con la barba incluida.', destacado: true },
+    { id: 'ritual-barba', group: 'cortes', name: 'Ritual de Barba', price: 26000, desc: 'Limpieza facial, afeitado con vapor y diseño.' },
+    { id: 'barba-sencilla', group: 'cortes', name: 'Barba Sencilla', price: 15000, desc: 'Diseño de barba y afeitado.' },
     { id: 'pigmentacion', group: 'cortes', name: 'Pigmentación', price: 20000, desc: 'Densifica barba o cuero cabelludo.' },
 
     // — Color y tratamiento —
@@ -64,33 +65,26 @@
     { id: 'cejas-cuchilla', group: 'cejas', name: 'Cejas con cuchilla', price: 10000, desc: 'Depilación con cuchilla y diseño de cejas.' },
 
     // — Limpieza facial —
-    { id: 'ritual-facial', group: 'facial', name: 'Ritual Facial', price: 56000, desc: 'Vapor ozono, mascarillas, parches y masaje ocular.', principal: true, destacado: true },
+    { id: 'ritual-facial', group: 'facial', name: 'Ritual Facial', price: 56000, desc: 'Vapor ozono, mascarillas, parches y masaje ocular.', destacado: true },
     { id: 'masc-negros', group: 'facial', name: 'Mascarilla de puntos negros', price: 16000, desc: 'Retira impurezas y exceso de grasa.' },
     { id: 'masc-hialuronico', group: 'facial', name: 'Mascarilla de hialurónico', price: 20000, desc: 'Piel hidratada y de aspecto más joven.' },
     { id: 'masajeador', group: 'facial', name: 'Masajeador ocular', price: 20000, desc: 'Reduce líneas de expresión y ojeras.' },
     { id: 'parches-ojeras', group: 'facial', name: 'Parches para ojeras', price: 10000, desc: 'Hidrata y mejora el contorno de ojos.' },
 
     // — Uñas —
-    { id: 'manos-pies', group: 'unas', name: 'Manos y pies', price: null, nota: 'Consultar', desc: 'Manicura y pedicura en una sola cita.', principal: true, destacado: true, sinBarbero: true },
-    { id: 'manos-tradicional', group: 'unas', name: 'Manos Tradicionales', price: 30000, desc: 'Limado, cutícula y esmalte tradicional.', principal: true, sinBarbero: true },
-    { id: 'pies-tradicional', group: 'unas', name: 'Pies Tradicional', price: 35000, desc: 'Limado, cutícula y esmalte en los pies.', principal: true, sinBarbero: true },
-    { id: 'manos-semi', group: 'unas', name: 'Manos Semipermanentes', price: 40000, desc: 'Esmalte semipermanente, con brillo que dura semanas.', principal: true, sinBarbero: true },
-    { id: 'pies-semi', group: 'unas', name: 'Pies Semipermanente', price: 45000, desc: 'Semipermanente en pies, de larga duración.', principal: true, sinBarbero: true },
-    { id: 'rubber', group: 'unas', name: 'Manicura con Base Rubber', price: 65000, desc: 'Base rubber: uñas más fuertes y parejas.', principal: true, destacado: true, sinBarbero: true },
-    { id: 'press-on', group: 'unas', name: 'Extensión Press-on', price: 100000, desc: 'Extensiones aplicadas al momento, largo a elección.', principal: true, sinBarbero: true },
+    { id: 'manos-pies', group: 'unas', name: 'Manos y pies', price: null, nota: 'Consultar', desc: 'Manicura y pedicura en una sola cita.', destacado: true, sinBarbero: true },
+    { id: 'manos-tradicional', group: 'unas', name: 'Manos Tradicionales', price: 30000, desc: 'Limado, cutícula y esmalte tradicional.', sinBarbero: true },
+    { id: 'pies-tradicional', group: 'unas', name: 'Pies Tradicional', price: 35000, desc: 'Limado, cutícula y esmalte en los pies.', sinBarbero: true },
+    { id: 'manos-semi', group: 'unas', name: 'Manos Semipermanentes', price: 40000, desc: 'Esmalte semipermanente, con brillo que dura semanas.', sinBarbero: true },
+    { id: 'pies-semi', group: 'unas', name: 'Pies Semipermanente', price: 45000, desc: 'Semipermanente en pies, de larga duración.', sinBarbero: true },
+    { id: 'rubber', group: 'unas', name: 'Manicura con Base Rubber', price: 65000, desc: 'Base rubber: uñas más fuertes y parejas.', destacado: true, sinBarbero: true },
+    { id: 'press-on', group: 'unas', name: 'Extensión Press-on', price: 100000, desc: 'Extensiones aplicadas al momento, largo a elección.', sinBarbero: true },
     { id: 'decoracion', group: 'unas', name: 'Decoración y diseño de uñas', price: null, nota: 'Consultar', desc: 'Diseño a mano, del detalle simple al completo.', sinBarbero: true },
     { id: 'stiker', group: 'unas', name: 'Stiker y pedrería', price: 3000, desc: 'Apliques y pedrería para rematar el diseño.', sinBarbero: true },
     { id: 'velo', group: 'unas', name: 'Velo Terapia', price: 6000, desc: 'Refuerzo con velo para uñas quebradizas.', sinBarbero: true },
     { id: 'retiro-presson', group: 'unas', name: 'Retiro de Press-on', price: 15000, desc: 'Retiro cuidado, sin dañar la uña natural.', sinBarbero: true },
     { id: 'retiro-semi', group: 'unas', name: 'Retiro de Semipermanente', price: 5000, desc: 'Retiro del esmalte sin desgastar la uña.', sinBarbero: true },
   ];
-
-  /* Quién puede abrir una cita (paso 1). Va por flag y no por grupo: con seis
-     segmentos la regla «cortes y rituales» ya no alcanza —hay uñas y un ritual
-     facial que son motivo de visita por sí solos, y una pigmentación que no. */
-  const PRIMARIOS   = SERVICES.filter(s => s.principal);
-  /* Todo lo demás son complementos del paso 2, de selección múltiple. */
-  const ADICIONALES = SERVICES.filter(s => !s.principal);
 
   const byId = id => SERVICES.find(s => s.id === id);
 
@@ -246,21 +240,26 @@
   const stepFoot    = $('#step-foot');
   let lastFocused   = null;
 
-  const PASOS = 6;
-  const PASO_BARBERO = 3;
+  const PASOS = 5;
+  const PASO_BARBERO = 2;
 
-  /* El paso de barbero no siempre aplica: la manicura la atiende una sola
-     especialista, así que no hay nada que elegir. Se calcula la secuencia real
-     para que la numeración diga "Paso 3 de 5" y no salte del 2 al 4. */
+  /* Todo lo elegido, en orden: el primero es `service` y el resto `extras`.
+     Se conserva esa forma porque el recibo, el .ics y la analítica distinguen
+     el servicio de sus acompañantes. */
+  const seleccion = () => [state.service, ...state.extras].filter(Boolean);
+  const elegido   = id => seleccion().indexOf(id) !== -1;
+
+  /* El paso de barbero no siempre aplica: las uñas las atiende una sola
+     especialista. Solo se salta si NADA de lo elegido necesita barbero —una
+     cita de corte + manicura sí tiene barbero que elegir. */
   function pasosActivos() {
-    const s = state.service ? byId(state.service) : null;
-    const salta = !!(s && s.sinBarbero);
-    return [1, 2, 3, 4, 5, 6].filter(n => !(salta && n === PASO_BARBERO));
+    const items = seleccion().map(byId).filter(Boolean);
+    const salta = items.length > 0 && items.every(s => s.sinBarbero);
+    return [1, 2, 3, 4, 5].filter(n => !(salta && n === PASO_BARBERO));
   }
   const saltaBarbero = () => !pasosActivos().includes(PASO_BARBERO);
   const TITLES = [
-    'Elige un <em>servicio</em>',
-    '¿Algo <em>más</em>?',
+    '¿Qué te vas a <em>hacer</em>?',
     'Elige tu <em>barbero</em>',
     'Fecha y <em>hora</em>',
     'Tus <em>datos</em>',
@@ -299,10 +298,9 @@
     const especialista = saltaBarbero() ? 'Especialista' : null;
     const extras = state.extras.length ? '+' + state.extras.length : '';
     if (step === 1) return '⚜ Reserva';
-    if (step === 2) return s ? s.name : '⚜ Reserva';
-    if (step === 3) return [s && s.name, extras].filter(Boolean).join(' ');
-    if (step === 4) return [s && s.name, (b && b.name) || especialista].filter(Boolean).join(' · ');
-    if (step === 5) return state.date && state.slot ? shortDate(state.date) + ' · ' + state.slot : '';
+    if (step === 2) return [s && s.name, extras].filter(Boolean).join(' ');
+    if (step === 3) return [s && s.name, (b && b.name) || especialista].filter(Boolean).join(' · ');
+    if (step === 4) return state.date && state.slot ? shortDate(state.date) + ' · ' + state.slot : '';
     return 'Confirmada';
   }
 
@@ -319,8 +317,8 @@
   function firstIncompleteStep() {
     if (!state.service) return 1;
     if (!saltaBarbero() && state.barber === null) return PASO_BARBERO;
-    if (!state.date || !state.slot) return 4;
-    return 5;
+    if (!state.date || !state.slot) return 3;
+    return 4;
   }
 
   /* Los requisitos son acumulativos, no solo los del paso actual. Antes cada
@@ -329,7 +327,7 @@
   function canAdvance() {
     if (!state.service) return false;
     if (!saltaBarbero() && state.step >= PASO_BARBERO && state.barber === null) return false;
-    if (state.step >= 4 && !(state.date && state.slot)) return false;
+    if (state.step >= 3 && !(state.date && state.slot)) return false;
     return true;
   }
 
@@ -364,12 +362,8 @@
     backBtn.hidden = step === 1;
     stepFoot.dataset.single = String(step === 1);
 
-    /* El paso 2 es opcional: si no eligió nada, el botón lo dice para que
-       nadie sienta que le falta llenar algo. */
     const esConfirmacion = step === PASOS - 1;
-    nextBtn.textContent = esConfirmacion ? 'Confirmar reserva'
-                        : (step === 2 && !state.extras.length) ? 'Continuar sin adicionales'
-                        : 'Continuar';
+    nextBtn.textContent = esConfirmacion ? 'Confirmar reserva' : 'Continuar';
     nextBtn.className = 'btn ' + (esConfirmacion ? 'btn--gold' : 'btn--wine');
     nextBtn.disabled = !canAdvance();
 
@@ -377,30 +371,85 @@
        hacer clic. Si no, una selección hecha fuera del modal (el atajo del
        barbero en la portada) llega al paso 2 sin marcar y parece perdida. */
     syncPickServices();
-    syncPickExtras();
     syncBarberCards($('#pick-barbers'));
 
-    if (step === 4) { renderCalendar(); renderSlots(); }
+    if (step === 3) { renderCalendar(); renderSlots(); }
   }
 
   const precioTexto = s => (s.price === null ? (s.nota || 'Según diseño') : money(s.price));
 
-  /* ---- paso 1: servicio principal ---- */
+  /* ---- paso 1: qué se va a hacer ----
+     Un único paso segmentado. Antes había dos listas —«principales» y
+     «adicionales»— y eso obligaba a elegir un corte para poder llegar a las
+     cejas. Quien viene solo por las cejas ahora empieza por las cejas.
+     La cita es la suma de lo elegido; el primero queda como `service` y el
+     resto como `extras`, que es la forma que esperan el recibo y el .ics. */
+  let segActivo = 'cortes';
+
+  function alternar(id) {
+    if (state.service === id) {
+      /* Se quita el principal: asciende el primer adicional para que la cita
+         no quede con extras huérfanos y sin servicio. */
+      state.service = state.extras.shift() || null;
+      track('service_removed', { service_name: byId(id).name });
+    } else {
+      const i = state.extras.indexOf(id);
+      if (i !== -1) {
+        state.extras.splice(i, 1);
+        track('service_removed', { service_name: byId(id).name });
+      } else if (!state.service) {
+        state.service = id;
+        track('service_selected', { service_name: byId(id).name, service_price: byId(id).price });
+      } else {
+        state.extras.push(id);
+        track('extra_added', { service_name: byId(id).name, service_price: byId(id).price });
+      }
+    }
+    /* Cambiar la selección puede activar o desactivar el paso de barbero. */
+    if (saltaBarbero()) state.barber = null;
+    render();
+  }
+
+  function renderSegs() {
+    const cont = $('#segs');
+    cont.textContent = '';
+    Object.keys(SEGMENTOS).forEach(key => {
+      const btn = el('button', 'seg');
+      btn.type = 'button';
+      btn.dataset.seg = key;
+      btn.innerHTML = '<span class="seg__name"></span><span class="seg__count"></span>';
+      btn.querySelector('.seg__name').textContent = SEGMENTOS[key];
+      btn.addEventListener('click', () => {
+        segActivo = key;
+        renderPickServices();
+        syncSegs();
+        /* Seis pestañas no caben en un móvil: si la elegida quedó fuera de la
+           tira, se trae a la vista o parece que no pasó nada. */
+        btn.scrollIntoView({ block: 'nearest', inline: 'center' });
+      });
+      cont.appendChild(btn);
+    });
+  }
+
+  /* El contador por segmento evita que lo elegido en otra pestaña se sienta
+     perdido: son seis listas y solo se ve una. */
+  function syncSegs() {
+    $('#segs').querySelectorAll('.seg').forEach(btn => {
+      const key = btn.dataset.seg;
+      const n = seleccion().filter(id => byId(id) && byId(id).group === key).length;
+      btn.setAttribute('aria-pressed', String(key === segActivo));
+      btn.querySelector('.seg__count').textContent = n ? String(n) : '';
+      btn.dataset.conSeleccion = String(n > 0);
+    });
+  }
+
   function renderPickServices() {
     const list = $('#pick-services');
     list.textContent = '';
-    let grupoActual = null;
-    PRIMARIOS.forEach(s => {
-      if (s.group !== grupoActual) {
-        grupoActual = s.group;
-        const cab = el('li', 'pick-group');
-        cab.textContent = grupoActual === 'cortes' ? 'Cortes' : 'Rituales';
-        list.appendChild(cab);
-      }
+    SERVICES.filter(s => s.group === segActivo).forEach(s => {
       const li = el('li');
-      const btn = el('button', 'pick');
+      const btn = el('button', 'pick pick--multi');
       btn.type = 'button';
-      btn.setAttribute('aria-pressed', 'false');
       btn.dataset.id = s.id;
       btn.innerHTML =
         '<span class="pick__name"></span>' +
@@ -410,83 +459,30 @@
       btn.querySelector('.pick__name').textContent = s.name;
       btn.querySelector('.pick__desc').textContent = s.desc;
       btn.querySelector('.pick__price').textContent = precioTexto(s);
-      btn.addEventListener('click', () => {
-        state.service = s.id;
-        /* Manicura vive en las dos listas; si ya estaba como adicional se quita
-           para no cobrarla ni mostrarla dos veces. */
-        const dup = state.extras.indexOf(s.id);
-        if (dup !== -1) state.extras.splice(dup, 1);
-        /* Cambiar de servicio puede activar o desactivar el paso de barbero. */
-        if (saltaBarbero()) state.barber = null;
-        track('service_selected', { service_name: s.name, service_price: s.price });
-        render();
-      });
+      btn.addEventListener('click', () => alternar(s.id));
       li.appendChild(btn);
       list.appendChild(li);
     });
+    syncPickServices();
   }
 
   function syncPickServices() {
     $('#pick-services').querySelectorAll('.pick').forEach(btn => {
-      const on = btn.dataset.id === state.service;
+      const on = elegido(btn.dataset.id);
       btn.setAttribute('aria-pressed', String(on));
       btn.querySelector('.pick__check').textContent = on ? '⚜' : '';
     });
-  }
+    syncSegs();
 
-  /* ---- paso 2: adicionales (selección múltiple, opcional) ---- */
-  function renderPickExtras() {
-    const list = $('#pick-extras');
-    list.textContent = '';
-    let subActual = null;
-    ADICIONALES.forEach(s => {
-      const sub = SEGMENTOS[s.group] || 'Otros';
-      if (sub !== subActual) {
-        subActual = sub;
-        const cab = el('li', 'pick-group');
-        cab.textContent = sub;
-        list.appendChild(cab);
-      }
-      const li = el('li');
-      const btn = el('button', 'pick pick--multi');
-      btn.type = 'button';
-      btn.setAttribute('aria-pressed', 'false');
-      btn.dataset.id = s.id;
-      btn.innerHTML =
-        '<span class="pick__name"></span>' +
-        '<span class="pick__desc"></span>' +
-        '<span class="pick__price"></span>' +
-        '<span class="pick__check" aria-hidden="true"></span>';
-      btn.querySelector('.pick__name').textContent = s.name;
-      btn.querySelector('.pick__desc').textContent = s.desc;
-      btn.querySelector('.pick__price').textContent = precioTexto(s);
-      btn.addEventListener('click', () => {
-        const i = state.extras.indexOf(s.id);
-        if (i === -1) { state.extras.push(s.id); track('extra_added', { service_name: s.name, service_price: s.price }); }
-        else { state.extras.splice(i, 1); track('extra_removed', { service_name: s.name }); }
-        render();
-      });
-      li.appendChild(btn);
-      list.appendChild(li);
-    });
-  }
-
-  function syncPickExtras() {
-    const list = $('#pick-extras');
-    if (!list) return;
-    list.querySelectorAll('.pick').forEach(btn => {
-      /* Si ya es el servicio principal, no tiene sentido ofrecerlo de nuevo. */
-      const esPrincipal = btn.dataset.id === state.service;
-      btn.closest('li').hidden = esPrincipal;
-      const on = state.extras.indexOf(btn.dataset.id) !== -1;
-      btn.setAttribute('aria-pressed', String(on));
-      btn.querySelector('.pick__check').textContent = on ? '⚜' : '';
-    });
-    const t = totales();
     const resumen = $('#extras-total');
-    if (resumen) {
-      resumen.textContent = totalTexto();
-    }
+    if (!resumen) return;
+    const n = seleccion().length;
+    resumen.textContent = n ? totalTexto() : 'Sin servicios';
+    const hint = $('#segs-hint');
+    if (hint) hint.textContent = n
+      ? (n === 1 ? '1 servicio elegido. Puedes sumar de otros segmentos.'
+                 : n + ' servicios elegidos. Puedes sumar de otros segmentos.')
+      : 'Elige uno o varios. Puedes combinar segmentos.';
   }
 
   /* ---- paso 3: barbero ---- */
@@ -656,10 +652,12 @@
     dl.textContent = '';
     const t = totales();
 
-    const rows = [['Servicio', byId(state.service).name]];
-    if (state.extras.length) {
-      rows.push(['Adicionales', state.extras.map(id => byId(id).name).join(', ')]);
-    }
+    /* Una sola fila con todo lo elegido. La separación principal/adicionales es
+       interna —la necesitan el .ics y la analítica— pero para quien reserva la
+       cita es una sola cosa, y llamarle «adicional» a las únicas cejas que pidió
+       sonaba a que le faltaba algo. */
+    const nombres = seleccion().map(id => byId(id) && byId(id).name).filter(Boolean);
+    const rows = [[nombres.length > 1 ? 'Servicios' : 'Servicio', nombres.join(', ')]];
     /* Sin barbero (manicura) no se inventa un nombre: se dice quién atiende. */
     rows.push(state.barber !== null
       ? ['Barbero', BARBERS[state.barber].name]
@@ -1138,8 +1136,8 @@
   setupReviewsMarquee();
   setupInlineVideos();
   renderBarbers();
+  renderSegs();
   renderPickServices();
-  renderPickExtras();
   renderPickBarbers();
   render();
 })();

@@ -1085,14 +1085,13 @@
     <div class="step__body">
 
       <!-- Paso 1 — servicio -->
+      <!-- Paso 1 — servicios. Un solo paso con los seis segmentos: quien viene
+           solo por las cejas empieza por las cejas, no tiene que fingir un
+           corte para llegar a ellas. Selección múltiple: la cita es la suma. -->
       <section class="step" data-step="1" hidden>
-        <ul class="pick-list" id="pick-services"></ul>
-      </section>
-
-      <!-- Paso 2 — adicionales (opcional, selección múltiple) -->
-      <section class="step" data-step="2" hidden>
-        <p class="step__hint">Suma lo que quieras a tu cita. Puedes seguir sin elegir nada.</p>
-        <ul class="pick-list" id="pick-extras"></ul>
+        <div class="segs" id="segs" role="group" aria-label="Segmentos de servicio"></div>
+        <p class="step__hint" id="segs-hint">Elige uno o varios. Puedes combinar segmentos.</p>
+        <ul class="pick-list" id="pick-services" aria-live="polite"></ul>
         <div class="extras-total">
           <span class="extras-total__label">Total</span>
           <span class="extras-total__value" id="extras-total" aria-live="polite"></span>
@@ -1100,12 +1099,12 @@
       </section>
 
       <!-- Paso 2 — barbero -->
-      <section class="step" data-step="3" hidden>
+      <section class="step" data-step="2" hidden>
         <div class="pick-barbers" id="pick-barbers"></div>
       </section>
 
       <!-- Paso 3 — fecha y hora -->
-      <section class="step step--split" data-step="4" hidden>
+      <section class="step step--split" data-step="3" hidden>
         <div class="calendar">
           <div class="calendar__head">
             <button class="calendar__nav" type="button" id="cal-prev" aria-label="Mes anterior">‹</button>
@@ -1133,7 +1132,7 @@
       </section>
 
       <!-- Paso 4 — datos -->
-      <section class="step" data-step="5" hidden>
+      <section class="step" data-step="4" hidden>
         <form class="form" id="booking-form" novalidate>
           <div class="field">
             <label for="f-name">Nombre completo</label>
@@ -1160,7 +1159,7 @@
       </section>
 
       <!-- Paso 5 — confirmación -->
-      <section class="step step--done" data-step="6" hidden>
+      <section class="step step--done" data-step="5" hidden>
         <div class="done">
           <span class="crest crest--xl" aria-hidden="true"><span class="crest__ring"></span><span class="crest__mark">⚜</span></span>
           <h3>Tu silla está <em>reservada</em></h3>
