@@ -96,11 +96,20 @@
 
   /* Barberos reales del local. `spec` va vacío a propósito: los tres nombres y
      especialidades anteriores (Mateo/Samuel/Tomás) eran relleno del diseño, y no
-     sé cuál es la especialidad real de Ema y Simon — inventarla sería atribuirle
-     una destreza a una persona real. Al llenarla, la línea aparece sola. */
+     sé cuál es la especialidad real de Emanuel y Simon — inventarla sería
+     atribuirle una destreza a una persona real. Al llenarla, la línea aparece
+     sola.
+
+     Los nombres se contrastaron con la página de reservas del local: la foto
+     que decía «Ema» es literalmente el mismo avatar que allí figura como
+     Emanuel Gómez, así que ese queda confirmado. «Simon» NO aparece entre los
+     profesionales agendables, y la foto tampoco corresponde a Jeronimo Garcia
+     —son dos personas distintas—, así que se deja como está hasta confirmar
+     con el local. Faltan por sumar Jeronimo Garcia y Valentina Romero, que sí
+     reciben citas allí. */
   const BARBERS = [
-    { name: 'Ema',   spec: '', photo: 'assets/barbero-ema.jpg',
-      alt: 'Ema, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
+    { name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg',
+      alt: 'Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
     { name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg',
       alt: 'Simon, barbero de The Imperial Clasic, de brazos cruzados en el local' }
   ];
