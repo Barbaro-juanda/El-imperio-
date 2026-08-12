@@ -111,19 +111,29 @@
      con el local. Faltan por sumar Jeronimo Garcia y Valentina Romero, que sí
      reciben citas allí. */
   const BARBERS = [
-    { name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg',
+    { id: 1, name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg',
       alt: 'Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
-    { name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg',
+    /* Sin id: no figura entre los profesionales que reciben citas. Se muestra
+       en la portada porque trabaja en el local, pero su tarjeta no preselecciona
+       a nadie al abrir la reserva —hacerlo agendaría con quien no existe en la
+       agenda—. En cuanto el local confirme quién es, se le pone su id. */
+    { id: null, name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg',
       alt: 'Simon, barbero de The Imperial Clasic, de brazos cruzados en el local' }
   ];
+
+  /* Fotos por id de profesional. La base guarda la ruta, pero Jeronimo y
+     Valentina todavía no tienen foto propia en el sitio. */
+  const FOTO_PROF = { 1: 'assets/barbero-ema.jpg' };
+
+  /* Equipo que puede atender lo elegido. Lo llena la API en cuanto cambia la
+     selección; vacío mientras no haya respuesta. */
+  let PROFS = [];
+  const profPorId = id => PROFS.find(p => p.id === id) || null;
 
   /* REVIEWS se eliminó: los tres testimonios eran inventados por el diseño.
      La sección ahora muestra la calificación real de Google, que es HTML
      estático y no necesita render. Al conseguir reseñas reales, volver a
      declarar el arreglo aquí y reponer renderReviews(). */
-
-  const TIMES = ['09:00', '09:45', '10:30', '11:15', '12:00', '12:45',
-                 '14:00', '14:45', '15:30', '16:15', '17:00', '17:45'];
 
   const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -143,38 +153,49 @@
     utcOffsetHours: -5 // America/Bogota, sin horario de verano
   };
 
+  /* La API vive en el mismo origen; en local no existe (el servidor de
+     desarrollo solo sirve archivos), así que las llamadas fallan y la interfaz
+     lo dice en vez de inventar horarios libres. Enseñar disponibilidad falsa
+     es peor que no enseñar ninguna: alguien reservaría una hora que no existe. */
+  const API = '/api';
+  async function pedir(ruta, opciones) {
+    const r = await fetch(API + ruta, opciones);
+    let cuerpo = null;
+    try { cuerpo = await r.json(); } catch (e) { /* respuesta no JSON */ }
+    if (!r.ok) throw Object.assign(new Error((cuerpo && cuerpo.error) || 'Error ' + r.status), { estado: r.status });
+    return cuerpo;
+  }
+
   const money = n => '$' + n.toLocaleString('es-CO');
   const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
   const $  = sel => document.querySelector(sel);
   const pad = n => String(n).padStart(2, '0');
   const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 
-  /* Sábado cierra a las 18:00, domingo cerrado. */
-  const isClosed = d => d.getDay() === 0;
-  const lastSlotFor = d => (d.getDay() === 6 ? '17:00' : '23:59');
+  /* Los horarios los calcula el servidor con las duraciones reales y las citas
+     ya tomadas. Aquí solo se guarda la última respuesta. */
+  let CUPOS = { cargando: false, error: null, libres: [], clave: null };
 
-  /* Ocupación simulada, estable para una misma fecha + barbero.
-     Sustituir por la disponibilidad real del backend. */
-  function bookedSlots(dateKey, barberIndex) {
-    let h = 0;
-    const seed = dateKey + '#' + barberIndex;
-    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-    return TIMES.filter((_, i) => ((h >> i) & 1) === 1 && i % 3 !== 0);
-  }
-
-  function availableTimes(date, barberIndex) {
-    if (!date || isClosed(date)) return [];
-    const limit = lastSlotFor(date);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const isToday = date.getTime() === today.getTime();
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    const taken = bookedSlots(ymd(date), barberIndex);
-
-    return TIMES.filter(t => t <= limit).map(t => {
-      const [hh, mm] = t.split(':').map(Number);
-      const past = isToday && hh * 60 + mm <= nowMin + 30;
-      return { label: t, free: !past && taken.indexOf(t) === -1 };
-    });
+  async function cargarCupos() {
+    const ids = seleccion();
+    if (!ids.length || !state.date || state.barber === null) return;
+    const clave = ymd(state.date) + '|' + state.barber + '|' + ids.join(',');
+    if (CUPOS.clave === clave && !CUPOS.error) return;
+    CUPOS = { cargando: true, error: null, libres: [], clave };
+    renderSlots();
+    try {
+      const r = await pedir('/disponibilidad?fecha=' + ymd(state.date) +
+                            '&servicios=' + encodeURIComponent(ids.join(',')) +
+                            '&profesional=' + state.barber);
+      if (CUPOS.clave !== clave) return;            // llegó tarde, ya cambió la selección
+      CUPOS = { cargando: false, error: r.cerrado ? 'cerrado' : null,
+                libres: (r.cupos && r.cupos[state.barber]) || [], clave };
+    } catch (e) {
+      if (CUPOS.clave !== clave) return;
+      CUPOS = { cargando: false, error: e.message || 'sin conexión', libres: [], clave };
+    }
+    renderSlots();
+    render();
   }
 
   /* ------------------------------------------------------
@@ -202,7 +223,7 @@
     card.querySelector('.barber__name').textContent = b.name;
     const spec = card.querySelector('.barber__spec');
     if (b.spec) spec.textContent = b.spec; else spec.remove();
-    card.addEventListener('click', () => onPick(index));
+    card.addEventListener('click', () => onPick(b.id, index));
     return card;
   }
 
@@ -210,23 +231,22 @@
     const wrap = $('#barbers-list');
     wrap.textContent = ''; // reemplaza el contenido estático (SEO/no-JS) por la versión con handlers
     BARBERS.forEach((b, i) => {
-      wrap.appendChild(barberCard(b, i, index => {
-        state.barber = index;
-        /* Atajo desde la portada: deja el barbero marcado y pide abrir en el
-           paso 2. openBooking() lo baja al paso 1 si todavía no hay servicio.
-           No pasa por los botones [data-book], así que booking_started se
-           emite aquí o el embudo pierde estas sesiones por completo. */
+      wrap.appendChild(barberCard(b, i, id => {
+        /* Atajo desde la portada. Solo preselecciona si esa persona existe en la
+           agenda; si no, abre la reserva sin barbero elegido en vez de dejar un
+           id inválido que reventaría al pedir cupos. */
+        state.barber = id;
         track('booking_started', { trigger_location: 'barber_card' });
-        track('barber_selected', { barber_name: BARBERS[index].name });
+        if (id !== null) track('barber_selected', { barber_name: b.name });
         syncBarberCards(wrap);
-        openBooking(3); // paso del barbero; openBooking lo baja si falta el servicio
+        openBooking(PASO_BARBERO);
       }));
     });
   }
 
   function syncBarberCards(scope) {
     scope.querySelectorAll('.barber').forEach(card => {
-      const on = Number(card.dataset.barber) === state.barber;
+      const on = card.dataset.barber !== '' && Number(card.dataset.barber) === state.barber;
       card.setAttribute('aria-pressed', String(on));
       const tag = card.querySelector('.barber__tag');
       if (tag) tag.textContent = on ? '⚜ Elegido' : 'Elegir';
@@ -240,11 +260,12 @@
     step: 1,
     service: null,   // id del servicio principal
     extras: [],      // ids de los adicionales elegidos
-    barber: null,
+    barber: null,   // id de profesional en la base, no índice
     date: null,
     slot: null,
     month: (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })(),
-    customer: { name: '', phone: '', email: '' }
+    customer: { name: '', phone: '', email: '' },
+    codigo: null   // el que devuelve el servidor al confirmar
   };
 
   const booking     = $('#booking');
@@ -312,7 +333,7 @@
 
   function summaryFor(step) {
     const s = state.service ? byId(state.service) : null;
-    const b = state.barber !== null ? BARBERS[state.barber] : null;
+    const b = state.barber !== null ? profPorId(state.barber) : null;
     const especialista = saltaBarbero() ? 'Especialista' : null;
     const extras = state.extras.length ? '+' + state.extras.length : '';
     if (step === 1) return '⚜ Reserva';
@@ -391,7 +412,7 @@
     syncPickServices();
     syncBarberCards($('#pick-barbers'));
 
-    if (step === 3) { renderCalendar(); renderSlots(); }
+    if (step === 3) { renderCalendar(); renderSlots(); cargarCupos(); }
   }
 
   const precioTexto = s => (s.price === null ? (s.nota || 'Según diseño') : money(s.price));
@@ -442,6 +463,8 @@
     }
     /* Cambiar la selección puede activar o desactivar el paso de barbero. */
     if (saltaBarbero()) state.barber = null;
+    CUPOS = { cargando: false, error: null, libres: [], clave: null };
+    cargarProfesionales();
     render();
   }
 
@@ -521,18 +544,53 @@
   }
 
   /* ---- paso 3: barbero ---- */
+  /* El equipo del paso 2 sale de la base, no de la lista local: quién puede
+     atender depende de lo elegido —solo Valentina hace la pedicura— y esa
+     verdad vive en el servidor. */
+  async function cargarProfesionales() {
+    const ids = seleccion();
+    if (!ids.length) { PROFS = []; return; }
+    try {
+      const r = await pedir('/profesionales?servicios=' + encodeURIComponent(ids.join(',')));
+      PROFS = r.profesionales || [];
+    } catch (e) {
+      PROFS = [];
+    }
+    /* Si el elegido ya no puede con la nueva selección, se suelta. */
+    if (state.barber !== null && !profPorId(state.barber)) { state.barber = null; state.slot = null; }
+    /* Con una sola opción no hay nada que elegir: se asigna y el paso se salta. */
+    if (PROFS.length === 1) state.barber = PROFS[0].id;
+    renderPickBarbers();
+    render();
+  }
+
   function renderPickBarbers() {
     const wrap = $('#pick-barbers');
-    BARBERS.forEach((b, i) => {
-      wrap.appendChild(barberCard(b, i, index => {
-        state.barber = index;
+    if (!wrap) return;
+    wrap.textContent = '';
+    if (!PROFS.length) {
+      const p = el('p', 'step__hint');
+      p.textContent = seleccion().length
+        ? 'No pudimos cargar el equipo. Revisa tu conexión.'
+        : 'Elige primero un servicio.';
+      wrap.appendChild(p);
+      return;
+    }
+    PROFS.forEach(prof => {
+      const b = { id: prof.id, name: prof.nombre, spec: '',
+                  photo: FOTO_PROF[prof.id] || prof.foto || '',
+                  alt: prof.nombre + ', del equipo de The Imperial Clasic' };
+      wrap.appendChild(barberCard(b, prof.id, id => {
+        state.barber = id;
         state.slot = null;
-        track('barber_selected', { barber_name: BARBERS[index].name });
+        CUPOS = { cargando: false, error: null, libres: [], clave: null };
+        track('barber_selected', { barber_name: prof.nombre });
         syncBarberCards(wrap);
         syncBarberCards($('#barbers-list'));
         render();
       }));
     });
+    syncBarberCards(wrap);
   }
 
   /* ---- paso 3 ---- */
@@ -561,9 +619,11 @@
       btn.textContent = String(n);
       btn.setAttribute('aria-label', longDate(date));
 
-      const past = date < today;
-      const free = availableTimes(date, agendaDe()).some(s => s.free);
-      btn.disabled = past || isClosed(date) || !free;
+      /* Solo se descartan los días pasados. Saber si un día concreto tiene
+         cupo exigiría una consulta por casilla —treinta y una al pintar el
+         mes—, así que el calendario deja elegir y es la lista de horarios la
+         que responde «sin horas» o «cerrado ese día». */
+      btn.disabled = date < today;
       btn.setAttribute('aria-pressed', String(!!state.date && ymd(state.date) === ymd(date)));
 
       btn.addEventListener('click', () => {
@@ -592,21 +652,38 @@
       return;
     }
 
-    const slots = availableTimes(state.date, agendaDe());
-    const free  = slots.filter(s => s.free).length;
-    dayEl.textContent = WEEKDAYS[state.date.getDay()] + ' ' + state.date.getDate();
-    count.textContent = free === 0 ? 'Sin horas' : 'Quedan ' + free + (free === 1 ? ' hora' : ' horas');
+    if (CUPOS.cargando) {
+      dayEl.textContent = WEEKDAYS[state.date.getDay()] + ' ' + state.date.getDate();
+      count.textContent = 'Buscando…';
+      return;
+    }
+    if (CUPOS.error) {
+      dayEl.textContent = WEEKDAYS[state.date.getDay()] + ' ' + state.date.getDate();
+      /* Nunca se cae a horarios inventados: si no sabemos qué está libre, se
+         dice. Mostrar cupos falsos haría que alguien reserve una hora que no
+         existe y llegue al local para nada. */
+      count.textContent = CUPOS.error === 'cerrado' ? 'Cerrado ese día' : 'No pudimos ver la agenda';
+      const p = el('p', 'step__hint');
+      p.textContent = CUPOS.error === 'cerrado'
+        ? 'Elige otro día.'
+        : 'Vuelve a intentarlo en un momento o escríbenos por WhatsApp.';
+      grid.appendChild(p);
+      return;
+    }
 
-    slots.forEach(s => {
+    const libres = CUPOS.libres;
+    dayEl.textContent = WEEKDAYS[state.date.getDay()] + ' ' + state.date.getDate();
+    count.textContent = !libres.length ? 'Sin horas'
+                      : 'Quedan ' + libres.length + (libres.length === 1 ? ' hora' : ' horas');
+
+    libres.forEach(hora => {
       const btn = el('button', 'slot');
       btn.type = 'button';
-      btn.textContent = s.label;
-      btn.disabled = !s.free;
-      btn.setAttribute('aria-pressed', String(state.slot === s.label));
-      btn.setAttribute('aria-label', s.label + (s.free ? '' : ' — ocupada'));
+      btn.textContent = hora;
+      btn.setAttribute('aria-pressed', String(state.slot === hora));
       btn.addEventListener('click', () => {
-        state.slot = s.label;
-        track('datetime_selected', { booking_date: ymd(state.date), booking_time: s.label });
+        state.slot = hora;
+        track('datetime_selected', { booking_date: ymd(state.date), booking_time: hora });
         renderSlots();
         render();
       });
@@ -695,7 +772,7 @@
     const rows = [[nombres.length > 1 ? 'Servicios' : 'Servicio', nombres.join(', ')]];
     /* Sin barbero (manicura) no se inventa un nombre: se dice quién atiende. */
     rows.push(state.barber !== null
-      ? ['Barbero', BARBERS[state.barber].name]
+      ? ['Barbero', (profPorId(state.barber) || {}).nombre || 'Por confirmar']
       : ['Atiende', 'Nuestra especialista en manicura']);
     rows.push(['Fecha y hora', shortDate(state.date) + ' · ' + state.slot]);
     /* Si hay algo de precio variable no se inventa un total: se suma lo fijo y
@@ -721,20 +798,27 @@
   }
 
   /* Envío real: reemplazar por la llamada al backend / WhatsApp Business API. */
+  /* Envía la cita de verdad. El total no se manda: lo calcula el servidor con
+     los precios de la base, porque lo que sale del navegador es editable. */
   function submitBooking() {
-    const t = totales();
-    const payload = {
-      service: byId(state.service),
-      extras:  state.extras.map(byId),
-      total:   t.fijo,
-      requiereCotizacion: t.variables.map(s => s.name),
-      barber:  state.barber !== null ? BARBERS[state.barber] : null,
-      date:    ymd(state.date),
-      time:    state.slot,
-      customer: state.customer
-    };
-    console.info('[reserva] pendiente de enviar al backend:', payload);
-    return Promise.resolve(payload);
+    return pedir('/reservar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fecha: ymd(state.date),
+        hora: state.slot,
+        servicios: seleccion(),
+        profesional: state.barber,
+        cliente: {
+          nombre: state.customer.name,
+          telefono: state.customer.phone,
+          email: state.customer.email
+        }
+      })
+    }).then(r => {
+      state.codigo = r.codigo;
+      return r;
+    });
   }
 
   /* ---- .ics ---- */
@@ -768,7 +852,7 @@
       'DTEND:'   + icsStamp(state.date, state.slot, ICS_BLOQUE_MIN),
       'SUMMARY:' + titulo + ' · ' + SHOP.name,
       'LOCATION:' + SHOP.address,
-      'DESCRIPTION:' + (state.barber !== null ? 'Barbero: ' + BARBERS[state.barber].name : 'Atiende nuestra especialista en manicura') + '. Llega cinco minutos antes.',
+      'DESCRIPTION:' + (state.barber !== null ? 'Barbero: ' + ((profPorId(state.barber) || {}).nombre || '') : 'Atiende nuestra especialista') + '. Llega cinco minutos antes.',
       'END:VEVENT',
       'END:VCALENDAR'
     ];
@@ -787,7 +871,23 @@
      Navegación
      ------------------------------------------------------ */
   const STEP_NAMES = ['servicio', 'adicionales', 'barbero', 'fecha_hora', 'datos'];
-  const PASO_DATOS = PASOS - 1; // 5: el último con formulario
+  const PASO_DATOS = PASOS - 1;  // el último con formulario
+  const PASO_FECHA = PASOS - 2;  // fecha y hora
+
+  /* Aviso de error del envío, junto al botón. role=alert para que un lector de
+     pantalla lo anuncie sin que haya que moverle el foco. */
+  function avisoEnvio(texto) {
+    let n = $('#aviso-envio');
+    if (!n) {
+      n = el('p', 'step__hint');
+      n.id = 'aviso-envio';
+      n.setAttribute('role', 'alert');
+      n.style.color = 'var(--wine)';
+      stepFoot.parentNode.insertBefore(n, stepFoot);
+    }
+    n.textContent = texto;
+    n.hidden = !texto;
+  }
 
   function goNext() {
     if (state.step === PASO_DATOS) {
@@ -797,14 +897,36 @@
         return;
       }
       track('booking_step_completed', { step_number: PASO_DATOS, step_name: STEP_NAMES[PASO_DATOS - 1] });
-      submitBooking().then(() => {
+
+      /* Mientras viaja la petición el botón se bloquea: sin esto, dos toques
+         seguidos mandan dos citas. */
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Enviando…';
+      avisoEnvio('');
+
+      submitBooking().catch(e => {
+        nextBtn.disabled = false;
+        nextBtn.textContent = 'Confirmar reserva';
+        /* 409 = el cupo se lo llevaron mientras llenaba el formulario. Se
+           devuelve al paso de fecha con los horarios recargados, que es lo
+           único que puede hacer. */
+        avisoEnvio(e.message || 'No pudimos enviar la reserva. Inténtalo de nuevo.');
+        if (e.estado === 409) {
+          state.slot = null;
+          CUPOS = { cargando: false, error: null, libres: [], clave: null };
+          state.step = PASO_FECHA;
+          render();
+          cargarCupos();
+        }
+        throw e;
+      }).then(() => {
         const t = totales();
         const conversionParams = {
           value: t.fijo,
           currency: 'COP',
           service_name: byId(state.service).name,
           extras_count: state.extras.length,
-          barber_name: state.barber !== null ? BARBERS[state.barber].name : '(especialista manicura)',
+          barber_name: state.barber !== null ? ((profPorId(state.barber) || {}).nombre || '') : '(especialista)',
           booking_date: ymd(state.date),
           booking_time: state.slot
         };
