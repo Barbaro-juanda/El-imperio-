@@ -22,58 +22,75 @@
      calendario reparte espacios fijos. `price: null` = precio según diseño; esos
      no suman al total y el recibo lo advierte en vez de inventar una cifra.
 
-     `group` define en qué bloque aparece en la página:
-       cortes    → los principales, en cuadrícula Sencillo vs VIP
-       rituales  → servicios completos que se agendan solos
-       detalles  → complementos cortos
-       color     → trabajos de precio variable
-     `sub` subagrupa los detalles para que no queden en una lista plana. */
+     Precios y segmentos tomados de la página de reservas del propio local
+     (beunik.co/entity-view/1414), que es donde se agenda hoy de verdad.
+
+     `group` es el segmento y define en qué bloque aparece, tanto en la carta de
+     la portada como en el paso 2 de la reserva. `principal` marca los que pueden
+     abrir una cita por sí solos; el resto son complementos. `destacado` resalta
+     la fila en la carta. `sinBarbero` salta el paso de barbero: las uñas las
+     atiende una sola especialista, no hay a quién elegir. */
+  const SEGMENTOS = {
+    cortes:     'Cortes',
+    color:      'Color y tratamiento',
+    depilacion: 'Depilación facial',
+    cejas:      'Cejas',
+    facial:     'Limpieza facial',
+    unas:       'Uñas'
+  };
+
   const SERVICES = [
     // — Cortes —
-    { id: 'corte-vip',        group: 'cortes', name: 'Corte VIP',               price: 45000, tier: 'VIP',      desc: 'Bebida de cortesía, limpieza facial, tratamiento de vapor ozono, lavado de cabello y peinado.' },
-    { id: 'corte-barba-vip',  group: 'cortes', name: 'Corte y Barba VIP',       price: 60000, tier: 'VIP',      desc: 'Bebida de cortesía, limpieza facial, tratamiento de vapor ozono, lavado de cabello y peinado.' },
-    { id: 'corte-sencillo',   group: 'cortes', name: 'Corte Sencillo',          price: 35000, tier: 'Sencillo', desc: 'Lavado de cabello y peinado.' },
-    { id: 'corte-barba-senc', group: 'cortes', name: 'Corte y Barba Sencillo',  price: 48000, tier: 'Sencillo', desc: 'Lavado de cabello y peinado.' },
+    { id: 'corte-sencillo', group: 'cortes', name: 'Corte Sencillo', price: 35000, desc: 'Lavado de cabello y peinado.', principal: true },
+    { id: 'corte-vip', group: 'cortes', name: 'Corte VIP', price: 45000, desc: 'Bebida de cortesía, limpieza facial y vapor ozono.', principal: true, destacado: true },
+    { id: 'corte-barba-senc', group: 'cortes', name: 'Corte y Barba Sencillo', price: 48000, desc: 'Corte y barba, con lavado y peinado.', principal: true },
+    { id: 'corte-barba-vip', group: 'cortes', name: 'Corte y Barba VIP', price: 60000, desc: 'Todo el VIP, con la barba incluida.', principal: true, destacado: true },
+    { id: 'ritual-barba', group: 'cortes', name: 'Ritual de Barba', price: 26000, desc: 'Limpieza facial, afeitado con vapor y diseño.', principal: true },
+    { id: 'barba-sencilla', group: 'cortes', name: 'Barba Sencilla', price: 15000, desc: 'Diseño de barba y afeitado.', principal: true },
+    { id: 'pigmentacion', group: 'cortes', name: 'Pigmentación', price: 20000, desc: 'Densifica barba o cuero cabelludo.' },
 
-    // — Rituales —
-    { id: 'ritual-facial',    group: 'rituales', name: 'Ritual Facial',   price: 56000, desc: 'Limpieza facial superficial: vapor ozono, mascarilla hidratante, mascarilla de puntos negros, mascarilla de colágeno, parches para ojeras y masajeador ocular.' },
-    { id: 'ritual-barba',     group: 'rituales', name: 'Ritual de Barba',  price: 26000, desc: 'Bebida de cortesía, limpieza facial, afeitado con vapor y diseño de barba.' },
-    { id: 'barba-sencilla',   group: 'rituales', name: 'Barba Sencilla',   price: 15000, desc: 'Diseño de barba y afeitado.' },
+    // — Color y tratamiento —
+    { id: 'colorimetria', group: 'color', name: 'Colorimetría', price: null, nota: 'Según diseño, color y cabello', desc: 'Platinados, rayos, plumillas y más.' },
+    { id: 'freestyle', group: 'color', name: 'Freestyle', price: null, nota: 'Según diseño', desc: 'Dibujo tallado en el cuero cabelludo.' },
+    { id: 'hidrocauterizacion', group: 'color', name: 'Hidrocauterización capilar', price: null, nota: 'Según largo y densidad', desc: 'Sella la cutícula y controla el frizz.' },
 
-    // — Detalles —
-    { id: 'pigmentacion',     group: 'detalles', sub: 'Barba y cejas', name: 'Pigmentación',              price: 14000, desc: 'De barba o cuero cabelludo. Perfecciona el corte y cubre las zonas de poca densidad.' },
-    { id: 'cejas-cuchilla',   group: 'detalles', sub: 'Barba y cejas', name: 'Cejas con cuchilla',        price: 10000, desc: 'Depilación con cuchilla y diseño de cejas.' },
-    { id: 'cejas-hilo',       group: 'detalles', sub: 'Barba y cejas', name: 'Cejas con hilo',            price: 20000, desc: 'Depilación con hilo y diseño de cejas.' },
-    { id: 'dep-oidos',        group: 'detalles', sub: 'Barba y cejas', name: 'Depilación de oídos',       price: 15000, desc: 'Depilación con cera.' },
-    { id: 'dep-nasales',      group: 'detalles', sub: 'Barba y cejas', name: 'Depilación de fosas nasales', price: 15000, desc: 'Depilación con cera.' },
-    { id: 'masc-negros',      group: 'detalles', sub: 'Piel',   name: 'Mascarilla de puntos negros', price: 16000, desc: 'Retira impurezas y exceso de grasa.' },
-    { id: 'masc-hialuronico', group: 'detalles', sub: 'Piel',   name: 'Mascarilla de hialurónico',   price: 20000, desc: 'Mascarilla de velo con ácido hialurónico. Piel hidratada y de aspecto más joven.' },
-    { id: 'masajeador',       group: 'detalles', sub: 'Mirada', name: 'Masajeador ocular',           price: 20000, desc: 'Con calefacción y música relajante. Reduce líneas de expresión y ojeras.' },
-    { id: 'parches-ojeras',   group: 'detalles', sub: 'Mirada', name: 'Parches para ojeras',         price: 10000, desc: 'Hidrata y mejora el aspecto del contorno de ojos.' },
+    // — Depilación facial —
+    { id: 'dep-nariz-oidos', group: 'depilacion', name: 'Depilación de nariz y oídos', price: 25000, nota: 'Desde', desc: 'Las dos zonas en una sola sesión.' },
+    { id: 'dep-nasales', group: 'depilacion', name: 'Depilación de fosas nasales', price: 15000, desc: 'Depilación con cera.' },
+    { id: 'dep-oidos', group: 'depilacion', name: 'Depilación de oídos', price: 15000, desc: 'Depilación con cera.' },
 
-    /* Manicura: aparece en la carta de la portada y dos de las tres reseñas
-       destacadas la mencionan, así que tiene que ser reservable. Va como
-       servicio principal —hay clientas que vienen solo por esto— con precio
-       pendiente: nunca llegó en la lista de precios. */
-    { id: 'manicura',         group: 'rituales', name: 'Manicura', price: null, nota: 'Consultar',
-      desc: 'Manos cuidadas, con diseño y masaje incluido.',
-      /* Se puede pedir sola o sumada a un corte, así que aparece en el paso 1 y
-         también en el 2. Y la atiende una sola especialista: no hay barbero que
-         elegir, por eso ese paso se salta cuando es el servicio principal. */
-      tambienAdicional: true, sinBarbero: true },
+    // — Cejas —
+    { id: 'cejas-hilo', group: 'cejas', name: 'Cejas con hilo', price: 20000, desc: 'Depilación con hilo y diseño de cejas.' },
+    { id: 'cejas-cuchilla', group: 'cejas', name: 'Cejas con cuchilla', price: 10000, desc: 'Depilación con cuchilla y diseño de cejas.' },
 
-    // — Color y tratamiento (precio variable) —
-    { id: 'colorimetria',     group: 'color', name: 'Colorimetría',              price: null, nota: 'Según diseño, color y cabello', desc: 'Platinados, rayos, plumillas y otros trabajos de color.' },
-    { id: 'freestyle',        group: 'color', name: 'Freestyle',                 price: null, nota: 'Según diseño',                 desc: 'Dibujo en el cuero cabelludo, para quien lleva la personalidad por delante.' },
-    { id: 'hidrocauterizacion', group: 'color', name: 'Hidrocauterización capilar', price: null, nota: 'Según largo y densidad',    desc: 'Humectación intensa y sellado de cutícula: protege del frizz y las puntas abiertas. Ideal tras un proceso de color o en cabellos secos.' }
+    // — Limpieza facial —
+    { id: 'ritual-facial', group: 'facial', name: 'Ritual Facial', price: 56000, desc: 'Vapor ozono, mascarillas, parches y masaje ocular.', principal: true, destacado: true },
+    { id: 'masc-negros', group: 'facial', name: 'Mascarilla de puntos negros', price: 16000, desc: 'Retira impurezas y exceso de grasa.' },
+    { id: 'masc-hialuronico', group: 'facial', name: 'Mascarilla de hialurónico', price: 20000, desc: 'Piel hidratada y de aspecto más joven.' },
+    { id: 'masajeador', group: 'facial', name: 'Masajeador ocular', price: 20000, desc: 'Reduce líneas de expresión y ojeras.' },
+    { id: 'parches-ojeras', group: 'facial', name: 'Parches para ojeras', price: 10000, desc: 'Hidrata y mejora el contorno de ojos.' },
+
+    // — Uñas —
+    { id: 'manos-pies', group: 'unas', name: 'Manos y pies', price: null, nota: 'Consultar', desc: 'Manicura y pedicura en una sola cita.', principal: true, destacado: true, sinBarbero: true },
+    { id: 'manos-tradicional', group: 'unas', name: 'Manos Tradicionales', price: 30000, desc: 'Limado, cutícula y esmalte tradicional.', principal: true, sinBarbero: true },
+    { id: 'pies-tradicional', group: 'unas', name: 'Pies Tradicional', price: 35000, desc: 'Limado, cutícula y esmalte en los pies.', principal: true, sinBarbero: true },
+    { id: 'manos-semi', group: 'unas', name: 'Manos Semipermanentes', price: 40000, desc: 'Esmalte semipermanente, con brillo que dura semanas.', principal: true, sinBarbero: true },
+    { id: 'pies-semi', group: 'unas', name: 'Pies Semipermanente', price: 45000, desc: 'Semipermanente en pies, de larga duración.', principal: true, sinBarbero: true },
+    { id: 'rubber', group: 'unas', name: 'Manicura con Base Rubber', price: 65000, desc: 'Base rubber: uñas más fuertes y parejas.', principal: true, destacado: true, sinBarbero: true },
+    { id: 'press-on', group: 'unas', name: 'Extensión Press-on', price: 100000, desc: 'Extensiones aplicadas al momento, largo a elección.', principal: true, sinBarbero: true },
+    { id: 'decoracion', group: 'unas', name: 'Decoración y diseño de uñas', price: null, nota: 'Consultar', desc: 'Diseño a mano, del detalle simple al completo.', sinBarbero: true },
+    { id: 'stiker', group: 'unas', name: 'Stiker y pedrería', price: 3000, desc: 'Apliques y pedrería para rematar el diseño.', sinBarbero: true },
+    { id: 'velo', group: 'unas', name: 'Velo Terapia', price: 6000, desc: 'Refuerzo con velo para uñas quebradizas.', sinBarbero: true },
+    { id: 'retiro-presson', group: 'unas', name: 'Retiro de Press-on', price: 15000, desc: 'Retiro cuidado, sin dañar la uña natural.', sinBarbero: true },
+    { id: 'retiro-semi', group: 'unas', name: 'Retiro de Semipermanente', price: 5000, desc: 'Retiro del esmalte sin desgastar la uña.', sinBarbero: true },
   ];
 
-  /* Servicios que pueden ser el principal de una cita (paso 1). Los rituales
-     entran aquí porque son servicios completos: alguien puede venir solo por el
-     Ritual Facial de $56.000, que es el segundo más caro de la carta. */
-  const PRIMARIOS   = SERVICES.filter(s => s.group === 'cortes' || s.group === 'rituales');
-  /* Complementos del paso 2, selección múltiple. */
-  const ADICIONALES = SERVICES.filter(s => s.group === 'detalles' || s.group === 'color' || s.tambienAdicional);
+  /* Quién puede abrir una cita (paso 1). Va por flag y no por grupo: con seis
+     segmentos la regla «cortes y rituales» ya no alcanza —hay uñas y un ritual
+     facial que son motivo de visita por sí solos, y una pigmentación que no. */
+  const PRIMARIOS   = SERVICES.filter(s => s.principal);
+  /* Todo lo demás son complementos del paso 2, de selección múltiple. */
+  const ADICIONALES = SERVICES.filter(s => !s.principal);
 
   const byId = id => SERVICES.find(s => s.id === id);
 
@@ -423,7 +440,7 @@
     list.textContent = '';
     let subActual = null;
     ADICIONALES.forEach(s => {
-      const sub = s.sub || (s.group === 'color' ? 'Color y tratamiento' : 'Otros');
+      const sub = SEGMENTOS[s.group] || 'Otros';
       if (sub !== subActual) {
         subActual = sub;
         const cab = el('li', 'pick-group');

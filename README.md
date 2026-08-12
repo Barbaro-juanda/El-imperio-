@@ -152,10 +152,18 @@ Pendiente de conectar:
 
 ### Carta de servicios
 
-19 servicios en cuatro bloques. `assets/app.js` es la **fuente única**: el
-arreglo `SERVICES` alimenta el flujo de reserva, y el bloque estático de
-`index.html` y el `hasOfferCatalog` del JSON-LD se generaron desde ahí. Si
-cambia la carta, editar `SERVICES` y regenerar los otros dos.
+32 servicios en seis segmentos. Los precios y la segmentación salen de la
+página de reservas del propio local (`beunik.co/entity-view/1414`), que es donde
+se agenda hoy de verdad; la carta de la portada la refleja.
+
+`assets/app.js` es la **fuente única**: el arreglo `SERVICES` alimenta el flujo
+de reserva, y el menú estático de `index.html` y el `makesOffer` del JSON-LD se
+generaron desde ahí. Si cambia la carta, editar `SERVICES` y regenerar los otros
+dos —son tres sitios y se desincronizan sin avisar.
+
+Beunik no publica descripciones de ningún servicio. Las que ya tenía el sitio se
+conservaron literales; las de los 13 servicios nuevos están escritas con la
+misma redacción y **hay que validarlas con el local** antes de darlas por buenas.
 
 | Bloque | Cuántos | Cómo se ve en la portada |
 |---|---|---|
@@ -219,13 +227,9 @@ carta— y alguien puede venir solo por él. Están en el paso 1 junto a los cor
 `price: null`. No suman al total: el recibo muestra `$X + según diseño` y una
 nota diciendo cuáles se cotizan en el local. Nunca se inventa una cifra.
 
-### Manicura: doble rol y sin barbero
+### Uñas: sin barbero
 
-Es el único servicio que aparece **en las dos listas**: como principal en el
-paso 1 y como adicional en el paso 2. Al elegirlo como principal se retira solo
-de los adicionales, para no cobrarlo ni mostrarlo dos veces.
-
-Y **la atiende una sola especialista**, así que cuando es el servicio principal
+Los doce servicios de uñas **los atiende una sola especialista**, así que cuando es el servicio principal
 el paso de barbero desaparece: no hay nada que elegir. El flujo pasa de 6 a 5
 pasos y la numeración se recalcula (`pasosActivos()`), de modo que dice
 "Paso 3 de 5" en vez de saltar del 2 al 4; la barra de progreso también se
