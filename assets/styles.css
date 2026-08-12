@@ -552,48 +552,60 @@ a:hover { color: var(--gold); }
 .section--paper .barber__photo { background: rgba(13, 13, 13, .08); }
 
 /* --- Paso 1: pestañas de segmento ---
-   Seis segmentos y una sola lista visible. El contador en la pestaña evita que
-   lo elegido en otra se sienta perdido. Scroll horizontal en móvil en vez de
+   Sin cajas: el sistema visual del sitio es tipográfico —versalitas espaciadas
+   y filetes de un pixel—, así que las pestañas van como rótulos con subrayado
+   activo, igual que .link-underline. Scroll horizontal en móvil en vez de
    envolver a tres filas, que empujaría la lista fuera de la pantalla. */
 .segs {
-  display: flex; gap: 8px;
+  display: flex;
+  gap: clamp(16px, 3.4vw, 30px);
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 0 4px;
-  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(237, 230, 214, .13);
+  margin: 0 0 2px;
 }
 .segs::-webkit-scrollbar { display: none; }
 
 .seg {
   flex: none;
+  position: relative;
   display: inline-flex; align-items: center; gap: 7px;
-  min-height: 44px;                      /* objetivo táctil */
-  padding: 0 15px;
-  background: transparent;
-  border: 1px solid rgba(237, 230, 214, .22);
-  color: rgba(237, 230, 214, .72);
-  font: 300 11px/1 var(--sans);
-  letter-spacing: .16em; text-transform: uppercase;
+  min-height: 44px;                 /* objetivo táctil, aunque el texto sea bajo */
+  padding: 0 0 13px;
+  background: none;
+  border: 0;
+  color: rgba(237, 230, 214, .5);   /* 4.5:1 sobre tinta */
+  font: 300 10.5px/1 var(--sans);
+  letter-spacing: .22em;
+  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
+  transition: color .22s ease;
 }
-.seg:hover { color: var(--cream); border-color: rgba(237, 230, 214, .45); }
-.seg[aria-pressed="true"] {
-  background: var(--cream);
-  border-color: var(--cream);
-  color: var(--ink);
+.seg:hover { color: rgba(237, 230, 214, .85); }
+
+/* El filete se dibuja sobre el borde del contenedor, no debajo. */
+.seg::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 1px;
+  background: var(--wine);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .25s ease;
 }
-/* Un segmento con algo elegido se marca aunque no sea el activo. */
-.seg[data-con-seleccion="true"]:not([aria-pressed="true"]) {
-  border-color: var(--wine);
-  color: var(--cream);
-}
+.seg[aria-pressed="true"] { color: var(--cream); }
+.seg[aria-pressed="true"]::after { transform: scaleX(1); }
+
+/* Un segmento con algo elegido se marca aunque no sea el activo: son seis
+   listas y solo se ve una, así que lo de las otras tiene que seguir presente. */
+.seg[data-con-seleccion="true"] { color: rgba(237, 230, 214, .82); }
 .seg__count {
   display: inline-grid; place-items: center;
-  min-width: 17px; height: 17px; padding: 0 4px;
-  background: var(--wine); color: var(--cream);
-  font-size: 9.5px; letter-spacing: 0;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 999px;
+  background: var(--wine); color: var(--cream);   /* 5.8:1 */
+  font-size: 9px; font-weight: 400; letter-spacing: 0;
 }
 .seg__count:empty { display: none; }
 

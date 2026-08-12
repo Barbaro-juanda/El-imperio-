@@ -21,7 +21,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/styles.css">
+<!-- ?v= fuerza al navegador a pedir el archivo cuando cambia. Sin esto se
+     queda con la copia en caché y los cambios de estilo no se ven —pasó en
+     desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
+     número al tocar styles.css o app.js. -->
+<link rel="stylesheet" href="assets/styles.css?v=2">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1182,6 +1186,6 @@
   </div>
 </div>
 
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v=2"></script>
 </body>
 </html>
