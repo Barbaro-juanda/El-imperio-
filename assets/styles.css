@@ -606,6 +606,17 @@ a:hover { color: var(--gold); }
 .seg[aria-pressed="true"] .seg__count { background: var(--cream); color: var(--wine); }
 .seg__count:empty { display: none; }
 
+/* La entrada al panel, en el pie. Hereda el color del texto para que se lea
+   como el motivo decorativo que era; el oro aparece solo al pasar por encima
+   o al enfocar con teclado. */
+.footer__llave {
+  color: inherit;
+  text-decoration: none;
+  cursor: default;
+}
+.footer__llave:hover,
+.footer__llave:focus-visible { color: var(--gold); cursor: pointer; }
+
 /* --- Entrada en cascada --- */
 .reveal { opacity: 0; transform: translateY(16px); }
 .reveal.is-in {
