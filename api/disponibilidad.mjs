@@ -5,7 +5,7 @@
    horario del día, menos las citas ya confirmadas y los bloqueos. Guardar una
    tabla de cupos obligaría a regenerarla cada vez que cambia un horario o una
    duración, y a que las dos versiones coincidan siempre. */
-import { sql, aUTC, json } from './_db.js';
+import { sql, aUTC, json } from './_db.mjs';
 
 const PASO_MIN   = 15;   // cada cuánto se ofrece un inicio
 const COLCHON_MIN = 60;  // no se reserva con menos de una hora de antelación

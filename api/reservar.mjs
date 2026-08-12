@@ -3,7 +3,7 @@
 
    Crea la cita. El precio NO se acepta del cliente: se lee de la base, porque
    lo que llega del navegador lo puede editar cualquiera desde la consola. */
-import { sql, aUTC, json, codigoCita, normalizaTelefono } from './_db.js';
+import { sql, aUTC, json, codigoCita, normalizaTelefono } from './_db.mjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Solo POST' });
