@@ -18,11 +18,27 @@
   let dia = new Date();
   let datos = { citas: [], bloqueos: [], resumen: { total: 0, cuantas: 0 } };
 
+  /* En el servidor de desarrollo local no existe /api —solo entrega archivos—,
+     así que toda llamada devuelve 404 con una página HTML. Decir «Error 404»
+     manda a buscar un fallo que no existe: se explica qué pasa de verdad. */
+  const SIN_API = 'El panel necesita el sitio publicado. En local no se ejecutan las funciones del servidor.';
+
   async function api(ruta, opciones) {
-    const r = await fetch('/api' + ruta, opciones);
+    let r;
+    try {
+      r = await fetch('/api' + ruta, opciones);
+    } catch (e) {
+      throw Object.assign(new Error('Sin conexión.'), { estado: 0 });
+    }
     let cuerpo = null;
-    try { cuerpo = await r.json(); } catch (e) { /* sin cuerpo */ }
-    if (!r.ok) throw Object.assign(new Error((cuerpo && cuerpo.error) || 'Error ' + r.status), { estado: r.status });
+    try { cuerpo = await r.json(); } catch (e) { /* no era JSON */ }
+    if (!r.ok) {
+      /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la ruta ni
+         siquiera se está ejecutando. */
+      const msg = (cuerpo && cuerpo.error) ||
+                  (r.status === 404 ? SIN_API : 'Error ' + r.status);
+      throw Object.assign(new Error(msg), { estado: r.status });
+    }
     return cuerpo;
   }
 
