@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=6">
+<link rel="stylesheet" href="assets/styles.css?v=7">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1054,10 +1054,12 @@
     <span class="footer__copy"><!--
       La flor de lis del pie lleva al panel del local. Va discreta a propósito:
       para el cliente es el mismo remate decorativo que ya había, y quien
-      trabaja aquí sabe dónde tocar. No es una medida de seguridad —esconder
+      trabaja aquí sabe dónde tocar. Con extensión .html a propósito: la ruta
+      sin extensión exigiría activar cleanUrls en Vercel y aun así no
+      funcionaría en el servidor local. No es una medida de seguridad —esconder
       un enlace no protege nada, de eso se encarga la clave— sino de no
       ensuciar el pie con un «acceso empleados».
-   --><a class="footer__llave" href="/panel" aria-label="Agenda del local">⚜</a> © 2026 The Imperial Clasic Barber</span>
+   --><a class="footer__llave" href="/panel.html" aria-label="Agenda del local">⚜</a> © 2026 The Imperial Clasic Barber</span>
   </div>
 </footer>
 
@@ -1192,6 +1194,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=6"></script>
+<script src="assets/app.js?v=7"></script>
 </body>
 </html>
