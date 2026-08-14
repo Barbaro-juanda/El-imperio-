@@ -8,11 +8,16 @@ INSERT INTO profesional (id, nombre, slug, foto) VALUES
 ON CONFLICT (id) DO NOTHING;
 SELECT setval('profesional_id_seq', 3);
 
--- Horario del local, hora de Bogotá. Domingo abierto media jornada.
+-- Horario del local, hora de Bogotá.
+--
+-- Estos valores son los que el sitio publica y los que ve Google. El sistema
+-- de reservas del local declara además domingo de 9 a 14 y sábado hasta las
+-- 20:00; mientras la barbería no lo confirme se deja lo estrecho, porque el
+-- error caro es el otro: alguien reserva un domingo y encuentra cerrado.
 INSERT INTO horario (dow, abre, cierra, abierto) VALUES
-  (0,'09:00','14:00',TRUE), (1,'09:00','20:00',TRUE), (2,'09:00','20:00',TRUE),
+  (0,'09:00','14:00',FALSE), (1,'09:00','20:00',TRUE), (2,'09:00','20:00',TRUE),
   (3,'09:00','20:00',TRUE), (4,'09:00','20:00',TRUE), (5,'09:00','20:00',TRUE),
-  (6,'09:00','20:00',TRUE)
+  (6,'09:00','18:00',TRUE)
 ON CONFLICT (dow) DO UPDATE SET abre=EXCLUDED.abre, cierra=EXCLUDED.cierra, abierto=EXCLUDED.abierto;
 
 INSERT INTO servicio (id, segmento, nombre, precio, minutos) VALUES
