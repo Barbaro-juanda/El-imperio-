@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Agenda · The Imperial Clasic</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/styles.css?v=5">
-<link rel="stylesheet" href="assets/panel.css?v=2">
+<link rel="stylesheet" href="assets/styles.css?v=7">
+<link rel="stylesheet" href="assets/panel.css?v=3">
 </head>
 <body class="panel">
 
@@ -18,14 +18,13 @@
   <p class="panel__sub">The Imperial Clasic</p>
   <form id="form-login" autocomplete="off">
     <label class="sr-only" for="clave">Clave del local</label>
-    <input id="clave" type="password" inputmode="numeric" placeholder="Clave" required
+    <input id="clave" type="password" inputmode="text" placeholder="Clave" required
            autocomplete="current-password">
-    <button class="btn btn--gold" type="submit">Entrar</button>
+    <button class="btn btn--wine" type="submit">Entrar</button>
     <p class="panel__error" id="login-error" role="alert" hidden></p>
   </form>
 </section>
 
-<!-- Agenda -->
 <main class="panel__app" id="app" hidden>
   <header class="panel__top">
     <button class="panel__nav" type="button" id="dia-ant" aria-label="Día anterior">‹</button>
@@ -42,9 +41,25 @@
     <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
   </div>
 
+  <!-- Escritorio: rejilla con una columna por profesional -->
+  <div class="rejilla-wrap">
+    <div class="rejilla" id="rejilla" aria-label="Agenda del día"></div>
+  </div>
+
+  <!-- Móvil: la misma información en lista -->
   <div id="lista" class="panel__lista" aria-live="polite"></div>
 
-  <!-- Bloqueo de horas -->
+  <!-- Ficha de una cita -->
+  <aside class="ficha" id="ficha" hidden aria-label="Detalle de la cita">
+    <button class="ficha__cerrar" type="button" id="ficha-cerrar" aria-label="Cerrar">✕</button>
+    <h2 id="ficha-cliente"></h2>
+    <p class="ficha__meta" id="ficha-cuando"></p>
+    <p class="ficha__tel" id="ficha-tel"></p>
+    <p class="ficha__meta" id="ficha-serv"></p>
+    <p class="ficha__total" id="ficha-total"></p>
+    <div class="cita__btns" id="ficha-btns"></div>
+  </aside>
+
   <dialog id="dlg-bloqueo" class="panel__dlg">
     <form method="dialog" id="form-bloqueo">
       <h2>Bloquear horas</h2>
@@ -65,6 +80,6 @@
   </dialog>
 </main>
 
-<script src="assets/panel.js?v=2"></script>
+<script src="assets/panel.js?v=3"></script>
 </body>
 </html>

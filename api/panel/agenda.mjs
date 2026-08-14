@@ -32,9 +32,22 @@ export default protegido(async (req, res) => {
        WHERE inicio < ${hasta.toISOString()} AND fin > ${desde.toISOString()}
        ORDER BY inicio`;
 
+    /* El equipo va completo, no solo quien tiene citas: la rejilla dibuja una
+       columna por profesional y una columna vacía es información —significa que
+       esa persona tiene el día libre—. */
+    const profesionales = await sql`
+      SELECT id, nombre FROM profesional WHERE activo ORDER BY nombre`;
+
+    const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
+    const hor = await sql`SELECT abre, cierra, abierto FROM horario WHERE dow = ${dow}`;
+
     const confirmadas = citas.filter(c => c.estado === 'confirmada' || c.estado === 'cumplida');
     return json(res, 200, {
-      citas, bloqueos,
+      citas, bloqueos, profesionales,
+      horario: hor[0] ? { abre: String(hor[0].abre).slice(0, 5),
+                          cierra: String(hor[0].cierra).slice(0, 5),
+                          abierto: hor[0].abierto }
+                      : { abre: '09:00', cierra: '20:00', abierto: false },
       resumen: {
         total: confirmadas.reduce((t, c) => t + (c.total || 0), 0),
         cuantas: confirmadas.length

@@ -1,5 +1,7 @@
 /* =========================================================
    Panel del local — agenda del día
+   Escritorio: rejilla con una columna por profesional.
+   Móvil: la misma información en lista.
    ========================================================= */
 (function () {
   'use strict';
@@ -15,8 +17,12 @@
   const ESTADOS = { confirmada: 'Confirmada', cumplida: 'Cumplida',
                     no_asistio: 'No asistió', cancelada: 'Cancelada' };
 
+  const PASO = 15;   // minutos por fila; el mismo con el que la API ofrece cupos
+
   let dia = new Date();
-  let datos = { citas: [], bloqueos: [], resumen: { total: 0, cuantas: 0 } };
+  let datos = { citas: [], bloqueos: [], profesionales: [],
+                horario: { abre: '09:00', cierra: '20:00', abierto: true },
+                resumen: { total: 0, cuantas: 0 } };
 
   /* En el servidor de desarrollo local no existe /api —solo entrega archivos—,
      así que toda llamada devuelve 404 con una página HTML. Decir «Error 404»
@@ -33,8 +39,6 @@
     let cuerpo = null;
     try { cuerpo = await r.json(); } catch (e) { /* no era JSON */ }
     if (!r.ok) {
-      /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la ruta ni
-         siquiera se está ejecutando. */
       const msg = (cuerpo && cuerpo.error) ||
                   (r.status === 404 ? SIN_API : 'Error ' + r.status);
       throw Object.assign(new Error(msg), { estado: r.status });
@@ -72,15 +76,16 @@
     location.reload();
   });
 
-  /* ---------- navegación de días ---------- */
   $('#dia-ant').addEventListener('click', () => { dia.setDate(dia.getDate() - 1); cargar(); });
   $('#dia-sig').addEventListener('click', () => { dia.setDate(dia.getDate() + 1); cargar(); });
   $('#ir-hoy').addEventListener('click', () => { dia = new Date(); cargar(); });
 
-  /* ---------- carga y pintado ---------- */
+  /* ---------- carga ---------- */
   async function cargar() {
+    cerrarFicha();
     pintarCabecera();
     $('#lista').textContent = '';
+    $('#rejilla').textContent = '';
     const cargando = el('p', 'panel__vacio');
     cargando.textContent = 'Cargando…';
     $('#lista').appendChild(cargando);
@@ -109,28 +114,138 @@
     const r = datos.resumen || { total: 0, cuantas: 0 };
     $('#dia-resumen').textContent = r.cuantas
       ? r.cuantas + (r.cuantas === 1 ? ' cita · ' : ' citas · ') + '$' + r.total.toLocaleString('es-CO')
-      : 'Sin citas';
-
-    const lista = $('#lista');
-    lista.textContent = '';
-
-    const filas = [
-      ...datos.citas.map(c => ({ t: new Date(c.inicio).getTime(), tipo: 'cita', d: c })),
-      ...datos.bloqueos.map(b => ({ t: new Date(b.inicio).getTime(), tipo: 'bloqueo', d: b }))
-    ].sort((a, b) => a.t - b.t);
-
-    if (!filas.length) {
-      const p = el('p', 'panel__vacio');
-      p.textContent = 'Ninguna cita este día.';
-      lista.appendChild(p);
-      return;
-    }
-    filas.forEach(f => lista.appendChild(f.tipo === 'cita' ? tarjetaCita(f.d) : tarjetaBloqueo(f.d)));
+      : (datos.horario && datos.horario.abierto ? 'Sin citas' : 'Cerrado');
+    pintarRejilla();
+    pintarLista();
   }
 
   const hora = iso => new Intl.DateTimeFormat('es-CO', {
     timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false
   }).format(new Date(iso));
+
+  /* Minutos desde medianoche, en hora de Bogotá. La aritmética de la rejilla
+     tiene que hacerse en hora local del local, no en la del navegador de quien
+     mira: si el dueño abre el panel desde otro país, las citas seguirían
+     dibujándose donde corresponde. */
+  function minutosLocales(iso) {
+    const [h, m] = hora(iso).split(':').map(Number);
+    return h * 60 + m;
+  }
+  const aMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+
+  /* ---------- rejilla (escritorio) ---------- */
+  function pintarRejilla() {
+    const g = $('#rejilla');
+    g.textContent = '';
+
+    const profs = datos.profesionales || [];
+    if (!profs.length) return;
+
+    const abre = aMin(datos.horario.abre);
+    let cierra = aMin(datos.horario.cierra);
+    if (cierra <= abre) cierra += 24 * 60;      // cierre pasada la medianoche
+    const filas = Math.ceil((cierra - abre) / PASO);
+
+    g.style.setProperty('--cols', profs.length);
+
+    // Cabecera
+    const esquina = el('div', 'rejilla__cab rejilla__cab--esquina');
+    g.appendChild(esquina);
+    profs.forEach(p => {
+      const c = el('div', 'rejilla__cab');
+      c.textContent = p.nombre.split(' ')[0];
+      const s = el('small');
+      const n = datos.citas.filter(x => x.profesional_id === p.id &&
+                  (x.estado === 'confirmada' || x.estado === 'cumplida')).length;
+      s.textContent = n ? n + (n === 1 ? ' cita' : ' citas') : 'libre';
+      c.appendChild(s);
+      g.appendChild(c);
+    });
+
+    // Filas de horas y celdas vacías
+    for (let f = 0; f < filas; f++) {
+      const min = abre + f * PASO;
+      const enPunto = min % 60 === 0;
+      const h = el('div', 'rejilla__hora' + (enPunto ? ' rejilla__hora--enpunto' : ''));
+      h.style.gridRow = String(f + 2);
+      const sp = el('span');
+      sp.textContent = pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
+      h.appendChild(sp);
+      g.appendChild(h);
+
+      profs.forEach((p, i) => {
+        const c = el('div', 'rejilla__celda' + (enPunto ? ' rejilla__celda--enpunto' : ''));
+        c.style.gridRow = String(f + 2);
+        c.style.gridColumn = String(i + 2);
+        g.appendChild(c);
+      });
+    }
+
+    // Bloques de cita
+    datos.citas.forEach(c => {
+      const col = profs.findIndex(p => p.id === c.profesional_id);
+      if (col === -1) return;
+      const ini = minutosLocales(c.inicio);
+      const fin = minutosLocales(c.fin);
+      const b = el('button', 'bloque bloque--' + c.estado);
+      b.type = 'button';
+      b.style.gridColumn = String(col + 2);
+      b.style.gridRow = (Math.round((ini - abre) / PASO) + 2) + ' / span ' +
+                        Math.max(1, Math.round((fin - ini) / PASO));
+      const n = el('strong'); n.textContent = c.cliente;
+      const s = el('em');     s.textContent = c.servicios || '—';
+      b.append(n, s);
+      b.addEventListener('click', () => abrirFicha(c));
+      g.appendChild(b);
+    });
+
+    // Bloqueos
+    (datos.bloqueos || []).forEach(bq => {
+      const ini = minutosLocales(bq.inicio);
+      const fin = minutosLocales(bq.fin);
+      const cols = bq.profesional_id === null
+        ? profs.map((_, i) => i)
+        : [profs.findIndex(p => p.id === bq.profesional_id)].filter(i => i !== -1);
+      cols.forEach(i => {
+        const b = el('div', 'bloque bloque--bloqueo');
+        b.style.gridColumn = String(i + 2);
+        b.style.gridRow = (Math.round((ini - abre) / PASO) + 2) + ' / span ' +
+                          Math.max(1, Math.round((fin - ini) / PASO));
+        b.textContent = bq.motivo || 'Bloqueado';
+        g.appendChild(b);
+      });
+    });
+
+    // Línea de «ahora», solo si el día que se mira es hoy
+    if (ymd(new Date()) === ymd(dia)) {
+      const ahoraMin = minutosLocales(new Date().toISOString());
+      if (ahoraMin >= abre && ahoraMin <= cierra) {
+        const linea = el('div', 'ahora');
+        linea.style.gridRow = String(Math.round((ahoraMin - abre) / PASO) + 2);
+        g.appendChild(linea);
+      }
+    }
+  }
+
+  /* ---------- lista (móvil) ---------- */
+  function pintarLista() {
+    const lista = $('#lista');
+    lista.textContent = '';
+
+    const filas = [
+      ...datos.citas.map(c => ({ t: new Date(c.inicio).getTime(), tipo: 'cita', d: c })),
+      ...(datos.bloqueos || []).map(b => ({ t: new Date(b.inicio).getTime(), tipo: 'bloqueo', d: b }))
+    ].sort((a, b) => a.t - b.t);
+
+    if (!filas.length) {
+      const p = el('p', 'panel__vacio');
+      p.textContent = datos.horario && datos.horario.abierto
+        ? 'Ninguna cita este día.' : 'El local no abre este día.';
+      lista.appendChild(p);
+      return;
+    }
+    filas.forEach(f => lista.appendChild(f.tipo === 'cita' ? tarjetaCita(f.d) : tarjetaBloqueo(f.d)));
+  }
 
   function tarjetaCita(c) {
     const n = el('article', 'cita cita--' + c.estado);
@@ -152,12 +267,35 @@
     tot.textContent = '$' + (c.total || 0).toLocaleString('es-CO');
     const est = el('span', 'cita__estado');
     est.textContent = ESTADOS[c.estado] || c.estado;
-    pie.append(tot, est);
+    pie.append(tot, est, acciones(c));
 
+    n.append(cab, cli, serv, pie);
+    return n;
+  }
+
+  function tarjetaBloqueo(b) {
+    const n = el('div', 'bloqueo');
+    const t = el('span');
+    t.textContent = hora(b.inicio) + '–' + hora(b.fin) + ' · ' + (b.motivo || 'Bloqueado');
+    n.appendChild(t);
+    const quitar = el('button', 'cita__btn');
+    quitar.type = 'button';
+    quitar.textContent = 'Quitar';
+    quitar.style.marginLeft = 'auto';
+    quitar.addEventListener('click', async () => {
+      await api('/panel/bloqueo?id=' + b.id, { method: 'DELETE' }).catch(() => {});
+      cargar();
+    });
+    n.appendChild(quitar);
+    return n;
+  }
+
+  /* ---------- acciones compartidas por lista y ficha ---------- */
+  function acciones(c) {
     const btns = el('div', 'cita__btns');
 
     /* WhatsApp por enlace directo: abre el chat con el mensaje escrito y sale
-       del número real del local. Sin API de por medio y sin costo. */
+       del número real del local. Sin API de Meta y sin costo por mensaje. */
     const wa = el('a', 'cita__btn cita__btn--wa');
     wa.href = 'https://wa.me/' + String(c.telefono).replace(/\D/g, '') +
               '?text=' + encodeURIComponent(mensaje(c));
@@ -177,10 +315,7 @@
     } else {
       btns.appendChild(boton('Deshacer', () => cambiar(c.id, 'confirmada')));
     }
-    pie.appendChild(btns);
-
-    n.append(cab, cli, serv, pie);
-    return n;
+    return btns;
   }
 
   function mensaje(c) {
@@ -213,38 +348,35 @@
     }
   }
 
-  function tarjetaBloqueo(b) {
-    const n = el('div', 'bloqueo');
-    const t = el('span');
-    t.textContent = hora(b.inicio) + '–' + hora(b.fin) + ' · ' + (b.motivo || 'Bloqueado');
-    n.appendChild(t);
-    const quitar = el('button', 'cita__btn');
-    quitar.type = 'button';
-    quitar.textContent = 'Quitar';
-    quitar.style.marginLeft = 'auto';
-    quitar.addEventListener('click', async () => {
-      await api('/panel/bloqueo?id=' + b.id, { method: 'DELETE' }).catch(() => {});
-      cargar();
-    });
-    n.appendChild(quitar);
-    return n;
+  /* ---------- ficha ---------- */
+  function abrirFicha(c) {
+    $('#ficha-cliente').textContent = c.cliente;
+    $('#ficha-cuando').textContent =
+      hora(c.inicio) + '–' + hora(c.fin) + ' · ' + c.profesional + ' · ' + (ESTADOS[c.estado] || c.estado);
+    const tel = $('#ficha-tel');
+    tel.textContent = c.telefono;
+    $('#ficha-serv').textContent = c.servicios || '—';
+    $('#ficha-total').textContent = '$' + (c.total || 0).toLocaleString('es-CO');
+    const cont = $('#ficha-btns');
+    cont.textContent = '';
+    cont.appendChild(acciones(c));
+    $('#ficha').hidden = false;
   }
+  function cerrarFicha() { const f = $('#ficha'); if (f) f.hidden = true; }
+  $('#ficha-cerrar').addEventListener('click', cerrarFicha);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarFicha(); });
 
   /* ---------- bloquear horas ---------- */
   const dlg = $('#dlg-bloqueo');
-  $('#abrir-bloqueo').addEventListener('click', async () => {
+  $('#abrir-bloqueo').addEventListener('click', () => {
     const sel = $('#bq-prof');
+    /* El equipo ya viene con la agenda; no hace falta pedirlo aparte. */
     if (sel.options.length === 1) {
-      /* Se piden al vuelo con un servicio que prestan los dos barberos, para no
-         añadir un endpoint solo por llenar un desplegable. */
-      try {
-        const r = await api('/profesionales?servicios=corte-sencillo');
-        (r.profesionales || []).forEach(p => {
-          const o = document.createElement('option');
-          o.value = p.id; o.textContent = p.nombre;
-          sel.appendChild(o);
-        });
-      } catch (e) { /* se queda solo «todo el local» */ }
+      (datos.profesionales || []).forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.nombre;
+        sel.appendChild(o);
+      });
     }
     $('#bq-error').hidden = true;
     dlg.showModal();

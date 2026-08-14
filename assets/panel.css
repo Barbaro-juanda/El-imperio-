@@ -1,12 +1,25 @@
 /* =========================================================
-   Panel del local. Hereda los tokens de styles.css.
-   Se diseña para el móvil: la agenda se mira de pie, entre
-   corte y corte, no sentado frente a un computador.
+   Panel del local — «papel de barbería»
+   Hereda los tokens de styles.css.
+
+   Claro a propósito, al revés que la landing. Esta no es una pieza de marca
+   que se mire de noche: es una herramienta que se usa ocho horas en un local
+   con luz. Sobre negro, a plena luz y en un teléfono, el texto claro se lee
+   peor y a las tres horas cansa.
    ========================================================= */
 
+:root {
+  --p-fondo:  #F4F1EA;   /* papel */
+  --p-tarj:   #FFFFFF;
+  --p-linea:  rgba(13, 13, 13, .12);
+  --p-linea2: rgba(13, 13, 13, .06);
+  --p-tenue:  rgba(13, 13, 13, .55);   /* 5.9:1 */
+  --p-verde:  #2F6B4A;                 /* cumplida */
+}
+
 .panel {
-  background: var(--ink);
-  color: var(--cream);
+  background: var(--p-fondo);
+  color: var(--ink);
   min-height: 100dvh;
 }
 
@@ -14,18 +27,13 @@
 .panel__login {
   min-height: 100dvh;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 24px;
-  text-align: center;
+  gap: 10px; padding: 24px; text-align: center;
 }
-.panel__login h1 {
-  font: 300 clamp(2.5rem, 12vw, 3.5rem)/1 var(--serif);
-  color: var(--cream);
-}
+.panel__login h1 { font: 300 clamp(2.5rem, 12vw, 3.5rem)/1 var(--serif); color: var(--ink); }
 .panel__sub {
   margin: 0 0 22px;
   font: 300 10px/1 var(--sans);
-  letter-spacing: .3em; text-transform: uppercase;
-  color: var(--wine);
+  letter-spacing: .3em; text-transform: uppercase; color: var(--wine);
 }
 .panel__login form { display: flex; flex-direction: column; gap: 12px; width: min(320px, 100%); }
 
@@ -33,118 +41,250 @@
   width: 100%;
   min-height: 48px;                 /* dedo, no ratón */
   padding: 0 14px;
-  background: var(--ink-soft);
-  border: 1px solid rgba(237, 230, 214, .2);
-  color: var(--cream);
+  background: var(--p-tarj);
+  border: 1px solid var(--p-linea);
+  color: var(--ink);
   font: 300 16px/1 var(--sans);     /* 16px o iOS hace zoom al enfocar */
 }
-.panel input:focus, .panel select:focus { border-color: var(--gold); outline: none; }
-
+.panel input:focus, .panel select:focus { border-color: var(--wine); outline: none; }
 .panel__error { margin: 4px 0 0; font: 300 12.5px/1.5 var(--sans); color: var(--wine); }
 
-/* --- Cabecera con el día --- */
+/* --- Cabecera --- */
 .panel__top {
-  position: sticky; top: 0; z-index: 5;
+  position: sticky; top: 0; z-index: 20;
   display: grid; grid-template-columns: 48px 1fr 48px; align-items: center;
   padding: 10px 8px;
-  background: rgba(13, 13, 13, .95);
+  background: rgba(244, 241, 234, .96);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(237, 230, 214, .12);
+  border-bottom: 1px solid var(--p-linea);
 }
 .panel__nav {
   min-height: 44px; background: none; border: 0; cursor: pointer;
-  color: var(--cream); font: 300 26px/1 var(--serif);
+  color: var(--ink); font: 300 26px/1 var(--serif);
 }
 .panel__fecha { text-align: center; display: flex; flex-direction: column; gap: 3px; }
 .panel__fecha strong {
   font: 400 clamp(1.05rem, 4.5vw, 1.35rem)/1.1 var(--serif);
   text-transform: capitalize;
 }
-.panel__fecha span { font: 300 11px/1 var(--sans); letter-spacing: .1em; color: var(--gold); }
+.panel__fecha span {
+  font: 300 11px/1 var(--sans); letter-spacing: .1em; color: var(--gold-on-light);
+}
 
-.panel__acciones { display: flex; gap: 8px; padding: 12px; overflow-x: auto; scrollbar-width: none; }
+.panel__acciones {
+  display: flex; gap: 8px; padding: 12px; overflow-x: auto; scrollbar-width: none;
+}
 .panel__acciones::-webkit-scrollbar { display: none; }
 .panel__chip {
   flex: none; min-height: 40px; padding: 0 14px;
-  background: transparent; border: 1px solid rgba(237, 230, 214, .2);
-  color: rgba(237, 230, 214, .75);
+  background: transparent; border: 1px solid var(--p-linea);
+  color: var(--p-tenue);
   font: 300 10.5px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
   cursor: pointer; white-space: nowrap;
 }
-.panel__chip:hover { color: var(--cream); border-color: var(--cream); }
-.panel__chip--salir { margin-left: auto; border-color: rgba(155, 48, 64, .6); }
+.panel__chip:hover { color: var(--ink); border-color: var(--ink); }
+.panel__chip--salir { margin-left: auto; border-color: rgba(155, 48, 64, .5); color: var(--wine); }
 
-/* --- Lista de citas --- */
+/* =========================================================
+   Rejilla de agenda — una columna por profesional
+   Solo escritorio y tablet: tres columnas a 375px no caben,
+   y una rejilla ilegible es peor que una lista buena.
+   ========================================================= */
+.rejilla-wrap { display: none; }
+
+@media (min-width: 860px) {
+  .panel__lista { display: none; }
+  .rejilla-wrap { display: block; padding: 0 16px 60px; max-width: 1400px; margin-inline: auto; }
+
+  .rejilla {
+    display: grid;
+    /* La primera columna son las horas; el resto se reparte el ancho. */
+    grid-template-columns: 58px repeat(var(--cols), minmax(0, 1fr));
+    background: var(--p-tarj);
+    border: 1px solid var(--p-linea);
+    position: relative;
+  }
+
+  .rejilla__cab {
+    position: sticky; top: 64px; z-index: 10;
+    background: var(--p-tarj);
+    border-bottom: 1px solid var(--p-linea);
+    padding: 12px 10px;
+    font: 400 11px/1.3 var(--sans);
+    letter-spacing: .18em; text-transform: uppercase;
+    text-align: center;
+  }
+  .rejilla__cab small {
+    display: block; margin-top: 4px;
+    font: 300 10px/1 var(--sans); letter-spacing: .06em; text-transform: none;
+    color: var(--p-tenue);
+  }
+  .rejilla__cab--esquina { border-right: 1px solid var(--p-linea); }
+
+  /* Cada franja de 15 minutos es una fila. La hora en punto lleva filete
+     marcado y las intermedias uno tenue: así se lee la escala sin números. */
+  .rejilla__hora {
+    grid-column: 1;
+    border-right: 1px solid var(--p-linea);
+    border-top: 1px solid var(--p-linea2);
+    padding: 2px 8px 0 0;
+    text-align: right;
+    font: 300 10.5px/1 var(--sans);
+    color: var(--p-tenue);
+    height: 22px;
+  }
+  .rejilla__hora--enpunto { border-top-color: var(--p-linea); }
+  .rejilla__hora span { opacity: 0; }
+  .rejilla__hora--enpunto span { opacity: 1; }
+
+  .rejilla__celda {
+    border-top: 1px solid var(--p-linea2);
+    border-left: 1px solid var(--p-linea2);
+  }
+  .rejilla__celda--enpunto { border-top-color: var(--p-linea); }
+
+  /* Los bloques se colocan por fila y duración, no con posición absoluta:
+     grid-row hace la aritmética y no hay que recalcular al redimensionar. */
+  .bloque {
+    margin: 1px 3px;
+    padding: 5px 8px;
+    border-radius: 2px;
+    border: 0; text-align: left; cursor: pointer;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--wine); color: var(--cream);   /* 5.8:1 */
+    font: 300 11px/1.25 var(--sans);
+    transition: filter .15s ease;
+  }
+  .bloque:hover { filter: brightness(1.12); }
+  .bloque strong { font: 400 12.5px/1.2 var(--sans); }
+  .bloque em { font-style: normal; opacity: .85; font-size: 10.5px; }
+
+  .bloque--cumplida   { background: var(--p-verde); }
+  .bloque--no_asistio { background: rgba(13, 13, 13, .42); }
+  .bloque--cancelada  { background: repeating-linear-gradient(45deg,
+                          rgba(13,13,13,.14) 0 6px, rgba(13,13,13,.07) 6px 12px);
+                        color: var(--p-tenue); }
+
+  .bloque--bloqueo {
+    background: repeating-linear-gradient(45deg,
+      rgba(13,13,13,.10) 0 7px, rgba(13,13,13,.04) 7px 14px);
+    color: rgba(13, 13, 13, .62);
+    cursor: default;
+  }
+
+  /* Línea de «ahora» */
+  .ahora {
+    grid-column: 2 / -1;
+    height: 0; position: relative; z-index: 5; pointer-events: none;
+    border-top: 2px solid var(--wine);
+  }
+  .ahora::before {
+    content: ''; position: absolute; left: -4px; top: -5px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--wine);
+  }
+}
+
+/* --- Lista (móvil) --- */
 .panel__lista { padding: 0 12px 48px; display: flex; flex-direction: column; gap: 10px; }
 
 .cita {
-  border: 1px solid rgba(237, 230, 214, .16);
-  border-left: 3px solid var(--gold);
+  background: var(--p-tarj);
+  border: 1px solid var(--p-linea);
+  border-left: 3px solid var(--wine);
   padding: 13px 14px;
   display: grid; gap: 5px;
 }
-.cita--cumplida   { border-left-color: #3E7D5A; opacity: .62; }
-.cita--no_asistio { border-left-color: var(--wine); opacity: .62; }
-.cita--cancelada  { border-left-color: rgba(237,230,214,.25); opacity: .45; }
+.cita--cumplida   { border-left-color: var(--p-verde); }
+.cita--no_asistio { border-left-color: rgba(13, 13, 13, .4); }
+.cita--cancelada  { border-left-color: var(--p-linea); opacity: .55; }
 
 .cita__cab { display: flex; align-items: baseline; gap: 10px; }
-.cita__hora { font: 400 1.25rem/1 var(--serif); color: var(--cream); }
+.cita__hora { font: 400 1.25rem/1 var(--serif); color: var(--ink); }
 .cita__prof {
   margin-left: auto;
   font: 300 9.5px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-on-light);
 }
 .cita__cliente { font: 400 1.05rem/1.2 var(--serif); }
-.cita__serv    { font: 300 12px/1.5 var(--sans); color: rgba(237, 230, 214, .62); }
+.cita__serv    { font: 300 12px/1.5 var(--sans); color: var(--p-tenue); }
 .cita__pie     { display: flex; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
-.cita__total   { font: 400 1rem/1 var(--serif); color: var(--gold); }
+.cita__total   { font: 400 1rem/1 var(--serif); color: var(--gold-on-light); }
 .cita__estado  {
   font: 300 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
-  color: rgba(237, 230, 214, .5);
+  color: var(--p-tenue);
 }
 
-/* Acciones de cada cita. Objetivo táctil de 44px: se pulsan de pie. */
-.cita__btns { display: flex; gap: 6px; margin-left: auto; }
+.cita__btns { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
 .cita__btn {
   min-height: 44px; min-width: 44px; padding: 0 11px;
-  background: transparent; border: 1px solid rgba(237, 230, 214, .22);
-  color: rgba(237, 230, 214, .8);
+  background: transparent; border: 1px solid var(--p-linea);
+  color: var(--p-tenue);
   font: 300 10px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
   cursor: pointer;
 }
-.cita__btn:hover { border-color: var(--cream); color: var(--cream); }
-.cita__btn--wa { border-color: rgba(62, 125, 90, .7); color: #7FBF9B; }
+.cita__btn:hover { border-color: var(--ink); color: var(--ink); }
+.cita__btn--wa { border-color: rgba(47, 107, 74, .5); color: var(--p-verde); }
 
 .bloqueo {
-  border: 1px dashed rgba(237, 230, 214, .28);
+  border: 1px dashed var(--p-linea);
   padding: 11px 14px;
   display: flex; align-items: center; gap: 10px;
-  font: 300 12px/1.4 var(--sans); color: rgba(237, 230, 214, .6);
+  font: 300 12px/1.4 var(--sans); color: var(--p-tenue);
 }
 
 .panel__vacio {
   padding: 44px 14px; text-align: center;
-  font: 300 13px/1.7 var(--sans); color: rgba(237, 230, 214, .5);
+  font: 300 13px/1.7 var(--sans); color: var(--p-tenue);
 }
 
-/* --- Diálogo --- */
+/* --- Ficha lateral de una cita --- */
+.ficha {
+  position: fixed; inset: auto 0 0 0; z-index: 40;
+  background: var(--p-tarj);
+  border-top: 2px solid var(--wine);
+  padding: 20px 18px 26px;
+  box-shadow: 0 -14px 40px rgba(13, 13, 13, .16);
+  display: grid; gap: 8px;
+}
+@media (min-width: 860px) {
+  .ficha {
+    inset: 0 0 0 auto; width: 360px;
+    border-top: 0; border-left: 2px solid var(--wine);
+    align-content: start;
+    box-shadow: -14px 0 40px rgba(13, 13, 13, .14);
+    overflow-y: auto;
+  }
+}
+.ficha__cerrar {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: 0; cursor: pointer;
+  font-size: 20px; color: var(--p-tenue); min-height: 44px; min-width: 44px;
+}
+.ficha h2 { font: 400 1.5rem/1.15 var(--serif); margin: 0; }
+.ficha__meta { font: 300 12px/1.6 var(--sans); color: var(--p-tenue); }
+.ficha__tel { font: 400 1rem/1 var(--sans); letter-spacing: .04em; }
+.ficha__total { font: 400 1.35rem/1 var(--serif); color: var(--gold-on-light); margin-top: 4px; }
+.ficha .cita__btns { margin: 12px 0 0; gap: 8px; }
+
+/* --- Diálogo de bloqueo --- */
 .panel__dlg {
-  border: 1px solid rgba(237, 230, 214, .2);
-  background: var(--ink-soft); color: var(--cream);
+  border: 1px solid var(--p-linea);
+  background: var(--p-tarj); color: var(--ink);
   width: min(420px, calc(100vw - 32px)); padding: 20px;
 }
-.panel__dlg::backdrop { background: rgba(0, 0, 0, .7); }
+.panel__dlg::backdrop { background: rgba(13, 13, 13, .45); }
 .panel__dlg h2 { font: 300 1.6rem/1 var(--serif); margin: 0 0 16px; }
 .panel__dlg label {
   display: block; margin-bottom: 12px;
   font: 300 10px/1.8 var(--sans); letter-spacing: .18em; text-transform: uppercase;
-  color: rgba(237, 230, 214, .6);
+  color: var(--p-tenue);
 }
 .panel__fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .panel__dlg menu { display: flex; gap: 8px; justify-content: flex-end; margin: 18px 0 0; padding: 0; }
 .panel__dlg .btn { padding: 13px 20px; }
 
-@media (min-width: 760px) {
+@media (max-width: 859px) {
   .panel__lista { max-width: 760px; margin-inline: auto; }
   .panel__acciones { max-width: 760px; margin-inline: auto; }
 }
