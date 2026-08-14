@@ -1,0 +1,8 @@
+{
+  "name": "imperial-clasic-barber",
+  "private": true,
+  "description": "Landing y reservas de The Imperial Clasic Barber. El sitio sigue siendo HTML/CSS/JS sin compilación; esto existe solo por las funciones de /api.",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  }
+}

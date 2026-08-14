@@ -21,7 +21,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/styles.css">
+<!-- ?v= fuerza al navegador a pedir el archivo cuando cambia. Sin esto se
+     queda con la copia en caché y los cambios de estilo no se ven —pasó en
+     desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
+     número al tocar styles.css o app.js. -->
+<link rel="stylesheet" href="assets/styles.css?v=7">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -117,27 +121,18 @@
       "@type": "Offer",
       "itemOffered": {
         "@type": "Service",
-        "name": "Corte VIP"
-      },
-      "price": "45000",
-      "priceCurrency": "COP"
-    },
-    {
-      "@type": "Offer",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Corte y Barba VIP"
-      },
-      "price": "60000",
-      "priceCurrency": "COP"
-    },
-    {
-      "@type": "Offer",
-      "itemOffered": {
-        "@type": "Service",
         "name": "Corte Sencillo"
       },
       "price": "35000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Corte VIP"
+      },
+      "price": "45000",
       "priceCurrency": "COP"
     },
     {
@@ -153,9 +148,9 @@
       "@type": "Offer",
       "itemOffered": {
         "@type": "Service",
-        "name": "Ritual Facial"
+        "name": "Corte y Barba VIP"
       },
-      "price": "56000",
+      "price": "60000",
       "priceCurrency": "COP"
     },
     {
@@ -180,8 +175,190 @@
       "@type": "Offer",
       "itemOffered": {
         "@type": "Service",
-        "name": "Manicura"
-      }
+        "name": "Pigmentación"
+      },
+      "price": "20000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Depilación de nariz y oídos"
+      },
+      "price": "25000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Depilación de fosas nasales"
+      },
+      "price": "15000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Depilación de oídos"
+      },
+      "price": "15000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Cejas con hilo"
+      },
+      "price": "20000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Cejas con cuchilla"
+      },
+      "price": "10000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Ritual Facial"
+      },
+      "price": "56000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Mascarilla de puntos negros"
+      },
+      "price": "16000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Mascarilla de hialurónico"
+      },
+      "price": "20000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Masajeador ocular"
+      },
+      "price": "20000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Parches para ojeras"
+      },
+      "price": "10000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Manos Tradicionales"
+      },
+      "price": "30000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Pies Tradicional"
+      },
+      "price": "35000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Manos Semipermanentes"
+      },
+      "price": "40000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Pies Semipermanente"
+      },
+      "price": "45000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Manicura con Base Rubber"
+      },
+      "price": "65000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Extensión Press-on"
+      },
+      "price": "100000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Stiker y pedrería"
+      },
+      "price": "3000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Velo Terapia"
+      },
+      "price": "6000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Retiro de Press-on"
+      },
+      "price": "15000",
+      "priceCurrency": "COP"
+    },
+    {
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Retiro de Semipermanente"
+      },
+      "price": "5000",
+      "priceCurrency": "COP"
     }
   ],
   "hasOfferCatalog": {
@@ -500,11 +677,11 @@
          (mascarillas, depilación). Generado desde SERVICES en assets/app.js. -->
     <div class="menu">
     <div class="menu__group">
-      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cabello</h3>
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cortes</h3>
       <ul class="menu__list">
         <li class="menu__row">
           <span class="menu__name">Corte Sencillo</span>
-          <span class="menu__desc">Lavado de cabello y peinado incluidos.</span>
+          <span class="menu__desc">Lavado de cabello y peinado.</span>
           <span class="menu__price">$35.000</span>
           <span class="menu__dur">—</span>
         </li>
@@ -527,6 +704,29 @@
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
+          <span class="menu__name">Ritual de Barba</span>
+          <span class="menu__desc">Limpieza facial, afeitado con vapor y diseño.</span>
+          <span class="menu__price">$26.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Barba Sencilla</span>
+          <span class="menu__desc">Diseño de barba y afeitado.</span>
+          <span class="menu__price">$15.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Pigmentación</span>
+          <span class="menu__desc">Densifica barba o cuero cabelludo.</span>
+          <span class="menu__price">$20.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Color y tratamiento</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
           <span class="menu__name">Colorimetría</span>
           <span class="menu__desc">Platinados, rayos, plumillas y más.</span>
           <span class="menu__price">Según diseño, color y cabello</span>
@@ -546,89 +746,162 @@
         </li>
       </ul>
     </div>
-
     <div class="menu__group">
-      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Barba y rostro</h3>
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Depilación facial</h3>
       <ul class="menu__list">
         <li class="menu__row">
-          <span class="menu__name">Ritual de barba</span>
-          <span class="menu__desc">Afeitado al vapor, limpieza facial y diseño.</span>
-          <span class="menu__price">$26.000</span>
+          <span class="menu__name">Depilación de nariz y oídos</span>
+          <span class="menu__desc">Las dos zonas en una sola sesión.</span>
+          <span class="menu__price">Desde $25.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Barba sencilla</span>
-          <span class="menu__desc">Diseño y afeitado a navaja.</span>
+          <span class="menu__name">Depilación de fosas nasales</span>
+          <span class="menu__desc">Depilación con cera.</span>
           <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Ritual facial</span>
-          <span class="menu__desc">Limpieza profunda con vapor, mascarillas y masaje.</span>
+          <span class="menu__name">Depilación de oídos</span>
+          <span class="menu__desc">Depilación con cera.</span>
+          <span class="menu__price">$15.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cejas</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
+          <span class="menu__name">Cejas con hilo</span>
+          <span class="menu__desc">Depilación con hilo y diseño de cejas.</span>
+          <span class="menu__price">$20.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Cejas con cuchilla</span>
+          <span class="menu__desc">Depilación con cuchilla y diseño de cejas.</span>
+          <span class="menu__price">$10.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+    <div class="menu__group">
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Limpieza facial</h3>
+      <ul class="menu__list">
+        <li class="menu__row menu__row--destacado">
+          <span class="menu__name">Ritual Facial <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Vapor ozono, mascarillas, parches y masaje ocular.</span>
           <span class="menu__price">$56.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Mascarillas</span>
-          <span class="menu__desc">Puntos negros o ácido hialurónico.</span>
-          <span class="menu__price">$16.000 / $20.000</span>
+          <span class="menu__name">Mascarilla de puntos negros</span>
+          <span class="menu__desc">Retira impurezas y exceso de grasa.</span>
+          <span class="menu__price">$16.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Mascarilla de hialurónico</span>
+          <span class="menu__desc">Piel hidratada y de aspecto más joven.</span>
+          <span class="menu__price">$20.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
           <span class="menu__name">Masajeador ocular</span>
-          <span class="menu__desc">Calor y masaje contra líneas y ojeras.</span>
+          <span class="menu__desc">Reduce líneas de expresión y ojeras.</span>
           <span class="menu__price">$20.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
           <span class="menu__name">Parches para ojeras</span>
-          <span class="menu__desc">Hidratan y mejoran el contorno de ojos.</span>
+          <span class="menu__desc">Hidrata y mejora el contorno de ojos.</span>
           <span class="menu__price">$10.000</span>
           <span class="menu__dur">—</span>
         </li>
       </ul>
     </div>
-
     <div class="menu__group">
-      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Detalle</h3>
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Uñas</h3>
       <ul class="menu__list">
         <li class="menu__row menu__row--destacado">
-          <span class="menu__name">Manicura <span class="menu__motif" aria-hidden="true">⚜</span></span>
-          <span class="menu__desc">Manos cuidadas, con diseño y masaje incluido.</span>
-          <span class="menu__price">$ —</span>
+          <span class="menu__name">Manos y pies <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Manicura y pedicura en una sola cita.</span>
+          <span class="menu__price">Consultar</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Cejas a cuchilla</span>
-          <span class="menu__desc">Perfilado y diseño con cuchilla.</span>
-          <span class="menu__price">$10.000</span>
+          <span class="menu__name">Manos Tradicionales</span>
+          <span class="menu__desc">Limado, cutícula y esmalte tradicional.</span>
+          <span class="menu__price">$30.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Cejas a hilo</span>
-          <span class="menu__desc">Perfilado y diseño con hilo.</span>
-          <span class="menu__price">$20.000</span>
+          <span class="menu__name">Pies Tradicional</span>
+          <span class="menu__desc">Limado, cutícula y esmalte en los pies.</span>
+          <span class="menu__price">$35.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Depilación de oídos y fosas nasales</span>
-          <span class="menu__desc">Depilación con cera, rápida y limpia.</span>
+          <span class="menu__name">Manos Semipermanentes</span>
+          <span class="menu__desc">Esmalte semipermanente, con brillo que dura semanas.</span>
+          <span class="menu__price">$40.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Pies Semipermanente</span>
+          <span class="menu__desc">Semipermanente en pies, de larga duración.</span>
+          <span class="menu__price">$45.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row menu__row--destacado">
+          <span class="menu__name">Manicura con Base Rubber <span class="menu__motif" aria-hidden="true">⚜</span></span>
+          <span class="menu__desc">Base rubber: uñas más fuertes y parejas.</span>
+          <span class="menu__price">$65.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Extensión Press-on</span>
+          <span class="menu__desc">Extensiones aplicadas al momento, largo a elección.</span>
+          <span class="menu__price">$100.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Decoración y diseño de uñas</span>
+          <span class="menu__desc">Diseño a mano, del detalle simple al completo.</span>
+          <span class="menu__price">Consultar</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Stiker y pedrería</span>
+          <span class="menu__desc">Apliques y pedrería para rematar el diseño.</span>
+          <span class="menu__price">$3.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Velo Terapia</span>
+          <span class="menu__desc">Refuerzo con velo para uñas quebradizas.</span>
+          <span class="menu__price">$6.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Retiro de Press-on</span>
+          <span class="menu__desc">Retiro cuidado, sin dañar la uña natural.</span>
           <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
         <li class="menu__row">
-          <span class="menu__name">Pigmentación</span>
-          <span class="menu__desc">Densifica barba o cuero cabelludo.</span>
-          <span class="menu__price">$14.000</span>
+          <span class="menu__name">Retiro de Semipermanente</span>
+          <span class="menu__desc">Retiro del esmalte sin desgastar la uña.</span>
+          <span class="menu__price">$5.000</span>
           <span class="menu__dur">—</span>
         </li>
       </ul>
     </div>
-
     </div>
 
     <dl class="carta__cifras reveal">
-      <div><dt>Servicios</dt><dd>20</dd></div>
+      <div><dt>Servicios</dt><dd>32</dd></div>
       <div><dt>Cortes desde</dt><dd>$35.000</dd></div>
       <div><dt>Complementos desde</dt><dd>$10.000</dd></div>
     </dl>
@@ -660,7 +933,7 @@
     <h2>Las <em>Manos</em></h2>
   </div>
   <div class="barbers" id="barbers-list">
-    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Ema"><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Ema, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Ema</span><span class="barber__tag">Elegir</span></span></button>
+    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Emanuel"><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Emanuel</span><span class="barber__tag">Elegir</span></span></button>
     <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon"><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
   </div>
 </section>
@@ -778,7 +1051,15 @@
       <a data-instagram target="_blank" rel="noopener noreferrer">Instagram</a>
       <a href="https://wa.me/573145832948" target="_blank" rel="noopener noreferrer">WhatsApp</a>
     </nav>
-    <span class="footer__copy">⚜ © 2026 The Imperial Clasic Barber</span>
+    <span class="footer__copy"><!--
+      La flor de lis del pie lleva al panel del local. Va discreta a propósito:
+      para el cliente es el mismo remate decorativo que ya había, y quien
+      trabaja aquí sabe dónde tocar. Con extensión .html a propósito: la ruta
+      sin extensión exigiría activar cleanUrls en Vercel y aun así no
+      funcionaría en el servidor local. No es una medida de seguridad —esconder
+      un enlace no protege nada, de eso se encarga la clave— sino de no
+      ensuciar el pie con un «acceso empleados».
+   --><a class="footer__llave" href="/panel.html" aria-label="Agenda del local">⚜</a> © 2026 The Imperial Clasic Barber</span>
   </div>
 </footer>
 
@@ -816,14 +1097,13 @@
     <div class="step__body">
 
       <!-- Paso 1 — servicio -->
+      <!-- Paso 1 — servicios. Un solo paso con los seis segmentos: quien viene
+           solo por las cejas empieza por las cejas, no tiene que fingir un
+           corte para llegar a ellas. Selección múltiple: la cita es la suma. -->
       <section class="step" data-step="1" hidden>
-        <ul class="pick-list" id="pick-services"></ul>
-      </section>
-
-      <!-- Paso 2 — adicionales (opcional, selección múltiple) -->
-      <section class="step" data-step="2" hidden>
-        <p class="step__hint">Suma lo que quieras a tu cita. Puedes seguir sin elegir nada.</p>
-        <ul class="pick-list" id="pick-extras"></ul>
+        <div class="segs" id="segs" role="group" aria-label="Segmentos de servicio"></div>
+        <p class="step__hint" id="segs-hint">Elige uno o varios. Puedes combinar segmentos.</p>
+        <ul class="pick-list" id="pick-services" aria-live="polite"></ul>
         <div class="extras-total">
           <span class="extras-total__label">Total</span>
           <span class="extras-total__value" id="extras-total" aria-live="polite"></span>
@@ -831,12 +1111,12 @@
       </section>
 
       <!-- Paso 2 — barbero -->
-      <section class="step" data-step="3" hidden>
+      <section class="step" data-step="2" hidden>
         <div class="pick-barbers" id="pick-barbers"></div>
       </section>
 
       <!-- Paso 3 — fecha y hora -->
-      <section class="step step--split" data-step="4" hidden>
+      <section class="step step--split" data-step="3" hidden>
         <div class="calendar">
           <div class="calendar__head">
             <button class="calendar__nav" type="button" id="cal-prev" aria-label="Mes anterior">‹</button>
@@ -864,7 +1144,7 @@
       </section>
 
       <!-- Paso 4 — datos -->
-      <section class="step" data-step="5" hidden>
+      <section class="step" data-step="4" hidden>
         <form class="form" id="booking-form" novalidate>
           <div class="field">
             <label for="f-name">Nombre completo</label>
@@ -891,7 +1171,7 @@
       </section>
 
       <!-- Paso 5 — confirmación -->
-      <section class="step step--done" data-step="6" hidden>
+      <section class="step step--done" data-step="5" hidden>
         <div class="done">
           <span class="crest crest--xl" aria-hidden="true"><span class="crest__ring"></span><span class="crest__mark">⚜</span></span>
           <h3>Tu silla está <em>reservada</em></h3>
@@ -914,6 +1194,6 @@
   </div>
 </div>
 
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v=7"></script>
 </body>
 </html>

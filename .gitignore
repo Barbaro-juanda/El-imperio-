@@ -8,5 +8,15 @@
 *.swp
 *~
 
-# Dependencias (por si el proyecto adopta un build más adelante)
+# Dependencias
 node_modules/
+
+# Secretos locales. NUNCA al repositorio: es público, y aquí viven la clave
+# del panel y la cadena de conexión a la base. Git guarda el historial para
+# siempre, así que un commit por error no se arregla borrando el archivo.
+.env
+.env.*
+!.env.example
+
+# Vercel CLI
+.vercel/
