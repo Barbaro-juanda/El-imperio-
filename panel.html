@@ -8,7 +8,7 @@
 <title>Agenda · The Imperial Clasic</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=5">
+<link rel="stylesheet" href="assets/panel.css?v=7">
 </head>
 <body class="panel">
 
@@ -31,6 +31,8 @@
     <div class="panel__fecha">
       <strong id="dia-titulo">—</strong>
       <span id="dia-resumen"></span>
+      <!-- Ir a cualquier día sin dar siete clics a la flecha. -->
+      <input type="date" id="dia-picker" aria-label="Ir a una fecha">
     </div>
     <button class="panel__nav" type="button" id="dia-sig" aria-label="Día siguiente">›</button>
   </header>
@@ -41,6 +43,8 @@
          rejilla, así que hace falta una puerta explícita. -->
     <button class="panel__chip panel__chip--crear" type="button" id="abrir-crear">＋ Nueva cita</button>
     <button class="panel__chip" type="button" id="abrir-bloqueo">Bloquear horas</button>
+    <button class="panel__chip" type="button" id="ver-caja">Caja del día</button>
+    <button class="panel__chip" type="button" id="ver-ajustes">Ajustes</button>
     <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
   </div>
 
@@ -63,6 +67,47 @@
     <div class="cita__btns" id="ficha-btns"></div>
   </aside>
 
+
+
+  <!-- Caja del día -->
+  <section class="vista" id="vista-caja" hidden>
+    <h2 class="vista__tit">Caja del día</h2>
+    <div id="caja-cuerpo"></div>
+  </section>
+
+  <!-- Ajustes: precios, duraciones y horarios -->
+  <section class="vista" id="vista-ajustes" hidden>
+    <h2 class="vista__tit">Horario del local</h2>
+    <div id="aj-horario"></div>
+    <h2 class="vista__tit">Servicios</h2>
+    <p class="vista__nota">Precio vacío = a convenir. Los cambios se guardan al salir del campo.</p>
+    <div id="aj-servicios"></div>
+  </section>
+
+  <!-- Cobro al marcar cumplida -->
+  <dialog id="dlg-cobro" class="panel__dlg">
+    <form method="dialog" id="form-cobro">
+      <h2>Registrar cobro</h2>
+      <p class="vista__nota" id="co-quien"></p>
+      <label>Valor cobrado
+        <input id="co-valor" type="number" min="0" step="1000" required>
+      </label>
+      <label>Forma de pago
+        <select id="co-metodo">
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="otro">Otro</option>
+        </select>
+      </label>
+      <p class="vista__nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
+      <p class="panel__error" id="co-error" role="alert" hidden></p>
+      <menu>
+        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
+        <button class="btn btn--wine" id="co-guardar" type="button">Registrar</button>
+      </menu>
+    </form>
+  </dialog>
 
   <!-- Crear cita desde el mostrador -->
   <dialog id="dlg-crear" class="panel__dlg">
@@ -129,6 +174,6 @@
   </dialog>
 </main>
 
-<script src="assets/panel.js?v=4"></script>
+<script src="assets/panel.js?v=5"></script>
 </body>
 </html>

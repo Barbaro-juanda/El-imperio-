@@ -83,6 +83,14 @@
   $('#dia-ant').addEventListener('click', () => { dia.setDate(dia.getDate() - 1); cargar(); });
   $('#dia-sig').addEventListener('click', () => { dia.setDate(dia.getDate() + 1); cargar(); });
   $('#ir-hoy').addEventListener('click', () => { dia = new Date(); cargar(); });
+  $('#dia-picker').addEventListener('change', e => {
+    if (!e.target.value) return;
+    /* Se construye con partes y no con new Date(cadena): interpretar
+       «2026-08-14» como UTC adelanta un día en Colombia. */
+    const [y, m, d2] = e.target.value.split('-').map(Number);
+    dia = new Date(y, m - 1, d2);
+    cargar();
+  });
 
   /* ---------- carga ---------- */
   async function cargar() {
@@ -109,6 +117,7 @@
 
   function pintarCabecera() {
     const hoy = ymd(new Date()) === ymd(dia);
+    $('#dia-picker').value = ymd(dia);
     $('#dia-titulo').textContent = (hoy ? 'Hoy · ' : '') +
       DIAS[dia.getDay()] + ' ' + dia.getDate() + ' de ' + MESES[dia.getMonth()];
   }
@@ -184,7 +193,19 @@
         /* Tocar el hueco es la forma natural de agendar: ya dice quién y a qué
            hora, así que el formulario abre con eso resuelto. */
         c.title = 'Crear cita · ' + p.nombre.split(' ')[0] + ' ' + pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
-        c.addEventListener('click', () => abrirCrear(p.id, pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60)));
+        const hhmm = pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
+        c.addEventListener('click', () => abrirCrear(p.id, hhmm));
+        c.addEventListener('dragover', ev => {
+          if (!arrastrando) return;
+          ev.preventDefault();
+          c.classList.add('destino');
+        });
+        c.addEventListener('dragleave', () => c.classList.remove('destino'));
+        c.addEventListener('drop', ev => {
+          ev.preventDefault();
+          c.classList.remove('destino');
+          if (arrastrando) mover(arrastrando.id, hhmm, p.id);
+        });
         g.appendChild(c);
       });
     }
@@ -204,6 +225,18 @@
       const s = el('em');     s.textContent = c.servicios || '—';
       b.append(n, s);
       b.addEventListener('click', () => abrirFicha(c));
+      /* Solo se arrastra lo que sigue en pie: mover una cita cumplida o
+         cancelada no significa nada. */
+      if (c.estado === 'confirmada') {
+        b.draggable = true;
+        b.addEventListener('dragstart', ev => {
+          arrastrando = c;
+          b.classList.add('arrastrando');
+          ev.dataTransfer.effectAllowed = 'move';
+          ev.dataTransfer.setData('text/plain', String(c.id));
+        });
+        b.addEventListener('dragend', () => { arrastrando = null; b.classList.remove('arrastrando'); });
+      }
       g.appendChild(b);
     });
 
@@ -313,7 +346,10 @@
     btns.appendChild(wa);
 
     if (c.estado === 'confirmada') {
-      btns.appendChild(boton('Cumplida', () => cambiar(c.id, 'cumplida')));
+      /* Marcar cumplida pasa por el cobro: si el estado se pudiera cerrar sin
+         registrar cuánto entró, la caja del día quedaría siempre incompleta y
+         el panel volvería a ser solo una lista. */
+      btns.appendChild(boton('Cobrar', () => abrirCobro(c)));
       btns.appendChild(boton('No vino', () => cambiar(c.id, 'no_asistio')));
       btns.appendChild(boton('Cancelar', () => {
         if (confirm('¿Cancelar la cita de ' + c.cliente + '? La hora vuelve a quedar libre.')) {
@@ -541,6 +577,186 @@
       btn.disabled = false;
     }
   });
+
+
+  /* =========================================================
+     Reprogramar arrastrando
+     ========================================================= */
+  let arrastrando = null;
+
+  async function mover(id, hhmm, profId) {
+    try {
+      await api('/panel/mover', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, fecha: ymd(dia), hora: hhmm, profesional: profId })
+      });
+      cargar();
+    } catch (e) {
+      alert(e.message || 'No se pudo mover la cita');
+      cargar();   // devuelve el bloque a su sitio
+    }
+  }
+
+  /* =========================================================
+     Cobro
+     ========================================================= */
+  let citaCobrando = null;
+
+  function abrirCobro(c) {
+    citaCobrando = c;
+    $('#co-quien').textContent = c.cliente + ' · ' + (c.servicios || '—');
+    /* Se propone lo que valía al reservar, pero se puede cambiar: un descuento
+       o un servicio que se alargó hacen que lo cobrado difiera. */
+    $('#co-valor').value = c.total || 0;
+    $('#co-metodo').value = 'efectivo';
+    $('#co-error').hidden = true;
+    $('#dlg-cobro').showModal();
+  }
+
+  $('#co-guardar').addEventListener('click', async () => {
+    const err = $('#co-error');
+    err.hidden = true;
+    try {
+      await api('/panel/cobrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cita_id: citaCobrando.id,
+          cobrado: Number($('#co-valor').value),
+          metodo_pago: $('#co-metodo').value
+        })
+      });
+      $('#dlg-cobro').close();
+      cerrarFicha();
+      cargar();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo registrar';
+      err.hidden = false;
+    }
+  });
+
+  /* =========================================================
+     Vistas: agenda / caja / ajustes
+     ========================================================= */
+  const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
+  const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia',
+                    tarjeta: 'Tarjeta', otro: 'Otro' };
+
+  function mostrarVista(cual) {
+    $('#vista-caja').hidden = cual !== 'caja';
+    $('#vista-ajustes').hidden = cual !== 'ajustes';
+    const agenda = cual === 'agenda';
+    document.querySelector('.rejilla-wrap').style.display = agenda ? '' : 'none';
+    $('#lista').style.display = agenda ? '' : 'none';
+    if (cual === 'caja') cargarCaja();
+    if (cual === 'ajustes') cargarAjustes();
+  }
+
+  $('#ver-caja').addEventListener('click', () => mostrarVista('caja'));
+  $('#ver-ajustes').addEventListener('click', () => mostrarVista('ajustes'));
+  $('#ir-hoy').addEventListener('click', () => mostrarVista('agenda'));
+
+  function tabla(cabeceras, filas) {
+    const t = el('table', 'tabla');
+    const thead = el('thead'); const tr = el('tr');
+    cabeceras.forEach(h => {
+      const th = el('th', h.num ? 'num' : '');
+      th.textContent = h.t || h;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr); t.appendChild(thead);
+    const tb = el('tbody');
+    filas.forEach(f => {
+      const r = el('tr');
+      f.forEach(celda => {
+        const td = el('td', celda && celda.num ? 'num' : '');
+        if (celda && celda.nodo) td.appendChild(celda.nodo);
+        else { td.textContent = celda && celda.t !== undefined ? celda.t : celda; if (celda && celda.fuerte) td.className += ' fuerte'; }
+        r.appendChild(td);
+      });
+      tb.appendChild(r);
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  async function cargarCaja() {
+    const cont = $('#caja-cuerpo');
+    cont.textContent = 'Cargando…';
+    try {
+      const d = await api('/panel/caja?fecha=' + ymd(dia));
+      cont.textContent = '';
+
+      const tot = el('p', 'vista__nota');
+      tot.innerHTML = '';
+      tot.textContent = d.cobros.length
+        ? d.cobros.length + (d.cobros.length === 1 ? ' cobro · ' : ' cobros · ') + money(d.total)
+        : 'Todavía no ha entrado nada hoy.';
+      cont.appendChild(tot);
+      if (!d.cobros.length) return;
+
+      cont.appendChild(el('h3')).textContent = 'Por forma de pago';
+      cont.appendChild(tabla(['Forma', { t: 'Valor', num: true }],
+        Object.keys(d.porMetodo).map(k => [METODOS[k] || k, { t: money(d.porMetodo[k]), num: true, fuerte: true }])));
+
+      cont.appendChild(el('h3')).textContent = 'Por profesional';
+      cont.appendChild(tabla(
+        ['Profesional', { t: 'Citas', num: true }, { t: 'Cobrado', num: true }, { t: 'Comisión', num: true }, { t: 'A pagar', num: true }],
+        d.porProfesional.map(p => [p.nombre, { t: p.cuantas, num: true }, { t: money(p.bruto), num: true },
+                                   { t: Math.round(p.comision * 100) + '%', num: true },
+                                   { t: money(p.pagar), num: true, fuerte: true }])));
+
+      cont.appendChild(el('h3')).textContent = 'Detalle';
+      cont.appendChild(tabla(['Hora', 'Cliente', 'Servicios', 'Profesional', 'Pago', { t: 'Valor', num: true }],
+        d.cobros.map(c => [hora(c.cobrado_en), c.cliente, c.servicios, c.profesional,
+                           METODOS[c.metodo_pago] || c.metodo_pago, { t: money(c.cobrado), num: true }])));
+    } catch (e) {
+      cont.textContent = e.message || 'No se pudo cargar la caja.';
+    }
+  }
+
+  async function cargarAjustes() {
+    const hCont = $('#aj-horario'), sCont = $('#aj-servicios');
+    hCont.textContent = 'Cargando…'; sCont.textContent = '';
+    try {
+      const d = await api('/panel/ajustes');
+      hCont.textContent = '';
+
+      hCont.appendChild(tabla(['Día', 'Abre', 'Cierra', 'Abierto'],
+        d.horario.map(h => {
+          const abre = el('input'); abre.type = 'time'; abre.value = h.abre;
+          const cierra = el('input'); cierra.type = 'time'; cierra.value = h.cierra;
+          const ab = el('input'); ab.type = 'checkbox'; ab.checked = h.abierto; ab.style.minHeight = 'auto'; ab.style.width = 'auto';
+          const guardar = () => api('/panel/ajustes', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ horario: { dow: h.dow, abre: abre.value, cierra: cierra.value, abierto: ab.checked } })
+          }).catch(e => alert(e.message));
+          [abre, cierra].forEach(i => i.addEventListener('change', guardar));
+          ab.addEventListener('change', guardar);
+          return [DIAS[h.dow], { nodo: abre }, { nodo: cierra }, { nodo: ab }];
+        })));
+
+      sCont.appendChild(tabla(['Servicio', 'Segmento', { t: 'Precio', num: true }, { t: 'Minutos', num: true }, 'Activo'],
+        d.servicios.map(sv => {
+          const precio = el('input'); precio.type = 'number'; precio.step = '1000'; precio.min = '0';
+          precio.value = sv.precio === null ? '' : sv.precio;
+          precio.placeholder = 'a convenir';
+          const min = el('input'); min.type = 'number'; min.min = '5'; min.max = '600'; min.step = '5'; min.value = sv.minutos;
+          const act = el('input'); act.type = 'checkbox'; act.checked = sv.activo; act.style.minHeight = 'auto'; act.style.width = 'auto';
+          const guardar = () => api('/panel/ajustes', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ servicio: { id: sv.id, precio: precio.value === '' ? null : Number(precio.value),
+                                               minutos: Number(min.value), activo: act.checked } })
+          }).then(() => { CATALOGO = []; }).catch(e => alert(e.message));
+          [precio, min].forEach(i => i.addEventListener('change', guardar));
+          act.addEventListener('change', guardar);
+          return [sv.nombre, SEGMENTOS[sv.segmento] || sv.segmento, { nodo: precio, num: true }, { nodo: min, num: true }, { nodo: act }];
+        })));
+    } catch (e) {
+      hCont.textContent = e.message || 'No se pudo cargar.';
+    }
+  }
 
   /* ---------- bloquear horas ---------- */
   const dlg = $('#dlg-bloqueo');
