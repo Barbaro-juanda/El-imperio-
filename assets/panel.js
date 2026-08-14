@@ -23,6 +23,11 @@
     cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas'
   };
 
+  /* Quién entró. Manda el servidor: el panel solo lo usa para no enseñar
+     botones que la API va a rechazar de todos modos. La seguridad está allá. */
+  let ROL = 'dueno';
+  let MICOMISION = null;
+
   let dia = new Date();
   let datos = { citas: [], bloqueos: [], profesionales: [],
                 horario: { abre: '09:00', cierra: '20:00', abierto: true },
@@ -98,11 +103,27 @@
   })();
 
   function respuestaDemo(ruta) {
-    if (ruta.startsWith('/panel/agenda'))    return MUESTRA.agenda;
+    if (ruta.startsWith('/panel/agenda')) {
+      if (ROL !== 'profesional') return Object.assign({ rol: 'dueno' }, MUESTRA.agenda);
+      /* El profesional ve solo lo suyo: se filtra igual que en el servidor para
+         que la demostración no prometa algo que la API no hace. */
+      const yo = 1;
+      return Object.assign({}, MUESTRA.agenda, {
+        rol: 'profesional',
+        profesionales: MUESTRA.agenda.profesionales.filter(p => p.id === yo),
+        citas: MUESTRA.agenda.citas.filter(c => c.profesional_id === yo),
+        comision: { pct: 0.5, cobrado: 45000, gana: 22500 }
+      });
+    }
     if (ruta.startsWith('/panel/caja'))      return MUESTRA.caja;
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
     if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
-    if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios, horario: MUESTRA.horario };
+    if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios, horario: MUESTRA.horario,
+      equipo: [
+        { id: 1, nombre: 'Emanuel Gómez',    comision: 0.5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: true },
+        { id: 2, nombre: 'Jeronimo Garcia',  comision: 0.5, entra: '11:00', sale: '20:00', activo: true,  tiene_clave: false },
+        { id: 3, nombre: 'Valentina Romero', comision: 0.5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true }
+      ] };
     return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar nada
   }
 
@@ -137,11 +158,12 @@
     const err = $('#login-error');
     err.hidden = true;
     try {
-      await api('/panel/entrar', {
+      const r = await api('/panel/entrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clave: $('#clave').value })
       });
+      ROL = r.rol || 'dueno';
       $('#clave').value = '';
       abrirPanel();
     } catch (e2) {
@@ -153,7 +175,15 @@
   function abrirPanel() {
     $('#login').hidden = true;
     $('#app').hidden = false;
+    aplicarRol();
     cargar();
+  }
+
+  function aplicarRol() {
+    const dueno = ROL === 'dueno';
+    document.querySelectorAll('[data-dueno]').forEach(n => { n.hidden = !dueno; });
+    $('#mi-dia').hidden = dueno;
+    $('#dia-resumen').hidden = !dueno;   // la caja del local no es asunto suyo
   }
 
   $('#salir').addEventListener('click', async () => {
@@ -184,6 +214,8 @@
     $('#lista').appendChild(cargando);
     try {
       datos = await api('/panel/agenda?fecha=' + ymd(dia));
+      if (datos.rol) { ROL = datos.rol; aplicarRol(); }
+      MICOMISION = datos.comision || null;
       pintar();
     } catch (e) {
       /* 401 = la sesión caducó a mitad de jornada; se vuelve a pedir clave en
@@ -209,8 +241,26 @@
     $('#dia-resumen').textContent = r.cuantas
       ? r.cuantas + (r.cuantas === 1 ? ' cita · ' : ' citas · ') + '$' + r.total.toLocaleString('es-CO')
       : (datos.horario && datos.horario.abierto ? 'Sin citas' : 'Cerrado');
+    if (ROL === 'profesional') pintarMiDia();
     pintarRejilla();
     pintarLista();
+  }
+
+  function pintarMiDia() {
+    const cs = datos.citas.filter(c => c.estado !== 'cancelada');
+    $('#mi-citas').textContent = cs.length;
+
+    /* Ocupación sobre la jornada abierta del local ese día, no sobre 24 horas:
+       decir «12% ocupado» contando la madrugada no informa de nada. */
+    const abre = aMin(datos.horario.abre);
+    let cierra = aMin(datos.horario.cierra);
+    if (cierra <= abre) cierra += 24 * 60;
+    const jornada = Math.max(1, cierra - abre);
+    const ocupado = cs.reduce((t, c) => t + (minutosLocales(c.fin) - minutosLocales(c.inicio)), 0);
+    $('#mi-ocupacion').textContent = Math.round(ocupado / jornada * 100) + '%';
+
+    $('#mi-comision').textContent = MICOMISION
+      ? '$' + Number(MICOMISION.gana).toLocaleString('es-CO') : '$0';
   }
 
   const hora = iso => new Intl.DateTimeFormat('es-CO', {
@@ -818,6 +868,34 @@
           return [DIAS[h.dow], { nodo: abre }, { nodo: cierra }, { nodo: ab }];
         })));
 
+      /* Equipo: comisión, jornada y clave de acceso. */
+      const eCont = $('#aj-equipo');
+      eCont.textContent = '';
+      eCont.appendChild(tabla(['Profesional', { t: 'Comisión %', num: true }, 'Entra', 'Sale', 'Clave nueva', 'Activo'],
+        (d.equipo || []).map(pr => {
+          const com = el('input'); com.type = 'number'; com.min = '0'; com.max = '100'; com.step = '5';
+          com.value = Math.round(pr.comision * 100);
+          const entra = el('input'); entra.type = 'time'; entra.value = pr.entra;
+          const sale = el('input');  sale.type = 'time';  sale.value = pr.sale;
+          const clave = el('input'); clave.type = 'password'; clave.autocomplete = 'new-password';
+          clave.placeholder = pr.tiene_clave ? '•••••• (ya tiene)' : 'sin clave aún';
+          const act = el('input'); act.type = 'checkbox'; act.checked = pr.activo;
+          act.style.minHeight = 'auto'; act.style.width = 'auto';
+          const guardar = () => api('/panel/ajustes', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profesional: {
+              id: pr.id, comision: Number(com.value) / 100, entra: entra.value,
+              sale: sale.value, activo: act.checked,
+              clave: clave.value || undefined
+            } })
+          }).then(() => {
+            if (clave.value) { clave.value = ''; clave.placeholder = '•••••• (ya tiene)'; }
+          }).catch(e => alert(e.message));
+          [com, entra, sale, clave].forEach(i => i.addEventListener('change', guardar));
+          act.addEventListener('change', guardar);
+          return [pr.nombre, { nodo: com, num: true }, { nodo: entra }, { nodo: sale }, { nodo: clave }, { nodo: act }];
+        })));
+
       sCont.appendChild(tabla(['Servicio', 'Segmento', { t: 'Precio', num: true }, { t: 'Minutos', num: true }, 'Activo'],
         d.servicios.map(sv => {
           const precio = el('input'); precio.type = 'number'; precio.step = '1000'; precio.min = '0';
@@ -882,7 +960,18 @@
     /* Aviso permanente en pantalla: nada de lo que se ve aquí es real, y quien
        lo mire tiene que saberlo antes de sacar conclusiones. */
     const aviso = el('div', 'demo-aviso');
-    aviso.textContent = 'Modo demostración · datos inventados · en local no hay base de datos';
+    aviso.textContent = 'Modo demostración · datos inventados · ';
+    /* Sin base no hay claves que probar, así que el cambio de rol va a mano:
+       es la única forma de revisar los dos paneles en local. */
+    const cambiar = el('button', 'demo-rol');
+    cambiar.type = 'button';
+    const pinta = () => { cambiar.textContent = 'viendo como ' + (ROL === 'dueno' ? 'ADMINISTRADOR' : 'PROFESIONAL') + ' · cambiar'; };
+    cambiar.addEventListener('click', () => {
+      ROL = ROL === 'dueno' ? 'profesional' : 'dueno';
+      pinta(); aplicarRol(); cargar();
+    });
+    pinta();
+    aviso.appendChild(cambiar);
     document.body.insertBefore(aviso, document.body.firstChild);
     document.body.classList.add('con-aviso');
     abrirPanel();

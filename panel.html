@@ -8,7 +8,7 @@
 <title>Agenda · The Imperial Clasic</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=8">
+<link rel="stylesheet" href="assets/panel.css?v=9">
 </head>
 <body class="panel">
 
@@ -41,12 +41,20 @@
     <button class="panel__chip" type="button" id="ir-hoy">Hoy</button>
     <!-- En escritorio se agenda tocando el hueco de la rejilla; en móvil no hay
          rejilla, así que hace falta una puerta explícita. -->
-    <button class="panel__chip panel__chip--crear" type="button" id="abrir-crear">＋ Nueva cita</button>
+    <button class="panel__chip panel__chip--crear" type="button" id="abrir-crear" data-dueno>＋ Nueva cita</button>
     <button class="panel__chip" type="button" id="abrir-bloqueo">Bloquear horas</button>
-    <button class="panel__chip" type="button" id="ver-caja">Caja del día</button>
-    <button class="panel__chip" type="button" id="ver-ajustes">Ajustes</button>
+    <button class="panel__chip" type="button" id="ver-caja" data-dueno>Caja del día</button>
+    <button class="panel__chip" type="button" id="ver-ajustes" data-dueno>Ajustes</button>
     <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
   </div>
+
+  <!-- Mi día: solo para el profesional. El dueño ve la caja del local; a quien
+       trabaja le sirve saber lo suyo. -->
+  <section class="mi-dia" id="mi-dia" hidden>
+    <div class="mi-dia__dato"><strong id="mi-citas">—</strong><span>citas hoy</span></div>
+    <div class="mi-dia__dato"><strong id="mi-ocupacion">—</strong><span>de tu jornada</span></div>
+    <div class="mi-dia__dato"><strong id="mi-comision">—</strong><span>tu comisión</span></div>
+  </section>
 
   <!-- Escritorio: rejilla con una columna por profesional -->
   <div class="rejilla-wrap">
@@ -79,6 +87,10 @@
   <section class="vista" id="vista-ajustes" hidden>
     <h2 class="vista__tit">Horario del local</h2>
     <div id="aj-horario"></div>
+    <h2 class="vista__tit">Profesionales</h2>
+    <p class="vista__nota">La clave en blanco deja la actual. Mínimo 8 caracteres.</p>
+    <div id="aj-equipo"></div>
+
     <h2 class="vista__tit">Servicios</h2>
     <p class="vista__nota">Precio vacío = a convenir. Los cambios se guardan al salir del campo.</p>
     <div id="aj-servicios"></div>
@@ -174,6 +186,6 @@
   </dialog>
 </main>
 
-<script src="assets/panel.js?v=6"></script>
+<script src="assets/panel.js?v=7"></script>
 </body>
 </html>
