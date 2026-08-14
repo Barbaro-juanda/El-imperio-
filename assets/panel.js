@@ -28,12 +28,93 @@
                 horario: { abre: '09:00', cierra: '20:00', abierto: true },
                 resumen: { total: 0, cuantas: 0 } };
 
-  /* En el servidor de desarrollo local no existe /api —solo entrega archivos—,
-     así que toda llamada devuelve 404 con una página HTML. Decir «Error 404»
-     manda a buscar un fallo que no existe: se explica qué pasa de verdad. */
+  /* =========================================================
+     Modo demostración — SOLO en localhost
+     El servidor de desarrollo entrega archivos y nada más: no ejecuta /api, así
+     que en local no hay base ni sesión. Para poder revisar diseño y navegación
+     sin publicar, aquí se entra sin clave y con datos inventados.
+
+     La condición es el nombre de host, que el navegador no deja falsear: en
+     cualquier dirección publicada esto queda muerto y el panel exige clave y
+     habla con la base como siempre.
+     ========================================================= */
+  const DEMO = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
+
+  const MUESTRA = (() => {
+    const d = new Date();
+    const ymdHoy = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    /* Bogotá es UTC-5, así que la hora local +5 da la UTC que guarda la base. */
+    const t = (h, m) => new Date(ymdHoy + 'T' + pad(h + 5) + ':' + pad(m) + ':00Z').toISOString();
+    const profs = [{ id: 1, nombre: 'Emanuel Gómez' }, { id: 2, nombre: 'Jeronimo Garcia' },
+                   { id: 3, nombre: 'Valentina Romero' }];
+    const citas = [
+      { id: 1, codigo: 'AB3K7P', inicio: t(9, 0),  fin: t(10, 0), estado: 'cumplida',   total: 45000, cobrado: 45000, cliente: 'Andrés Mejía',   telefono: '+573001112233', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte VIP' },
+      { id: 2, codigo: 'CD8M2Q', inicio: t(10, 30), fin: t(12, 0), estado: 'confirmada', total: 60000, cliente: 'Santiago Ruiz',  telefono: '+573004445566', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte y Barba VIP' },
+      { id: 3, codigo: 'EF4N9R', inicio: t(9, 30), fin: t(10, 15), estado: 'confirmada', total: 35000, cliente: 'Camilo Ospina',  telefono: '+573007778899', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Corte Sencillo' },
+      { id: 4, codigo: 'GH5P1S', inicio: t(11, 0), fin: t(11, 30), estado: 'no_asistio', total: 26000, cliente: 'Diego Franco',   telefono: '+573001234567', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Ritual de Barba' },
+      { id: 5, codigo: 'IJ6Q3T', inicio: t(9, 0),  fin: t(11, 0), estado: 'confirmada', total: 0,     cliente: 'Laura Restrepo', telefono: '+573009998877', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manos y pies' },
+      { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'confirmada', total: 65000, cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber' }
+    ];
+    return {
+      agenda: {
+        profesionales: profs,
+        horario: { abre: '09:00', cierra: '20:00', abierto: true },
+        citas,
+        bloqueos: [{ id: 1, profesional_id: null, inicio: t(13, 0), fin: t(14, 0), motivo: 'Almuerzo' }],
+        resumen: { total: 231000, cuantas: 5 }
+      },
+      caja: {
+        total: 186000,
+        porMetodo: { efectivo: 80000, transferencia: 65000, tarjeta: 41000 },
+        porProfesional: [
+          { nombre: 'Emanuel Gómez',    bruto: 45000, comision: 0.5, pagar: 22500, cuantas: 1 },
+          { nombre: 'Jeronimo Garcia',  bruto: 35000, comision: 0.5, pagar: 17500, cuantas: 1 },
+          { nombre: 'Valentina Romero', bruto: 106000, comision: 0.5, pagar: 53000, cuantas: 2 }
+        ],
+        cobros: [
+          { id: 1, cobrado_en: t(10, 5),  cliente: 'Andrés Mejía',   servicios: 'Corte VIP',                profesional: 'Emanuel Gómez',    metodo_pago: 'efectivo',      cobrado: 45000 },
+          { id: 2, cobrado_en: t(11, 10), cliente: 'Camilo Ospina',  servicios: 'Corte Sencillo',           profesional: 'Jeronimo Garcia',  metodo_pago: 'efectivo',      cobrado: 35000 },
+          { id: 3, cobrado_en: t(12, 40), cliente: 'Mariana Gil',    servicios: 'Manicura con Base Rubber', profesional: 'Valentina Romero', metodo_pago: 'transferencia', cobrado: 65000 },
+          { id: 4, cobrado_en: t(13, 15), cliente: 'Laura Restrepo', servicios: 'Manos y pies',             profesional: 'Valentina Romero', metodo_pago: 'tarjeta',       cobrado: 41000 }
+        ]
+      },
+      servicios: [
+        { id: 'corte-sencillo', nombre: 'Corte Sencillo',   segmento: 'cortes', precio: 35000, minutos: 45, activo: true, profesionales: [1, 2] },
+        { id: 'corte-vip',      nombre: 'Corte VIP',        segmento: 'cortes', precio: 45000, minutos: 60, activo: true, profesionales: [1, 2] },
+        { id: 'ritual-barba',   nombre: 'Ritual de Barba',  segmento: 'cortes', precio: 26000, minutos: 30, activo: true, profesionales: [1, 2] },
+        { id: 'cejas-hilo',     nombre: 'Cejas con hilo',   segmento: 'cejas',  precio: 20000, minutos: 20, activo: true, profesionales: [1, 2] },
+        { id: 'manos-pies',     nombre: 'Manos y pies',     segmento: 'unas',   precio: null,  minutos: 120, activo: true, profesionales: [3] },
+        { id: 'rubber',         nombre: 'Manicura con Base Rubber', segmento: 'unas', precio: 65000, minutos: 60, activo: true, profesionales: [1, 2, 3] }
+      ],
+      clientes: [
+        { id: 1, nombre: 'Andrés Mejía',   telefono: '+573001112233' },
+        { id: 2, nombre: 'Santiago Ruiz',  telefono: '+573004445566' },
+        { id: 3, nombre: 'Laura Restrepo', telefono: '+573009998877' }
+      ],
+      horario: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
+        dow, abre: '09:00', cierra: dow === 6 ? '18:00' : '20:00', abierto: dow !== 0
+      }))
+    };
+  })();
+
+  function respuestaDemo(ruta) {
+    if (ruta.startsWith('/panel/agenda'))    return MUESTRA.agenda;
+    if (ruta.startsWith('/panel/caja'))      return MUESTRA.caja;
+    if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
+    if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
+    if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios, horario: MUESTRA.horario };
+    return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar nada
+  }
+
   const SIN_API = 'El panel necesita el sitio publicado. En local no se ejecutan las funciones del servidor.';
 
   async function api(ruta, opciones) {
+    if (DEMO) {
+      /* Un respiro para que se vea el «Cargando…»; si respondiera al instante
+         parecería que la pantalla no hizo nada. */
+      await new Promise(r => setTimeout(r, 120));
+      return respuestaDemo(ruta);
+    }
     let r;
     try {
       r = await fetch('/api' + ruta, opciones);
@@ -797,6 +878,16 @@
     }
   });
 
-  /* Si la cookie sigue viva se entra directo, sin volver a teclear la clave. */
-  api('/panel/agenda?fecha=' + ymd(dia)).then(abrirPanel).catch(() => {});
+  if (DEMO) {
+    /* Aviso permanente en pantalla: nada de lo que se ve aquí es real, y quien
+       lo mire tiene que saberlo antes de sacar conclusiones. */
+    const aviso = el('div', 'demo-aviso');
+    aviso.textContent = 'Modo demostración · datos inventados · en local no hay base de datos';
+    document.body.insertBefore(aviso, document.body.firstChild);
+    document.body.classList.add('con-aviso');
+    abrirPanel();
+  } else {
+    /* Si la cookie sigue viva se entra directo, sin volver a teclear la clave. */
+    api('/panel/agenda?fecha=' + ymd(dia)).then(abrirPanel).catch(() => {});
+  }
 })();
