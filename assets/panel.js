@@ -18,6 +18,10 @@
                     no_asistio: 'No asistió', cancelada: 'Cancelada' };
 
   const PASO = 15;   // minutos por fila; el mismo con el que la API ofrece cupos
+  const SEGMENTOS = {
+    cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
+    cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas'
+  };
 
   let dia = new Date();
   let datos = { citas: [], bloqueos: [], profesionales: [],
@@ -177,6 +181,10 @@
         const c = el('div', 'rejilla__celda' + (enPunto ? ' rejilla__celda--enpunto' : ''));
         c.style.gridRow = String(f + 2);
         c.style.gridColumn = String(i + 2);
+        /* Tocar el hueco es la forma natural de agendar: ya dice quién y a qué
+           hora, así que el formulario abre con eso resuelto. */
+        c.title = 'Crear cita · ' + p.nombre.split(' ')[0] + ' ' + pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
+        c.addEventListener('click', () => abrirCrear(p.id, pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60)));
         g.appendChild(c);
       });
     }
@@ -365,6 +373,174 @@
   function cerrarFicha() { const f = $('#ficha'); if (f) f.hidden = true; }
   $('#ficha-cerrar').addEventListener('click', cerrarFicha);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarFicha(); });
+
+
+  /* =========================================================
+     Crear cita desde el mostrador
+     El local agenda a quien llama o entra caminando, que es la mayor parte de
+     su negocio. Sin esto el panel solo mira; con esto, trabaja.
+     ========================================================= */
+  let CATALOGO = [];        // se pide una vez: no cambia entre días
+  let clienteElegido = null;
+
+  async function catalogo() {
+    if (CATALOGO.length) return CATALOGO;
+    const r = await api('/panel/servicios');
+    CATALOGO = r.servicios || [];
+    return CATALOGO;
+  }
+
+  async function abrirCrear(profId, hhmm) {
+    $('#cr-error').hidden = true;
+    limpiarCliente();
+
+    const profs = datos.profesionales || [];
+    const selP = $('#cr-prof');
+    selP.textContent = '';
+    profs.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.nombre;
+      selP.appendChild(o);
+    });
+    if (profId) selP.value = String(profId);
+    $('#cr-hora').value = hhmm || '';
+
+    await catalogo();
+    pintarServicios();
+    buscarClientes('');
+    $('#dlg-crear').showModal();
+  }
+
+  /* Solo se ofrecen los servicios que ese profesional presta: elegir uno que
+     no hace y descubrirlo al guardar es hacerle perder el tiempo. */
+  function pintarServicios() {
+    const prof = Number($('#cr-prof').value);
+    const sel = $('#cr-serv');
+    const antes = sel.value;
+    sel.textContent = '';
+    let grupo = null, og = null;
+    CATALOGO.filter(s => (s.profesionales || []).map(Number).includes(prof)).forEach(s => {
+      if (s.segmento !== grupo) {
+        grupo = s.segmento;
+        og = document.createElement('optgroup');
+        og.label = SEGMENTOS[grupo] || grupo;
+        sel.appendChild(og);
+      }
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.nombre + (s.precio ? ' · $' + s.precio.toLocaleString('es-CO') : '');
+      o.dataset.min = s.minutos;
+      og.appendChild(o);
+    });
+    if (antes && sel.querySelector('option[value="' + antes + '"]')) sel.value = antes;
+    sincronizarDuracion();
+  }
+
+  /* La duración del catálogo es una propuesta, no una imposición: quien atiende
+     sabe si ese cliente se demora más. */
+  function sincronizarDuracion() {
+    const o = $('#cr-serv').selectedOptions[0];
+    const min = o ? Number(o.dataset.min) : 0;
+    $('#cr-min').value = min || 30;
+    $('#cr-dur-nota').textContent = min ? 'minutos · el servicio propone ' + min : 'minutos';
+  }
+
+  /* Desde el botón no hay hueco que dé contexto: se abre en la próxima marca
+     de cuarto de hora, que es lo que casi siempre se quiere al agendar a
+     alguien que acaba de entrar. */
+  $('#abrir-crear').addEventListener('click', () => {
+    const ahora = new Date();
+    const m = Math.ceil((ahora.getHours() * 60 + ahora.getMinutes()) / PASO) * PASO;
+    abrirCrear(null, pad(Math.floor(m / 60) % 24) + ':' + pad(m % 60));
+  });
+
+  $('#cr-prof').addEventListener('change', pintarServicios);
+  $('#cr-serv').addEventListener('change', sincronizarDuracion);
+
+  /* ---- cliente ---- */
+  let tBusca = null;
+  $('#cr-buscar').addEventListener('input', e => {
+    clearTimeout(tBusca);
+    const q = e.target.value;
+    tBusca = setTimeout(() => buscarClientes(q), 220);
+  });
+
+  async function buscarClientes(q) {
+    const ul = $('#cr-lista');
+    try {
+      const r = await api('/panel/clientes?q=' + encodeURIComponent(q));
+      ul.textContent = '';
+      (r.clientes || []).forEach(c => {
+        const li = document.createElement('li');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = c.nombre;
+        const s = document.createElement('small');
+        s.textContent = c.telefono || 'sin celular';
+        b.appendChild(s);
+        b.addEventListener('click', () => elegirCliente(c));
+        li.appendChild(b);
+        ul.appendChild(li);
+      });
+    } catch (e) { ul.textContent = ''; }
+  }
+
+  function elegirCliente(c) {
+    clienteElegido = c;
+    const p = $('#cr-elegido');
+    p.textContent = c.nombre + (c.telefono ? ' · ' + c.telefono : '');
+    const q = document.createElement('button');
+    q.type = 'button';
+    q.textContent = 'cambiar';
+    q.addEventListener('click', limpiarCliente);
+    p.appendChild(q);
+    p.hidden = false;
+    $('#cr-buscar').hidden = true;
+    $('#cr-lista').hidden = true;
+    $('#cr-nuevo').hidden = true;
+  }
+
+  function limpiarCliente() {
+    clienteElegido = null;
+    $('#cr-elegido').hidden = true;
+    $('#cr-buscar').hidden = false;
+    $('#cr-buscar').value = '';
+    $('#cr-lista').hidden = false;
+    $('#cr-nuevo').hidden = false;
+    $('#cr-nombre').value = '';
+    $('#cr-tel').value = '';
+  }
+
+  $('#cr-guardar').addEventListener('click', async () => {
+    const err = $('#cr-error');
+    err.hidden = true;
+    const btn = $('#cr-guardar');
+    btn.disabled = true;
+    try {
+      const cuerpo = {
+        fecha: ymd(dia),
+        hora: $('#cr-hora').value,
+        minutos: Number($('#cr-min').value),
+        servicios: [$('#cr-serv').value].filter(Boolean),
+        profesional: Number($('#cr-prof').value)
+      };
+      if (clienteElegido) cuerpo.cliente_id = clienteElegido.id;
+      else { cuerpo.nombre = $('#cr-nombre').value; cuerpo.telefono = $('#cr-tel').value; }
+
+      await api('/panel/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo)
+      });
+      $('#dlg-crear').close();
+      cargar();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo crear la cita';
+      err.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   /* ---------- bloquear horas ---------- */
   const dlg = $('#dlg-bloqueo');

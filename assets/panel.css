@@ -83,6 +83,8 @@
   cursor: pointer; white-space: nowrap;
 }
 .panel__chip:hover { color: var(--ink); border-color: var(--ink); }
+.panel__chip--crear { border-color: var(--wine); color: var(--wine); font-weight: 400; }
+.panel__chip--crear:hover { background: var(--wine); color: var(--cream); border-color: var(--wine); }
 .panel__chip--salir { margin-left: auto; border-color: rgba(155, 48, 64, .5); color: var(--wine); }
 
 /* =========================================================
@@ -236,6 +238,44 @@
 .panel__vacio {
   padding: 44px 14px; text-align: center;
   font: 300 13px/1.7 var(--sans); color: var(--p-tenue);
+}
+
+/* --- Formulario de nueva cita --- */
+.cr-dur { display: flex; align-items: center; gap: 10px; }
+.cr-dur input { flex: 0 0 90px; }
+.cr-dur em {
+  font: 300 11px/1.4 var(--sans); font-style: normal;
+  letter-spacing: 0; text-transform: none; color: var(--p-tenue);
+}
+.cr-cliente { border: 1px solid var(--p-linea); padding: 12px 14px 4px; margin: 0 0 4px; }
+.cr-cliente legend {
+  font: 300 10px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+  color: var(--p-tenue); padding: 0 6px;
+}
+.cr-lista { list-style: none; margin: 8px 0 0; padding: 0; max-height: 168px; overflow-y: auto; }
+.cr-lista li + li { border-top: 1px solid var(--p-linea2); }
+.cr-lista button {
+  width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+  padding: 10px 4px; min-height: 44px;
+  font: 300 13px/1.35 var(--sans); color: var(--ink);
+}
+.cr-lista button:hover { color: var(--wine); }
+.cr-lista small { display: block; color: var(--p-tenue); font-size: 11px; }
+.cr-elegido {
+  margin: 10px 0 4px; padding: 9px 12px;
+  background: rgba(155, 48, 64, .07); border-left: 2px solid var(--wine);
+  font: 300 12.5px/1.4 var(--sans);
+}
+.cr-elegido button {
+  background: none; border: 0; cursor: pointer; margin-left: 8px;
+  color: var(--wine); font: 300 11px/1 var(--sans); text-decoration: underline;
+}
+
+/* El hueco vacío tiene que invitar a tocarlo, pero sin gritar: la rejilla se
+   lee de un vistazo y un fondo por celda la ensuciaría. */
+@media (min-width: 860px) {
+  .rejilla__celda { cursor: pointer; transition: background-color .12s ease; }
+  .rejilla__celda:hover { background: rgba(155, 48, 64, .07); }
 }
 
 /* --- Ficha lateral de una cita --- */

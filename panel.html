@@ -8,7 +8,7 @@
 <title>Agenda · The Imperial Clasic</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=3">
+<link rel="stylesheet" href="assets/panel.css?v=4">
 </head>
 <body class="panel">
 
@@ -37,6 +37,9 @@
 
   <div class="panel__acciones">
     <button class="panel__chip" type="button" id="ir-hoy">Hoy</button>
+    <!-- En escritorio se agenda tocando el hueco de la rejilla; en móvil no hay
+         rejilla, así que hace falta una puerta explícita. -->
+    <button class="panel__chip panel__chip--crear" type="button" id="abrir-crear">＋ Nueva cita</button>
     <button class="panel__chip" type="button" id="abrir-bloqueo">Bloquear horas</button>
     <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
   </div>
@@ -60,6 +63,52 @@
     <div class="cita__btns" id="ficha-btns"></div>
   </aside>
 
+
+  <!-- Crear cita desde el mostrador -->
+  <dialog id="dlg-crear" class="panel__dlg">
+    <form method="dialog" id="form-crear">
+      <h2>Nueva cita</h2>
+
+      <div class="panel__fila">
+        <label>Profesional
+          <select id="cr-prof" required></select>
+        </label>
+        <label>Hora
+          <input id="cr-hora" type="time" required step="900">
+        </label>
+      </div>
+
+      <label>Servicio
+        <select id="cr-serv" required></select>
+      </label>
+
+      <label>Duración
+        <span class="cr-dur">
+          <input id="cr-min" type="number" min="5" max="600" step="5" required>
+          <em id="cr-dur-nota"></em>
+        </span>
+      </label>
+
+      <fieldset class="cr-cliente">
+        <legend>Cliente</legend>
+        <input id="cr-buscar" type="search" placeholder="Buscar por nombre o celular…"
+               autocomplete="off" aria-label="Buscar cliente">
+        <ul class="cr-lista" id="cr-lista"></ul>
+        <p class="cr-elegido" id="cr-elegido" hidden></p>
+        <div class="panel__fila" id="cr-nuevo">
+          <label>Nombre <input id="cr-nombre" type="text" placeholder="Solo el nombre basta"></label>
+          <label>Celular <input id="cr-tel" type="tel" inputmode="numeric" placeholder="Opcional"></label>
+        </div>
+      </fieldset>
+
+      <p class="panel__error" id="cr-error" role="alert" hidden></p>
+      <menu>
+        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
+        <button class="btn btn--wine" id="cr-guardar" type="button">Crear cita</button>
+      </menu>
+    </form>
+  </dialog>
+
   <dialog id="dlg-bloqueo" class="panel__dlg">
     <form method="dialog" id="form-bloqueo">
       <h2>Bloquear horas</h2>
@@ -80,6 +129,6 @@
   </dialog>
 </main>
 
-<script src="assets/panel.js?v=3"></script>
+<script src="assets/panel.js?v=4"></script>
 </body>
 </html>
