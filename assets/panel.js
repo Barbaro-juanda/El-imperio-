@@ -209,6 +209,25 @@
 
   async function api(ruta, opciones) {
     if (DEMO) { await new Promise(r => setTimeout(r, 90)); return respuestaDemo(ruta, opciones); }
+
+    /* Mismo reintento que en la página, y por lo mismo: la base se suspende
+       sola tras un rato sin uso y la primera consulta después paga el
+       despertar, a veces con un 500. Aquí duele más que en la web —el panel se
+       abre a primera hora, justo cuando la base lleva toda la noche dormida—.
+
+       Solo lecturas. Reintentar un cobro o una cita los duplicaría. */
+    const metodo = (opciones && opciones.method) || 'GET';
+    if (metodo === 'GET') {
+      try { return await unaVez(ruta, opciones); }
+      catch (e) {
+        if (!(e.estado === 0 || (e.estado >= 500 && e.estado < 600))) throw e;
+        await new Promise(r => setTimeout(r, 900));
+      }
+    }
+    return unaVez(ruta, opciones);
+  }
+
+  async function unaVez(ruta, opciones) {
     let r;
     try { r = await fetch('/api' + ruta, opciones); }
     catch (e) { throw Object.assign(new Error('Sin conexión.'), { estado: 0 }); }
@@ -217,7 +236,10 @@
     if (!r.ok) {
       /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la ruta ni
          siquiera se está ejecutando. */
-      const msg = (cuerpo && cuerpo.error) || (r.status === 404 ? SIN_API : 'Error ' + r.status);
+      const msg = (cuerpo && cuerpo.error) ||
+                  (r.status === 404 ? SIN_API :
+                   r.status >= 500 ? 'El servidor tardó en responder. Vuelve a intentarlo.' :
+                   'Error ' + r.status);
       throw Object.assign(new Error(msg), { estado: r.status });
     }
     return cuerpo;

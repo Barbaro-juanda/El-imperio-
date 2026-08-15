@@ -46,9 +46,16 @@
 
   /* Segmentos de los que solo tiene sentido llevar una cosa: no se piden dos
      cortes en la misma cita, ni dos diseños de cejas. Elegir otro reemplaza al
-     anterior en vez de sumarlo. Depilación facial y limpieza facial sí admiten
-     varios: son zonas y tratamientos que se combinan. */
-  const UNICO = ['cortes', 'color', 'cejas', 'unas'];
+     anterior en vez de sumarlo.
+
+     Depilación facial entra aquí aunque parezca que se combinan zonas: la
+     carta ya trae «nariz y oídos» como una sola línea, así que elegir nariz y
+     luego oídos por separado es la forma cara de pedir lo mismo. Con una sola
+     opción, quien quiere las dos zonas coge la que las junta.
+
+     Limpieza facial sigue admitiendo varios: ahí sí son tratamientos que se
+     suman a un mismo ritual. */
+  const UNICO = ['cortes', 'color', 'cejas', 'depilacion', 'unas'];
 
   /* Respaldo. Se ve al instante, se indexa y funciona sin API; cuando llega
      el catálogo de la base se reemplaza entero. */
@@ -174,6 +181,41 @@
                   'archivos pero no ejecuta la API.';
 
   async function pedir(ruta, opciones) {
+    /* Un reintento, y solo para lecturas.
+
+       La base se suspende sola cuando lleva un rato sin uso —es cómo funciona
+       el plan en el que está—, y la primera consulta después de eso tiene que
+       esperar a que despierte. A veces tarda más de lo que la función aguanta
+       y responde 500. Es un fallo intermitente y engañoso: el visitante ve un
+       error, recarga, y ya funciona, porque su primer intento fue justamente
+       el que pagó el despertar.
+
+       Reintentar una lectura es gratis: pedir dos veces la lista de barberos
+       da la misma lista. Reintentar un POST NO lo es —crearía la cita dos
+       veces—, así que las escrituras fallan a la primera y las decide quien
+       llamó. */
+    const metodo = (opciones && opciones.method) || 'GET';
+    const puedeReintentar = metodo === 'GET';
+
+    let ultimo = null;
+    for (let intento = 0; intento < (puedeReintentar ? 2 : 1); intento++) {
+      if (intento) await new Promise(r => setTimeout(r, 900));
+      try {
+        return await unaVez(ruta, opciones);
+      } catch (e) {
+        ultimo = e;
+        /* Solo se reintenta lo que puede arreglarse solo: la base dormida (5xx)
+           o un corte momentáneo (estado 0). Un 400 o un 404 van a fallar igual
+           la segunda vez y esperar novecientos milisegundos para repetirlo solo
+           hace que el error tarde más en verse. */
+        const vale = e.estado === 0 || (e.estado >= 500 && e.estado < 600);
+        if (!vale) throw e;
+      }
+    }
+    throw ultimo;
+  }
+
+  async function unaVez(ruta, opciones) {
     let r;
     try {
       r = await fetch(API + ruta, opciones);
@@ -187,7 +229,10 @@
     if (!r.ok) {
       /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la función no se
          está ejecutando. Con cuerpo sí es la API contestando de verdad. */
-      const msg = (cuerpo && cuerpo.error) || (r.status === 404 ? SIN_API : 'Error ' + r.status);
+      const msg = (cuerpo && cuerpo.error) ||
+                  (r.status === 404 ? SIN_API :
+                   r.status >= 500 ? 'El servidor tardó en responder. Vuelve a intentarlo.' :
+                   'Error ' + r.status);
       throw Object.assign(new Error(msg), { estado: r.status });
     }
     return cuerpo;
