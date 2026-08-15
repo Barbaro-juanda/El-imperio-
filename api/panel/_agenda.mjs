@@ -14,7 +14,7 @@ export default protegido(async (req, res) => {
     const hasta = new Date(desde.getTime() + 36 * 3600 * 1000); // cubre cierres pasada medianoche
 
     const citas = await sql`
-      SELECT c.id, c.codigo, c.inicio, c.fin, c.estado, c.total,
+      SELECT c.id, c.codigo, c.inicio, c.fin, c.estado, c.total, c.cobrado,
              cl.nombre AS cliente, cl.telefono,
              p.id AS profesional_id, p.nombre AS profesional,
              COALESCE(string_agg(s.nombre, ', ' ORDER BY s.nombre), '') AS servicios
@@ -24,6 +24,7 @@ export default protegido(async (req, res) => {
         LEFT JOIN cita_servicio cs ON cs.cita_id = c.id
         LEFT JOIN servicio s ON s.id = cs.servicio_id
        WHERE c.inicio >= ${desde.toISOString()} AND c.inicio < ${hasta.toISOString()}
+         AND (${soyProf}::int IS NULL OR c.profesional_id = ${soyProf})
        GROUP BY c.id, cl.nombre, cl.telefono, p.id, p.nombre
        ORDER BY c.inicio`;
 
@@ -32,17 +33,33 @@ export default protegido(async (req, res) => {
        WHERE inicio < ${hasta.toISOString()} AND fin > ${desde.toISOString()}
        ORDER BY inicio`;
 
-    /* El equipo va completo, no solo quien tiene citas: la rejilla dibuja una
-       columna por profesional y una columna vacía es información —significa que
-       esa persona tiene el día libre—. */
-    const profesionales = await sql`
-      SELECT id, nombre FROM profesional WHERE activo ORDER BY nombre`;
+    /* El profesional solo ve su propia columna y sus propias citas. El filtro
+       va aquí y no en el navegador: ocultar filas en pantalla deja los datos
+       viajando igual, y bastaría abrir la consola para leer los teléfonos de
+       los clientes de los compañeros. */
+    const soyProf = req.sesion.rol === 'profesional' ? req.sesion.profId : null;
+
+    const profesionales = soyProf
+      ? await sql`SELECT id, nombre FROM profesional WHERE activo AND id = ${soyProf}`
+      : await sql`SELECT id, nombre FROM profesional WHERE activo ORDER BY nombre`;
 
     const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
     const hor = await sql`SELECT abre, cierra, abierto FROM horario WHERE dow = ${dow}`;
 
     const confirmadas = citas.filter(c => c.estado === 'confirmada' || c.estado === 'cumplida');
+
+    /* Al profesional no se le enseña la caja del local sino lo que le queda a
+       él: es lo suyo y es lo único que le sirve. */
+    let comision = null;
+    if (soyProf) {
+      const r = await sql`SELECT comision FROM profesional WHERE id = ${soyProf}`;
+      const pct = r[0] ? Number(r[0].comision) : 0;
+      const cobrado = citas.reduce((t, c) => t + (c.cobrado || 0), 0);
+      comision = { pct, cobrado, gana: Math.round(cobrado * pct) };
+    }
+
     return json(res, 200, {
+      rol: req.sesion.rol, comision,
       citas, bloqueos, profesionales,
       horario: hor[0] ? { abre: String(hor[0].abre).slice(0, 5),
                           cierra: String(hor[0].cierra).slice(0, 5),

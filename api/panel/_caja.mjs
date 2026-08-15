@@ -47,4 +47,4 @@ export default protegido(async (req, res) => {
     console.error('caja', e);
     return json(res, 500, { error: 'No se pudo cargar la caja' });
   }
-});
+}, { soloDueno: true });

@@ -5,58 +5,219 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Fuera de buscadores: es una herramienta interna, no una página del sitio. -->
 <meta name="robots" content="noindex, nofollow">
-<title>Agenda · The Imperial Clasic</title>
+<title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=8">
+<link rel="stylesheet" href="assets/panel.css?v=10">
 </head>
 <body class="panel">
 
-<!-- Entrada. Se muestra hasta que la sesión sea válida. -->
-<section class="panel__login" id="login">
-  <h1>Agenda</h1>
-  <p class="panel__sub">The Imperial Clasic</p>
+<!-- Una sola entrada para los dos paneles: la clave decide cuál se abre. -->
+<section class="acceso" id="login">
+  <div class="acceso__marca">
+    <span class="acceso__nombre">El Imperio</span>
+    <span class="acceso__sub">barbería · panel</span>
+  </div>
   <form id="form-login" autocomplete="off">
-    <label class="sr-only" for="clave">Clave del local</label>
-    <input id="clave" type="password" inputmode="text" placeholder="Clave" required
-           autocomplete="current-password">
-    <button class="btn btn--wine" type="submit">Entrar</button>
-    <p class="panel__error" id="login-error" role="alert" hidden></p>
+    <label class="sr-only" for="clave">Clave</label>
+    <input id="clave" type="password" placeholder="Clave" required autocomplete="current-password">
+    <button class="bt bt--vino bt--ancho" type="submit">Entrar</button>
+    <p class="acceso__error" id="login-error" role="alert" hidden></p>
   </form>
+  <p class="acceso__pie">Administrador y profesional entran por aquí.</p>
 </section>
 
-<main class="panel__app" id="app" hidden>
-  <header class="panel__top">
-    <button class="panel__nav" type="button" id="dia-ant" aria-label="Día anterior">‹</button>
-    <div class="panel__fecha">
-      <strong id="dia-titulo">—</strong>
-      <span id="dia-resumen"></span>
-      <!-- Ir a cualquier día sin dar siete clics a la flecha. -->
-      <input type="date" id="dia-picker" aria-label="Ir a una fecha">
+<div class="app" id="app" hidden>
+
+  <!-- Barra superior -->
+  <header class="barra">
+    <div class="barra__marca">
+      <span class="barra__nombre">El Imperio</span>
+      <span class="barra__sub">barbería · panel</span>
     </div>
-    <button class="panel__nav" type="button" id="dia-sig" aria-label="Día siguiente">›</button>
+    <nav class="barra__nav" id="nav" aria-label="Secciones"></nav>
+    <div class="barra__yo">
+      <div class="barra__usuario">
+        <div class="barra__txt">
+          <div class="barra__quien" id="yo-nombre">—</div>
+          <div class="barra__cargo" id="yo-rol">—</div>
+        </div>
+        <div class="barra__inicial" id="yo-inicial">—</div>
+      </div>
+      <button class="barra__salir" type="button" id="salir">Salir</button>
+    </div>
   </header>
 
-  <div class="panel__acciones">
-    <button class="panel__chip" type="button" id="ir-hoy">Hoy</button>
-    <!-- En escritorio se agenda tocando el hueco de la rejilla; en móvil no hay
-         rejilla, así que hace falta una puerta explícita. -->
-    <button class="panel__chip panel__chip--crear" type="button" id="abrir-crear">＋ Nueva cita</button>
-    <button class="panel__chip" type="button" id="abrir-bloqueo">Bloquear horas</button>
-    <button class="panel__chip" type="button" id="ver-caja">Caja del día</button>
-    <button class="panel__chip" type="button" id="ver-ajustes">Ajustes</button>
-    <button class="panel__chip panel__chip--salir" type="button" id="salir">Salir</button>
-  </div>
+  <!-- ============================ AGENDA ============================ -->
+  <section class="vista" id="v-agenda">
+    <div class="herramientas">
+      <button class="bt bt--vino" type="button" id="abrir-crear">＋ Crear</button>
+      <button class="bt" type="button" id="ir-hoy">Hoy</button>
+      <button class="bt bt--flecha" type="button" id="dia-ant" aria-label="Día anterior">‹</button>
+      <div class="tira" id="tira"></div>
+      <button class="bt bt--flecha" type="button" id="dia-sig" aria-label="Día siguiente">›</button>
+      <label class="sr-only" for="dia-picker">Ir a una fecha</label>
+      <input type="date" id="dia-picker">
+    </div>
 
-  <!-- Escritorio: rejilla con una columna por profesional -->
-  <div class="rejilla-wrap">
-    <div class="rejilla" id="rejilla" aria-label="Agenda del día"></div>
-  </div>
+    <!-- Filtro por profesional -->
+    <div class="fichas" id="fichas"></div>
 
-  <!-- Móvil: la misma información en lista -->
-  <div id="lista" class="panel__lista" aria-live="polite"></div>
+    <!-- Resumen del día -->
+    <div class="resumen" id="resumen">
+      <div class="resumen__ocupacion">
+        <svg width="54" height="54" viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(13,13,13,.09)" stroke-width="9"></circle>
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#9B3040" stroke-width="9"
+                  stroke-linecap="round" stroke-dasharray="339" stroke-dashoffset="339"
+                  transform="rotate(-90 60 60)" id="anillo"></circle>
+        </svg>
+        <div>
+          <div class="resumen__cifra" id="ocupacion-pct">0%</div>
+          <div class="resumen__pie">Ocupación</div>
+        </div>
+      </div>
+      <div class="resumen__sep"></div>
+      <div class="resumen__sigue">
+        <div class="resumen__pie">Sigue</div>
+        <div class="resumen__quien" id="prox-nombre">—</div>
+        <div class="resumen__detalle" id="prox-detalle">—</div>
+      </div>
+      <div class="resumen__sep"></div>
+      <div class="resumen__caja">
+        <div class="resumen__fila"><span>Caja / meta</span><span id="caja-texto">—</span></div>
+        <div class="barrita"><div id="caja-barra"></div></div>
+        <div class="resumen__pie" id="meta-texto">—</div>
+      </div>
+      <button class="bt" type="button" id="abrir-bloqueo">Bloquear horas</button>
+    </div>
 
-  <!-- Ficha de una cita -->
+    <!-- Leyenda -->
+    <div class="leyenda">
+      <span><i class="pt pt--confirmada"></i>Confirmada</span>
+      <span><i class="pt pt--cobrada"></i>Cobrada</span>
+      <span><i class="pt pt--porcobrar"></i>Falta cobrar</span>
+      <span><i class="pt pt--novino"></i>No vino</span>
+      <span><i class="pt pt--bloqueo"></i>Bloqueo</span>
+    </div>
+
+    <div class="rejilla-wrap"><div class="rejilla" id="rejilla" aria-label="Agenda del día"></div></div>
+    <div class="lista" id="lista" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================ MI DÍA ============================ -->
+  <section class="vista midia" id="v-midia" hidden>
+    <div class="midia__cab">
+      <div>
+        <div class="midia__tit" id="mi-titulo">Mi día</div>
+        <div class="midia__nombre" id="mi-nombre">—</div>
+      </div>
+      <div class="midia__com">
+        <div class="midia__comv" id="mi-comision">$0</div>
+        <div class="resumen__pie">mi comisión</div>
+      </div>
+    </div>
+
+    <div class="tira tira--corta" id="tira-corta"></div>
+
+    <div class="midia__cifras">
+      <div><strong id="mi-atendidas">0</strong><span>atendidas</span></div>
+      <div><strong id="mi-ocupado">0%</strong><span>ocupado</span></div>
+      <div><strong id="mi-huecos">0</strong><span>huecos</span></div>
+    </div>
+
+    <div class="actual" id="actual" hidden>
+      <div class="actual__estado" id="actual-estado"></div>
+      <div class="actual__cliente" id="actual-cliente">—</div>
+      <div class="actual__serv" id="actual-serv">—</div>
+      <div class="actual__linea"><span id="actual-valor">—</span><span id="actual-tel">—</span></div>
+      <div class="actual__btns" id="actual-btns"></div>
+    </div>
+    <div class="vacio" id="sin-actual" hidden>
+      <strong>Día cerrado</strong>
+      <span>No te quedan citas pendientes.</span>
+    </div>
+
+    <div class="despues">
+      <div class="despues__tit">Después</div>
+      <div id="despues-lista"></div>
+      <button class="bt bt--vino bt--ancho" type="button" id="mi-crear">＋ Agendar en un hueco</button>
+      <button class="bt bt--ancho" type="button" id="mi-bloquear">Bloquear mis horas</button>
+    </div>
+  </section>
+
+  <!-- ============================ FACTURAS ============================ -->
+  <section class="vista facturas" id="v-facturas" hidden>
+    <aside class="facturas__filtros">
+      <div class="facturas__rot">Filtrar por</div>
+      <div id="f-filtros"></div>
+      <div class="facturas__rot">Ordenar por</div>
+      <div id="f-ordenes"></div>
+    </aside>
+
+    <div class="facturas__cuerpo">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Facturas</span>
+        <span class="resumen__pie" id="f-resumen">—</span>
+      </div>
+      <div class="buscador">
+        <span aria-hidden="true">⌕</span>
+        <input id="f-buscar" type="search" placeholder="Buscar por teléfono del cliente — ej. 300 444" aria-label="Buscar por teléfono">
+        <button class="bt bt--mini" type="button" id="f-limpiar" hidden>Limpiar</button>
+      </div>
+      <div id="f-lista"></div>
+    </div>
+
+    <aside class="facturas__totales">
+      <div class="facturas__rot">Total ventas · hoy</div>
+      <div class="facturas__gran" id="t-caja">$0</div>
+      <div class="barrita"><div id="t-barra"></div></div>
+      <div class="resumen__pie" id="t-meta">—</div>
+
+      <div class="facturas__rot">Total comisiones</div>
+      <div class="facturas__gran" id="t-comisiones">$0</div>
+
+      <div class="facturas__rot">Forma de pago</div>
+      <div id="t-pagos"></div>
+
+      <div class="facturas__rot">Por profesional</div>
+      <div id="t-profs"></div>
+
+      <p class="nota">Registro interno de caja. No es facturación electrónica DIAN.</p>
+    </aside>
+  </section>
+
+  <!-- ============================ SERVICIOS ============================ -->
+  <section class="vista" id="v-servicios" hidden>
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Servicios</span>
+        <span class="resumen__pie" id="s-resumen">—</span>
+        <button class="bt bt--vino" type="button" id="abrir-servicio">＋ Añadir servicio</button>
+      </div>
+      <p class="nota">Lo que publiques aquí es lo que el cliente ve en la página principal al reservar: nombre, precio y descripción.</p>
+      <div class="pestanas">
+        <button type="button" class="pestana is-on" data-serv="activos">Activos</button>
+        <button type="button" class="pestana" data-serv="archivados">Archivados</button>
+      </div>
+      <div id="s-lista"></div>
+    </div>
+  </section>
+
+  <!-- ========================= DISPONIBILIDAD ========================= -->
+  <section class="vista dispo" id="v-dispo" hidden>
+    <div class="tarjeta">
+      <div class="tarjeta__tit">Horario del negocio</div>
+      <div class="horario" id="d-horario"></div>
+    </div>
+    <div class="tarjeta">
+      <div class="tarjeta__tit">Profesionales</div>
+      <div id="d-equipo"></div>
+      <p class="nota">La clave en blanco deja la actual. Mínimo 8 caracteres. Con ella el profesional entra a «Mi día» desde su celular.</p>
+    </div>
+  </section>
+
+  <!-- ============================ DIÁLOGOS ============================ -->
   <aside class="ficha" id="ficha" hidden aria-label="Detalle de la cita">
     <button class="ficha__cerrar" type="button" id="ficha-cerrar" aria-label="Cerrar">✕</button>
     <h2 id="ficha-cliente"></h2>
@@ -64,116 +225,99 @@
     <p class="ficha__tel" id="ficha-tel"></p>
     <p class="ficha__meta" id="ficha-serv"></p>
     <p class="ficha__total" id="ficha-total"></p>
-    <div class="cita__btns" id="ficha-btns"></div>
+    <div class="actual__btns" id="ficha-btns"></div>
   </aside>
 
-
-
-  <!-- Caja del día -->
-  <section class="vista" id="vista-caja" hidden>
-    <h2 class="vista__tit">Caja del día</h2>
-    <div id="caja-cuerpo"></div>
-  </section>
-
-  <!-- Ajustes: precios, duraciones y horarios -->
-  <section class="vista" id="vista-ajustes" hidden>
-    <h2 class="vista__tit">Horario del local</h2>
-    <div id="aj-horario"></div>
-    <h2 class="vista__tit">Servicios</h2>
-    <p class="vista__nota">Precio vacío = a convenir. Los cambios se guardan al salir del campo.</p>
-    <div id="aj-servicios"></div>
-  </section>
-
-  <!-- Cobro al marcar cumplida -->
-  <dialog id="dlg-cobro" class="panel__dlg">
-    <form method="dialog" id="form-cobro">
+  <dialog id="dlg-cobro" class="hoja">
+    <form method="dialog">
       <h2>Registrar cobro</h2>
-      <p class="vista__nota" id="co-quien"></p>
-      <label>Valor cobrado
-        <input id="co-valor" type="number" min="0" step="1000" required>
-      </label>
-      <label>Forma de pago
-        <select id="co-metodo">
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="tarjeta">Tarjeta</option>
-          <option value="otro">Otro</option>
-        </select>
-      </label>
-      <p class="vista__nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
-      <p class="panel__error" id="co-error" role="alert" hidden></p>
+      <p class="nota" id="co-quien"></p>
+      <div class="monto"><span>$</span><input id="co-valor" type="number" min="0" step="1000" required></div>
+      <div class="medios" id="co-medios"></div>
+      <p class="nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
+      <p class="acceso__error" id="co-error" role="alert" hidden></p>
       <menu>
-        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
-        <button class="btn btn--wine" id="co-guardar" type="button">Registrar</button>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="co-guardar" type="button">Registrar cobro</button>
       </menu>
     </form>
   </dialog>
 
-  <!-- Crear cita desde el mostrador -->
-  <dialog id="dlg-crear" class="panel__dlg">
-    <form method="dialog" id="form-crear">
+  <dialog id="dlg-crear" class="hoja">
+    <form method="dialog">
       <h2>Nueva cita</h2>
-
-      <div class="panel__fila">
-        <label>Profesional
-          <select id="cr-prof" required></select>
-        </label>
-        <label>Hora
-          <input id="cr-hora" type="time" required step="900">
-        </label>
+      <div class="par">
+        <label>Profesional <select id="cr-prof" required></select></label>
+        <label>Hora <input id="cr-hora" type="time" required step="900"></label>
       </div>
-
-      <label>Servicio
-        <select id="cr-serv" required></select>
-      </label>
-
+      <label>Servicio <select id="cr-serv" required></select></label>
       <label>Duración
-        <span class="cr-dur">
-          <input id="cr-min" type="number" min="5" max="600" step="5" required>
-          <em id="cr-dur-nota"></em>
-        </span>
+        <span class="cr-dur"><input id="cr-min" type="number" min="5" max="600" step="5" required><em id="cr-dur-nota"></em></span>
       </label>
-
       <fieldset class="cr-cliente">
         <legend>Cliente</legend>
-        <input id="cr-buscar" type="search" placeholder="Buscar por nombre o celular…"
-               autocomplete="off" aria-label="Buscar cliente">
+        <input id="cr-buscar" type="search" placeholder="Buscar por nombre o celular…" autocomplete="off" aria-label="Buscar cliente">
         <ul class="cr-lista" id="cr-lista"></ul>
         <p class="cr-elegido" id="cr-elegido" hidden></p>
-        <div class="panel__fila" id="cr-nuevo">
+        <div class="par" id="cr-nuevo">
           <label>Nombre <input id="cr-nombre" type="text" placeholder="Solo el nombre basta"></label>
           <label>Celular <input id="cr-tel" type="tel" inputmode="numeric" placeholder="Opcional"></label>
         </div>
       </fieldset>
-
-      <p class="panel__error" id="cr-error" role="alert" hidden></p>
+      <p class="acceso__error" id="cr-error" role="alert" hidden></p>
       <menu>
-        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
-        <button class="btn btn--wine" id="cr-guardar" type="button">Crear cita</button>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="cr-guardar" type="button">Crear cita</button>
       </menu>
     </form>
   </dialog>
 
-  <dialog id="dlg-bloqueo" class="panel__dlg">
-    <form method="dialog" id="form-bloqueo">
-      <h2>Bloquear horas</h2>
-      <label>Profesional
-        <select id="bq-prof"><option value="">Todo el local</option></select>
+  <dialog id="dlg-servicio" class="hoja">
+    <form method="dialog">
+      <h2 id="sv-titulo">Nuevo servicio</h2>
+      <p class="nota">Se publica en la página principal para que el cliente lo reserve.</p>
+      <label>Nombre del servicio <input id="sv-nombre" type="text" placeholder="ej. Corte y Barba VIP"></label>
+      <div class="par">
+        <label>Precio (COP) <input id="sv-precio" type="number" step="1000" placeholder="45000"></label>
+        <label>Duración (min) <input id="sv-min" type="number" min="5" max="600" step="5" value="45"></label>
+      </div>
+      <label>Categoría <select id="sv-cat"></select></label>
+      <label>Descripción · la ve el cliente
+        <textarea id="sv-desc" rows="3" placeholder="Corte con tijera y máquina, perfilado de barba con toalla caliente."></textarea>
       </label>
-      <div class="panel__fila">
+      <div class="vista-previa">
+        <div class="resumen__pie">Vista previa en la página principal</div>
+        <div class="vp"><span id="vp-nombre">—</span><span id="vp-precio">—</span></div>
+        <div class="vp__desc" id="vp-desc">—</div>
+      </div>
+      <p class="acceso__error" id="sv-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="sv-guardar" type="button">Publicar servicio</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-bloqueo" class="hoja">
+    <form method="dialog">
+      <h2>Bloquear horas</h2>
+      <label>Profesional <select id="bq-prof"><option value="">Todo el local</option></select></label>
+      <div class="par">
         <label>Desde <input id="bq-desde" type="time" required value="12:00"></label>
         <label>Hasta <input id="bq-hasta" type="time" required value="13:00"></label>
       </div>
       <label>Motivo <input id="bq-motivo" type="text" placeholder="Almuerzo, cita médica…"></label>
-      <p class="panel__error" id="bq-error" role="alert" hidden></p>
+      <p class="acceso__error" id="bq-error" role="alert" hidden></p>
       <menu>
-        <button class="btn btn--outline" value="cancel" type="submit">Cancelar</button>
-        <button class="btn btn--wine" id="bq-guardar" type="button">Bloquear</button>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="bq-guardar" type="button">Bloquear</button>
       </menu>
     </form>
   </dialog>
-</main>
 
-<script src="assets/panel.js?v=6"></script>
+  <div class="aviso" id="aviso" hidden role="status"></div>
+</div>
+
+<script src="assets/panel.js?v=10"></script>
 </body>
 </html>

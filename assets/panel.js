@@ -1,159 +1,189 @@
 /* =========================================================
-   Panel del local — agenda del día
-   Escritorio: rejilla con una columna por profesional.
-   Móvil: la misma información en lista.
+   Panel de El Imperio
+   Dos paneles con una sola entrada: la clave decide cuál se abre.
+     · Administrador → agenda, facturas, servicios, disponibilidad
+     · Profesional   → «Mi día», solo lo suyo
    ========================================================= */
 (function () {
   'use strict';
 
-  const $ = s => document.querySelector(s);
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
   const el = (t, c) => { const n = document.createElement(t); if (c) n.className = c; return n; };
   const pad = n => String(n).padStart(2, '0');
   const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
+  const inicial = n => String(n || '?').trim().charAt(0).toUpperCase();
 
-  const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-                 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const ESTADOS = { confirmada: 'Confirmada', cumplida: 'Cumplida',
-                    no_asistio: 'No asistió', cancelada: 'Cancelada' };
+  const DIAS  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const DIAS3 = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const MESES3 = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const SEGMENTOS = { cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
+                      cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas' };
+  const MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', otro: 'Otro' };
 
-  const PASO = 15;   // minutos por fila; el mismo con el que la API ofrece cupos
-  const SEGMENTOS = {
-    cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
-    cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas'
-  };
+  const PASO = 15;            // minutos por fila; el mismo con el que la API ofrece cupos
+  const META_LOCAL = 300000;  // meta diaria; se edita aquí hasta que el local la fije
 
+  /* Quién entró. Manda el servidor: el panel solo lo usa para no enseñar
+     botones que la API va a rechazar de todos modos. La seguridad está allá. */
+  let ROL = 'dueno', YO = { nombre: '—', profId: null };
   let dia = new Date();
+  let vista = 'agenda';
+  let profFiltro = 'todos';
   let datos = { citas: [], bloqueos: [], profesionales: [],
                 horario: { abre: '09:00', cierra: '20:00', abierto: true },
-                resumen: { total: 0, cuantas: 0 } };
+                resumen: { total: 0, cuantas: 0 }, comision: null };
 
   /* =========================================================
      Modo demostración — SOLO en localhost
-     El servidor de desarrollo entrega archivos y nada más: no ejecuta /api, así
-     que en local no hay base ni sesión. Para poder revisar diseño y navegación
-     sin publicar, aquí se entra sin clave y con datos inventados.
-
-     La condición es el nombre de host, que el navegador no deja falsear: en
-     cualquier dirección publicada esto queda muerto y el panel exige clave y
-     habla con la base como siempre.
+     El servidor de desarrollo entrega archivos y nada más: no ejecuta /api. Sin
+     esto no habría forma de revisar el panel sin publicarlo. La condición es el
+     nombre de host, que el navegador no deja falsear: en cualquier dirección
+     publicada queda muerto y el panel exige clave y habla con la base.
      ========================================================= */
   const DEMO = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
 
   const MUESTRA = (() => {
-    const d = new Date();
-    const ymdHoy = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    /* Bogotá es UTC-5, así que la hora local +5 da la UTC que guarda la base. */
-    const t = (h, m) => new Date(ymdHoy + 'T' + pad(h + 5) + ':' + pad(m) + ':00Z').toISOString();
-    const profs = [{ id: 1, nombre: 'Emanuel Gómez' }, { id: 2, nombre: 'Jeronimo Garcia' },
-                   { id: 3, nombre: 'Valentina Romero' }];
-    const citas = [
-      { id: 1, codigo: 'AB3K7P', inicio: t(9, 0),  fin: t(10, 0), estado: 'cumplida',   total: 45000, cobrado: 45000, cliente: 'Andrés Mejía',   telefono: '+573001112233', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte VIP' },
-      { id: 2, codigo: 'CD8M2Q', inicio: t(10, 30), fin: t(12, 0), estado: 'confirmada', total: 60000, cliente: 'Santiago Ruiz',  telefono: '+573004445566', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte y Barba VIP' },
-      { id: 3, codigo: 'EF4N9R', inicio: t(9, 30), fin: t(10, 15), estado: 'confirmada', total: 35000, cliente: 'Camilo Ospina',  telefono: '+573007778899', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Corte Sencillo' },
-      { id: 4, codigo: 'GH5P1S', inicio: t(11, 0), fin: t(11, 30), estado: 'no_asistio', total: 26000, cliente: 'Diego Franco',   telefono: '+573001234567', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Ritual de Barba' },
-      { id: 5, codigo: 'IJ6Q3T', inicio: t(9, 0),  fin: t(11, 0), estado: 'confirmada', total: 0,     cliente: 'Laura Restrepo', telefono: '+573009998877', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manos y pies' },
-      { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'confirmada', total: 65000, cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber' }
-    ];
+    const h = ymd(new Date());
+    const t = (hh, mm) => new Date(h + 'T' + pad(hh + 5) + ':' + pad(mm) + ':00Z').toISOString();
     return {
-      agenda: {
-        profesionales: profs,
-        horario: { abre: '09:00', cierra: '20:00', abierto: true },
-        citas,
-        bloqueos: [{ id: 1, profesional_id: null, inicio: t(13, 0), fin: t(14, 0), motivo: 'Almuerzo' }],
-        resumen: { total: 231000, cuantas: 5 }
-      },
-      caja: {
-        total: 186000,
-        porMetodo: { efectivo: 80000, transferencia: 65000, tarjeta: 41000 },
-        porProfesional: [
-          { nombre: 'Emanuel Gómez',    bruto: 45000, comision: 0.5, pagar: 22500, cuantas: 1 },
-          { nombre: 'Jeronimo Garcia',  bruto: 35000, comision: 0.5, pagar: 17500, cuantas: 1 },
-          { nombre: 'Valentina Romero', bruto: 106000, comision: 0.5, pagar: 53000, cuantas: 2 }
-        ],
-        cobros: [
-          { id: 1, cobrado_en: t(10, 5),  cliente: 'Andrés Mejía',   servicios: 'Corte VIP',                profesional: 'Emanuel Gómez',    metodo_pago: 'efectivo',      cobrado: 45000 },
-          { id: 2, cobrado_en: t(11, 10), cliente: 'Camilo Ospina',  servicios: 'Corte Sencillo',           profesional: 'Jeronimo Garcia',  metodo_pago: 'efectivo',      cobrado: 35000 },
-          { id: 3, cobrado_en: t(12, 40), cliente: 'Mariana Gil',    servicios: 'Manicura con Base Rubber', profesional: 'Valentina Romero', metodo_pago: 'transferencia', cobrado: 65000 },
-          { id: 4, cobrado_en: t(13, 15), cliente: 'Laura Restrepo', servicios: 'Manos y pies',             profesional: 'Valentina Romero', metodo_pago: 'tarjeta',       cobrado: 41000 }
-        ]
-      },
+      profesionales: [{ id: 1, nombre: 'Emanuel Gómez' }, { id: 2, nombre: 'Jeronimo Garcia' },
+                      { id: 3, nombre: 'Valentina Romero' }],
+      citas: [
+        { id: 1, codigo: 'AB3K7P', inicio: t(9, 0),   fin: t(10, 0),  estado: 'cumplida',   total: 45000, cobrado: 45000, metodo_pago: 'efectivo',      cliente: 'Andrés Mejía',   telefono: '+573001112233', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte VIP' },
+        { id: 2, codigo: 'CD8M2Q', inicio: t(10, 30), fin: t(12, 0),  estado: 'confirmada', total: 60000, cliente: 'Santiago Ruiz',  telefono: '+573004445566', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte y Barba VIP' },
+        { id: 3, codigo: 'EF4N9R', inicio: t(9, 30),  fin: t(10, 15), estado: 'cumplida',   total: 35000, cobrado: 35000, metodo_pago: 'efectivo',      cliente: 'Camilo Ospina',  telefono: '+573007778899', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Corte Sencillo' },
+        { id: 4, codigo: 'GH5P1S', inicio: t(11, 0),  fin: t(11, 30), estado: 'no_asistio', total: 26000, cliente: 'Diego Franco',   telefono: '+573001234567', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Ritual de Barba' },
+        { id: 5, codigo: 'IJ6Q3T', inicio: t(14, 0),  fin: t(16, 0),  estado: 'confirmada', total: 0,     cliente: 'Laura Restrepo', telefono: '+573009998877', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manos y pies' },
+        { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'cumplida',   total: 65000, cobrado: 65000, metodo_pago: 'transferencia', cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber' }
+      ],
+      bloqueos: [{ id: 1, profesional_id: null, inicio: t(13, 0), fin: t(14, 0), motivo: 'Almuerzo' }],
+      horario: { abre: '09:00', cierra: '20:00', abierto: true },
       servicios: [
-        { id: 'corte-sencillo', nombre: 'Corte Sencillo',   segmento: 'cortes', precio: 35000, minutos: 45, activo: true, profesionales: [1, 2] },
-        { id: 'corte-vip',      nombre: 'Corte VIP',        segmento: 'cortes', precio: 45000, minutos: 60, activo: true, profesionales: [1, 2] },
-        { id: 'ritual-barba',   nombre: 'Ritual de Barba',  segmento: 'cortes', precio: 26000, minutos: 30, activo: true, profesionales: [1, 2] },
-        { id: 'cejas-hilo',     nombre: 'Cejas con hilo',   segmento: 'cejas',  precio: 20000, minutos: 20, activo: true, profesionales: [1, 2] },
-        { id: 'manos-pies',     nombre: 'Manos y pies',     segmento: 'unas',   precio: null,  minutos: 120, activo: true, profesionales: [3] },
+        { id: 'corte-sencillo', nombre: 'Corte Sencillo', segmento: 'cortes', precio: 35000, minutos: 45, activo: true, profesionales: [1, 2] },
+        { id: 'corte-vip',      nombre: 'Corte VIP',      segmento: 'cortes', precio: 45000, minutos: 60, activo: true, profesionales: [1, 2] },
+        { id: 'ritual-barba',   nombre: 'Ritual de Barba', segmento: 'cortes', precio: 26000, minutos: 30, activo: true, profesionales: [1, 2] },
+        { id: 'cejas-hilo',     nombre: 'Cejas con hilo', segmento: 'cejas', precio: 20000, minutos: 20, activo: true, profesionales: [1, 2] },
+        { id: 'manos-pies',     nombre: 'Manos y pies',   segmento: 'unas', precio: null, minutos: 120, activo: true, profesionales: [3] },
         { id: 'rubber',         nombre: 'Manicura con Base Rubber', segmento: 'unas', precio: 65000, minutos: 60, activo: true, profesionales: [1, 2, 3] }
       ],
-      clientes: [
-        { id: 1, nombre: 'Andrés Mejía',   telefono: '+573001112233' },
-        { id: 2, nombre: 'Santiago Ruiz',  telefono: '+573004445566' },
-        { id: 3, nombre: 'Laura Restrepo', telefono: '+573009998877' }
+      equipo: [
+        { id: 1, nombre: 'Emanuel Gómez',    comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: true },
+        { id: 2, nombre: 'Jeronimo Garcia',  comision: .5, entra: '11:00', sale: '20:00', activo: true,  tiene_clave: false },
+        { id: 3, nombre: 'Valentina Romero', comision: .5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true }
       ],
-      horario: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
-        dow, abre: '09:00', cierra: dow === 6 ? '18:00' : '20:00', abierto: dow !== 0
-      }))
+      horarioSemana: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
+        dow, abre: '09:00', cierra: dow === 6 ? '18:00' : '20:00', abierto: dow !== 0 })),
+      clientes: [{ id: 1, nombre: 'Andrés Mejía', telefono: '+573001112233' },
+                 { id: 2, nombre: 'Santiago Ruiz', telefono: '+573004445566' }]
     };
   })();
 
+  function demoAgenda() {
+    const yo = 1;
+    const base = { horario: MUESTRA.horario, bloqueos: MUESTRA.bloqueos };
+    if (ROL !== 'profesional') {
+      const cob = MUESTRA.citas.filter(c => c.cobrado).reduce((t, c) => t + c.cobrado, 0);
+      return Object.assign({ rol: 'dueno', profesionales: MUESTRA.profesionales,
+        citas: MUESTRA.citas, resumen: { total: cob, cuantas: MUESTRA.citas.length } }, base);
+    }
+    /* El profesional ve solo lo suyo: se filtra igual que en el servidor para
+       que la demostración no prometa algo que la API no hace. */
+    const mias = MUESTRA.citas.filter(c => c.profesional_id === yo);
+    const cob = mias.filter(c => c.cobrado).reduce((t, c) => t + c.cobrado, 0);
+    return Object.assign({ rol: 'profesional', nombre: 'Emanuel Gómez',
+      profesionales: MUESTRA.profesionales.filter(p => p.id === yo), citas: mias,
+      resumen: { total: cob, cuantas: mias.length },
+      comision: { pct: .5, cobrado: cob, gana: Math.round(cob * .5) } }, base);
+  }
+
+  function demoCaja() {
+    const cobradas = MUESTRA.citas.filter(c => c.cobrado);
+    const total = cobradas.reduce((t, c) => t + c.cobrado, 0);
+    const porMetodo = {};
+    cobradas.forEach(c => { porMetodo[c.metodo_pago] = (porMetodo[c.metodo_pago] || 0) + c.cobrado; });
+    const porProf = {};
+    cobradas.forEach(c => {
+      const k = c.profesional;
+      if (!porProf[k]) porProf[k] = { nombre: k, bruto: 0, comision: .5, pagar: 0, cuantas: 0 };
+      porProf[k].bruto += c.cobrado; porProf[k].cuantas += 1;
+      porProf[k].pagar = Math.round(porProf[k].bruto * .5);
+    });
+    return { total, porMetodo, porProfesional: Object.values(porProf),
+             cobros: cobradas.map(c => ({ id: c.id, cobrado_en: c.fin, cliente: c.cliente,
+               telefono: c.telefono, servicios: c.servicios, profesional: c.profesional,
+               metodo_pago: c.metodo_pago, cobrado: c.cobrado })) };
+  }
+
   function respuestaDemo(ruta) {
-    if (ruta.startsWith('/panel/agenda'))    return MUESTRA.agenda;
-    if (ruta.startsWith('/panel/caja'))      return MUESTRA.caja;
+    if (ruta.startsWith('/panel/agenda'))    return demoAgenda();
+    if (ruta.startsWith('/panel/caja'))      return demoCaja();
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
     if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
-    if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios, horario: MUESTRA.horario };
-    return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar nada
+    if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios,
+                                                      horario: MUESTRA.horarioSemana, equipo: MUESTRA.equipo };
+    if (ruta.startsWith('/panel/entrar'))    return { rol: ROL, nombre: 'Emanuel Gómez' };
+    return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar
   }
 
   const SIN_API = 'El panel necesita el sitio publicado. En local no se ejecutan las funciones del servidor.';
 
   async function api(ruta, opciones) {
-    if (DEMO) {
-      /* Un respiro para que se vea el «Cargando…»; si respondiera al instante
-         parecería que la pantalla no hizo nada. */
-      await new Promise(r => setTimeout(r, 120));
-      return respuestaDemo(ruta);
-    }
+    if (DEMO) { await new Promise(r => setTimeout(r, 90)); return respuestaDemo(ruta); }
     let r;
-    try {
-      r = await fetch('/api' + ruta, opciones);
-    } catch (e) {
-      throw Object.assign(new Error('Sin conexión.'), { estado: 0 });
-    }
+    try { r = await fetch('/api' + ruta, opciones); }
+    catch (e) { throw Object.assign(new Error('Sin conexión.'), { estado: 0 }); }
     let cuerpo = null;
     try { cuerpo = await r.json(); } catch (e) { /* no era JSON */ }
     if (!r.ok) {
-      const msg = (cuerpo && cuerpo.error) ||
-                  (r.status === 404 ? SIN_API : 'Error ' + r.status);
+      /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la ruta ni
+         siquiera se está ejecutando. */
+      const msg = (cuerpo && cuerpo.error) || (r.status === 404 ? SIN_API : 'Error ' + r.status);
       throw Object.assign(new Error(msg), { estado: r.status });
     }
     return cuerpo;
   }
 
-  /* ---------- entrada ---------- */
+  /* ---------- avisos ---------- */
+  let tAviso = null;
+  function avisar(texto) {
+    const n = $('#aviso');
+    n.textContent = texto; n.hidden = false;
+    clearTimeout(tAviso);
+    tAviso = setTimeout(() => { n.hidden = true; }, 4200);
+  }
+
+  /* =========================================================
+     Entrada
+     ========================================================= */
   $('#form-login').addEventListener('submit', async e => {
     e.preventDefault();
     const err = $('#login-error');
     err.hidden = true;
     try {
-      await api('/panel/entrar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await api('/panel/entrar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clave: $('#clave').value })
       });
+      ROL = r.rol || 'dueno';
+      YO = { nombre: r.nombre || 'Administrador', profId: r.profId || null };
       $('#clave').value = '';
-      abrirPanel();
+      abrir();
     } catch (e2) {
       err.textContent = e2.message || 'No se pudo entrar';
       err.hidden = false;
     }
   });
 
-  function abrirPanel() {
+  function abrir() {
     $('#login').hidden = true;
     $('#app').hidden = false;
-    cargar();
+    $('#yo-nombre').textContent = YO.nombre;
+    $('#yo-rol').textContent = ROL === 'dueno' ? 'Administrador' : 'Profesional';
+    $('#yo-inicial').textContent = inicial(YO.nombre);
+    pintarNav();
+    irA(ROL === 'dueno' ? 'agenda' : 'midia');
   }
 
   $('#salir').addEventListener('click', async () => {
@@ -161,343 +191,862 @@
     location.reload();
   });
 
-  $('#dia-ant').addEventListener('click', () => { dia.setDate(dia.getDate() - 1); cargar(); });
-  $('#dia-sig').addEventListener('click', () => { dia.setDate(dia.getDate() + 1); cargar(); });
-  $('#ir-hoy').addEventListener('click', () => { dia = new Date(); cargar(); });
+  /* =========================================================
+     Navegación
+     ========================================================= */
+  const TABS_DUENO = [['agenda', 'Agenda'], ['facturas', 'Facturas'],
+                      ['servicios', 'Servicios'], ['dispo', 'Disponibilidad']];
+  const TABS_PROF  = [['midia', 'Mi día']];
+
+  function pintarNav() {
+    const nav = $('#nav');
+    nav.textContent = '';
+    (ROL === 'dueno' ? TABS_DUENO : TABS_PROF).forEach(([id, nombre]) => {
+      const b = el('button', 'barra__tab');
+      b.type = 'button'; b.dataset.ir = id; b.textContent = nombre;
+      b.addEventListener('click', () => irA(id));
+      nav.appendChild(b);
+    });
+  }
+
+  function irA(cual) {
+    vista = cual;
+    ['agenda', 'midia', 'facturas', 'servicios', 'dispo'].forEach(v => {
+      const n = $('#v-' + v); if (n) n.hidden = v !== cual;
+    });
+    $$('.barra__tab').forEach(b => b.classList.toggle('is-on', b.dataset.ir === cual));
+    cerrarFicha();
+    if (cual === 'agenda' || cual === 'midia') cargarDia();
+    if (cual === 'facturas')  cargarFacturas();
+    if (cual === 'servicios' || cual === 'dispo') cargarAjustes();
+  }
+
+  /* =========================================================
+     Día
+     ========================================================= */
+  const hora = iso => new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(new Date(iso));
+
+  /* Minutos desde medianoche en hora de Bogotá. La aritmética de la rejilla va
+     en hora del local, no del navegador: si el dueño abre el panel desde otro
+     país, las citas se siguen dibujando donde corresponde. */
+  const minLocal = iso => { const [h, m] = hora(iso).split(':').map(Number); return h * 60 + m; };
+  const aMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+  const aHHMM = m => pad(Math.floor(m / 60) % 24) + ':' + pad(m % 60);
+
+  /* Estado que se muestra, que no es el mismo que el guardado: una cita
+     confirmada cuya hora ya pasó es «falta cobrar», y eso es justo lo que el
+     local necesita ver de un vistazo al cerrar el día. */
+  function estadoVisual(c) {
+    if (c.estado === 'cumplida')   return 'cobrada';
+    if (c.estado === 'no_asistio') return 'no_asistio';
+    if (c.estado === 'cancelada')  return 'cancelada';
+    return new Date(c.fin) < new Date() ? 'porcobrar' : 'confirmada';
+  }
+  const ETIQUETA = { cobrada: 'Cobrada', porcobrar: 'Falta cobrar', confirmada: 'Confirmada',
+                     no_asistio: 'No vino', cancelada: 'Cancelada' };
+
+  function pintarTira(contenedor, cuantos) {
+    const c = $(contenedor);
+    if (!c) return;
+    c.textContent = '';
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    for (let i = -Math.floor(cuantos / 3); i < cuantos - Math.floor(cuantos / 3); i++) {
+      const d = new Date(hoy); d.setDate(d.getDate() + i);
+      const b = el('button', 'dia' + (ymd(d) === ymd(dia) ? ' is-on' : ''));
+      b.type = 'button';
+      const s = el('strong'); s.textContent = d.getDate() + ' ' + MESES3[d.getMonth()];
+      const p = el('span');
+      p.textContent = i === 0 ? 'Hoy' : DIAS3[d.getDay()];
+      b.append(s, p);
+      b.addEventListener('click', () => { dia = new Date(d); cargarDia(); });
+      c.appendChild(b);
+    }
+  }
+
+  $('#dia-ant').addEventListener('click', () => { dia.setDate(dia.getDate() - 1); cargarDia(); });
+  $('#dia-sig').addEventListener('click', () => { dia.setDate(dia.getDate() + 1); cargarDia(); });
+  $('#ir-hoy').addEventListener('click', () => { dia = new Date(); cargarDia(); });
   $('#dia-picker').addEventListener('change', e => {
     if (!e.target.value) return;
     /* Se construye con partes y no con new Date(cadena): interpretar
        «2026-08-14» como UTC adelanta un día en Colombia. */
     const [y, m, d2] = e.target.value.split('-').map(Number);
     dia = new Date(y, m - 1, d2);
-    cargar();
+    cargarDia();
   });
 
-  /* ---------- carga ---------- */
-  async function cargar() {
-    cerrarFicha();
-    pintarCabecera();
-    $('#lista').textContent = '';
-    $('#rejilla').textContent = '';
-    const cargando = el('p', 'panel__vacio');
-    cargando.textContent = 'Cargando…';
-    $('#lista').appendChild(cargando);
+  async function cargarDia() {
+    $('#dia-picker').value = ymd(dia);
+    pintarTira('#tira', 9);
+    pintarTira('#tira-corta', 5);
     try {
       datos = await api('/panel/agenda?fecha=' + ymd(dia));
-      pintar();
+      if (datos.rol) ROL = datos.rol;
+      if (datos.nombre) { YO.nombre = datos.nombre; $('#yo-nombre').textContent = datos.nombre;
+                          $('#yo-inicial').textContent = inicial(datos.nombre); }
+      if (ROL === 'profesional') pintarMiDia(); else pintarAgenda();
     } catch (e) {
-      /* 401 = la sesión caducó a mitad de jornada; se vuelve a pedir clave en
-         vez de dejar la pantalla en blanco. */
       if (e.estado === 401) { $('#app').hidden = true; $('#login').hidden = false; return; }
-      $('#lista').textContent = '';
-      const p = el('p', 'panel__vacio');
-      p.textContent = e.message || 'No se pudo cargar la agenda.';
-      $('#lista').appendChild(p);
+      avisar(e.message || 'No se pudo cargar la agenda.');
     }
   }
 
-  function pintarCabecera() {
-    const hoy = ymd(new Date()) === ymd(dia);
-    $('#dia-picker').value = ymd(dia);
-    $('#dia-titulo').textContent = (hoy ? 'Hoy · ' : '') +
-      DIAS[dia.getDay()] + ' ' + dia.getDate() + ' de ' + MESES[dia.getMonth()];
-  }
-
-  function pintar() {
-    pintarCabecera();
-    const r = datos.resumen || { total: 0, cuantas: 0 };
-    $('#dia-resumen').textContent = r.cuantas
-      ? r.cuantas + (r.cuantas === 1 ? ' cita · ' : ' citas · ') + '$' + r.total.toLocaleString('es-CO')
-      : (datos.horario && datos.horario.abierto ? 'Sin citas' : 'Cerrado');
+  /* =========================================================
+     Agenda (administrador)
+     ========================================================= */
+  function pintarAgenda() {
+    pintarFichas();
+    pintarResumen();
     pintarRejilla();
     pintarLista();
   }
 
-  const hora = iso => new Intl.DateTimeFormat('es-CO', {
-    timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false
-  }).format(new Date(iso));
-
-  /* Minutos desde medianoche, en hora de Bogotá. La aritmética de la rejilla
-     tiene que hacerse en hora local del local, no en la del navegador de quien
-     mira: si el dueño abre el panel desde otro país, las citas seguirían
-     dibujándose donde corresponde. */
-  function minutosLocales(iso) {
-    const [h, m] = hora(iso).split(':').map(Number);
-    return h * 60 + m;
+  function columnas() {
+    const p = datos.profesionales || [];
+    return profFiltro === 'todos' ? p : p.filter(x => String(x.id) === String(profFiltro));
   }
-  const aMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 
-  /* ---------- rejilla (escritorio) ---------- */
+  function pintarFichas() {
+    const c = $('#fichas');
+    c.textContent = '';
+    const mk = (id, nombre, detalle) => {
+      const b = el('button', 'ficha-prof' + (String(profFiltro) === String(id) ? ' is-on' : ''));
+      b.type = 'button';
+      const i = el('span', 'ficha-prof__ini'); i.textContent = id === 'todos' ? '★' : inicial(nombre);
+      const t = el('span');
+      const n = el('span', 'ficha-prof__n'); n.textContent = nombre;
+      const d = el('span', 'ficha-prof__d'); d.textContent = detalle;
+      t.append(n, d);
+      b.append(i, t);
+      b.addEventListener('click', () => { profFiltro = id; pintarAgenda(); });
+      return b;
+    };
+    const total = (datos.citas || []).filter(x => x.estado !== 'cancelada').length;
+    c.appendChild(mk('todos', 'Todo el equipo', total + (total === 1 ? ' cita' : ' citas')));
+    (datos.profesionales || []).forEach(p => {
+      const n = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada').length;
+      c.appendChild(mk(p.id, p.nombre, n ? n + (n === 1 ? ' cita' : ' citas') : 'libre'));
+    });
+  }
+
+  function pintarResumen() {
+    const cols = columnas();
+    const citas = (datos.citas || []).filter(c => c.estado !== 'cancelada' &&
+      (profFiltro === 'todos' || String(c.profesional_id) === String(profFiltro)));
+
+    const abre = aMin(datos.horario.abre);
+    let cierra = aMin(datos.horario.cierra);
+    if (cierra <= abre) cierra += 1440;
+    /* Ocupación sobre la jornada abierta y por el número de columnas visibles:
+       medir contra veinticuatro horas o contra un solo profesional daría cifras
+       que no significan nada. */
+    const capacidad = Math.max(1, (cierra - abre) * Math.max(1, cols.length));
+    const ocupado = citas.reduce((t, c) => t + (minLocal(c.fin) - minLocal(c.inicio)), 0);
+    const pct = Math.min(100, Math.round(ocupado / capacidad * 100));
+    $('#ocupacion-pct').textContent = pct + '%';
+    $('#anillo').setAttribute('stroke-dashoffset', String(339 - 339 * pct / 100));
+
+    const ahora = new Date();
+    const prox = citas.filter(c => new Date(c.fin) > ahora && c.estado === 'confirmada')
+                      .sort((a, b) => new Date(a.inicio) - new Date(b.inicio))[0];
+    $('#prox-nombre').textContent = prox ? prox.cliente : 'Nada pendiente';
+    $('#prox-detalle').textContent = prox
+      ? hora(prox.inicio) + ' · ' + (prox.servicios || '—') + ' · ' + prox.profesional
+      : 'No quedan citas por atender hoy.';
+
+    const caja = citas.reduce((t, c) => t + (c.cobrado || 0), 0);
+    $('#caja-texto').textContent = money(caja);
+    $('#caja-barra').style.width = Math.min(100, caja / META_LOCAL * 100) + '%';
+    $('#meta-texto').textContent = caja >= META_LOCAL
+      ? 'Meta cumplida'
+      : 'Faltan ' + money(META_LOCAL - caja) + ' para la meta';
+  }
+
+  let arrastrando = null;
+
   function pintarRejilla() {
     const g = $('#rejilla');
     g.textContent = '';
-
-    const profs = datos.profesionales || [];
+    const profs = columnas();
     if (!profs.length) return;
 
     const abre = aMin(datos.horario.abre);
     let cierra = aMin(datos.horario.cierra);
-    if (cierra <= abre) cierra += 24 * 60;      // cierre pasada la medianoche
+    if (cierra <= abre) cierra += 1440;        // cierre pasada la medianoche
     const filas = Math.ceil((cierra - abre) / PASO);
-
     g.style.setProperty('--cols', profs.length);
 
-    // Cabecera
-    const esquina = el('div', 'rejilla__cab rejilla__cab--esquina');
-    g.appendChild(esquina);
+    g.appendChild(el('div', 'rej__cab rej__cab--esq'));
     profs.forEach(p => {
-      const c = el('div', 'rejilla__cab');
+      const c = el('div', 'rej__cab');
       c.textContent = p.nombre.split(' ')[0];
       const s = el('small');
-      const n = datos.citas.filter(x => x.profesional_id === p.id &&
-                  (x.estado === 'confirmada' || x.estado === 'cumplida')).length;
+      const n = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada').length;
       s.textContent = n ? n + (n === 1 ? ' cita' : ' citas') : 'libre';
       c.appendChild(s);
       g.appendChild(c);
     });
 
-    // Filas de horas y celdas vacías
+    const ocupadas = {};   // por columna: filas que ya tienen algo
     for (let f = 0; f < filas; f++) {
-      const min = abre + f * PASO;
-      const enPunto = min % 60 === 0;
-      const h = el('div', 'rejilla__hora' + (enPunto ? ' rejilla__hora--enpunto' : ''));
+      const min = abre + f * PASO, pt = min % 60 === 0;
+      const h = el('div', 'rej__hora' + (pt ? ' rej__hora--pt' : ''));
       h.style.gridRow = String(f + 2);
-      const sp = el('span');
-      sp.textContent = pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
+      const sp = el('span'); sp.textContent = aHHMM(min);
       h.appendChild(sp);
       g.appendChild(h);
 
       profs.forEach((p, i) => {
-        const c = el('div', 'rejilla__celda' + (enPunto ? ' rejilla__celda--enpunto' : ''));
+        const c = el('div', 'rej__celda' + (pt ? ' rej__celda--pt' : ''));
         c.style.gridRow = String(f + 2);
         c.style.gridColumn = String(i + 2);
-        /* Tocar el hueco es la forma natural de agendar: ya dice quién y a qué
-           hora, así que el formulario abre con eso resuelto. */
-        c.title = 'Crear cita · ' + p.nombre.split(' ')[0] + ' ' + pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
-        const hhmm = pad(Math.floor(min / 60) % 24) + ':' + pad(min % 60);
+        const hhmm = aHHMM(min);
         c.addEventListener('click', () => abrirCrear(p.id, hhmm));
-        c.addEventListener('dragover', ev => {
-          if (!arrastrando) return;
-          ev.preventDefault();
-          c.classList.add('destino');
-        });
+        c.addEventListener('dragover', ev => { if (arrastrando) { ev.preventDefault(); c.classList.add('destino'); } });
         c.addEventListener('dragleave', () => c.classList.remove('destino'));
         c.addEventListener('drop', ev => {
-          ev.preventDefault();
-          c.classList.remove('destino');
+          ev.preventDefault(); c.classList.remove('destino');
           if (arrastrando) mover(arrastrando.id, hhmm, p.id);
         });
         g.appendChild(c);
       });
     }
 
-    // Bloques de cita
-    datos.citas.forEach(c => {
+    (datos.citas || []).forEach(c => {
       const col = profs.findIndex(p => p.id === c.profesional_id);
       if (col === -1) return;
-      const ini = minutosLocales(c.inicio);
-      const fin = minutosLocales(c.fin);
-      const b = el('button', 'bloque bloque--' + c.estado);
+      const ini = minLocal(c.inicio), fin = minLocal(c.fin);
+      const desde = Math.round((ini - abre) / PASO), span = Math.max(1, Math.round((fin - ini) / PASO));
+      (ocupadas[col] = ocupadas[col] || []).push([desde, desde + span]);
+
+      const ev = estadoVisual(c);
+      const b = el('button', 'bloque bloque--' + ev);
       b.type = 'button';
       b.style.gridColumn = String(col + 2);
-      b.style.gridRow = (Math.round((ini - abre) / PASO) + 2) + ' / span ' +
-                        Math.max(1, Math.round((fin - ini) / PASO));
+      b.style.gridRow = (desde + 2) + ' / span ' + span;
+      const top = el('div', 'bloque__top');
       const n = el('strong'); n.textContent = c.cliente;
-      const s = el('em');     s.textContent = c.servicios || '—';
-      b.append(n, s);
+      const v = el('span');  v.textContent = money(c.cobrado || c.total);
+      top.append(n, v);
+      const s = el('em'); s.textContent = c.servicios || '—';
+      b.append(top, s);
+      if (span >= 3) { const p = el('span'); p.textContent = ETIQUETA[ev]; p.style.opacity = '.8';
+                       p.style.fontSize = '10px'; b.appendChild(p); }
       b.addEventListener('click', () => abrirFicha(c));
-      /* Solo se arrastra lo que sigue en pie: mover una cita cumplida o
+      /* Solo se arrastra lo que sigue en pie: mover una cita cobrada o
          cancelada no significa nada. */
       if (c.estado === 'confirmada') {
         b.draggable = true;
-        b.addEventListener('dragstart', ev => {
-          arrastrando = c;
-          b.classList.add('arrastrando');
-          ev.dataTransfer.effectAllowed = 'move';
-          ev.dataTransfer.setData('text/plain', String(c.id));
+        b.addEventListener('dragstart', e2 => {
+          arrastrando = c; b.classList.add('arrastrando');
+          e2.dataTransfer.effectAllowed = 'move';
+          e2.dataTransfer.setData('text/plain', String(c.id));
         });
         b.addEventListener('dragend', () => { arrastrando = null; b.classList.remove('arrastrando'); });
       }
       g.appendChild(b);
     });
 
-    // Bloqueos
     (datos.bloqueos || []).forEach(bq => {
-      const ini = minutosLocales(bq.inicio);
-      const fin = minutosLocales(bq.fin);
+      const ini = minLocal(bq.inicio), fin = minLocal(bq.fin);
       const cols = bq.profesional_id === null
         ? profs.map((_, i) => i)
         : [profs.findIndex(p => p.id === bq.profesional_id)].filter(i => i !== -1);
       cols.forEach(i => {
+        const desde = Math.round((ini - abre) / PASO), span = Math.max(1, Math.round((fin - ini) / PASO));
+        (ocupadas[i] = ocupadas[i] || []).push([desde, desde + span]);
         const b = el('div', 'bloque bloque--bloqueo');
         b.style.gridColumn = String(i + 2);
-        b.style.gridRow = (Math.round((ini - abre) / PASO) + 2) + ' / span ' +
-                          Math.max(1, Math.round((fin - ini) / PASO));
+        b.style.gridRow = (desde + 2) + ' / span ' + span;
         b.textContent = bq.motivo || 'Bloqueado';
         g.appendChild(b);
       });
     });
 
-    // Línea de «ahora», solo si el día que se mira es hoy
+    /* Huecos libres de media hora o más: son los que de verdad se pueden
+       vender. Marcar cada cuarto de hora vacío llenaría la rejilla de ruido. */
+    profs.forEach((p, i) => {
+      const rangos = (ocupadas[i] || []).sort((a, b) => a[0] - b[0]);
+      let cursor = 0;
+      const marcar = (a, b) => {
+        if (b - a < 2) return;
+        const hueco = el('div', 'hueco');
+        hueco.style.gridColumn = String(i + 2);
+        hueco.style.gridRow = (a + 2) + ' / span ' + (b - a);
+        hueco.textContent = '＋ ' + aHHMM(abre + a * PASO);
+        hueco.addEventListener('click', () => abrirCrear(p.id, aHHMM(abre + a * PASO)));
+        g.appendChild(hueco);
+      };
+      rangos.forEach(([a, b]) => { marcar(cursor, a); cursor = Math.max(cursor, b); });
+      marcar(cursor, filas);
+    });
+
     if (ymd(new Date()) === ymd(dia)) {
-      const ahoraMin = minutosLocales(new Date().toISOString());
-      if (ahoraMin >= abre && ahoraMin <= cierra) {
-        const linea = el('div', 'ahora');
-        linea.style.gridRow = String(Math.round((ahoraMin - abre) / PASO) + 2);
-        g.appendChild(linea);
+      const m = minLocal(new Date().toISOString());
+      if (m >= abre && m <= cierra) {
+        const l = el('div', 'ahora');
+        l.style.gridRow = String(Math.round((m - abre) / PASO) + 2);
+        g.appendChild(l);
       }
     }
   }
 
-  /* ---------- lista (móvil) ---------- */
   function pintarLista() {
     const lista = $('#lista');
     lista.textContent = '';
-
+    const citas = (datos.citas || []).filter(c =>
+      profFiltro === 'todos' || String(c.profesional_id) === String(profFiltro));
     const filas = [
-      ...datos.citas.map(c => ({ t: new Date(c.inicio).getTime(), tipo: 'cita', d: c })),
-      ...(datos.bloqueos || []).map(b => ({ t: new Date(b.inicio).getTime(), tipo: 'bloqueo', d: b }))
+      ...citas.map(c => ({ t: new Date(c.inicio).getTime(), tipo: 'cita', d: c })),
+      ...(datos.bloqueos || []).map(b => ({ t: new Date(b.inicio).getTime(), tipo: 'bq', d: b }))
     ].sort((a, b) => a.t - b.t);
 
     if (!filas.length) {
-      const p = el('p', 'panel__vacio');
-      p.textContent = datos.horario && datos.horario.abierto
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = datos.horario.abierto ? 'Sin citas' : 'Día cerrado';
+      const p = el('span'); p.textContent = datos.horario.abierto
         ? 'Ninguna cita este día.' : 'El local no abre este día.';
-      lista.appendChild(p);
+      v.append(s, p);
+      lista.appendChild(v);
       return;
     }
-    filas.forEach(f => lista.appendChild(f.tipo === 'cita' ? tarjetaCita(f.d) : tarjetaBloqueo(f.d)));
+    filas.forEach(f => lista.appendChild(f.tipo === 'cita' ? tarjeta(f.d) : filaBloqueo(f.d)));
   }
 
-  function tarjetaCita(c) {
-    const n = el('article', 'cita cita--' + c.estado);
-
+  function tarjeta(c) {
+    const ev = estadoVisual(c);
+    const n = el('article', 'cita cita--' + ev);
     const cab = el('div', 'cita__cab');
-    const h = el('span', 'cita__hora');
-    h.textContent = hora(c.inicio) + '–' + hora(c.fin);
-    const prof = el('span', 'cita__prof');
-    prof.textContent = c.profesional;
-    cab.append(h, prof);
-
-    const cli = el('div', 'cita__cliente');
-    cli.textContent = c.cliente;
-    const serv = el('div', 'cita__serv');
-    serv.textContent = c.servicios || '—';
-
+    const h = el('span', 'cita__hora'); h.textContent = hora(c.inicio) + '–' + hora(c.fin);
+    const pr = el('span', 'cita__prof'); pr.textContent = c.profesional;
+    cab.append(h, pr);
+    const cli = el('div', 'cita__cliente'); cli.textContent = c.cliente;
+    const sv = el('div', 'cita__serv'); sv.textContent = c.servicios || '—';
     const pie = el('div', 'cita__pie');
-    const tot = el('span', 'cita__total');
-    tot.textContent = '$' + (c.total || 0).toLocaleString('es-CO');
-    const est = el('span', 'cita__estado');
-    est.textContent = ESTADOS[c.estado] || c.estado;
-    pie.append(tot, est, acciones(c));
-
-    n.append(cab, cli, serv, pie);
+    const to = el('span', 'cita__total'); to.textContent = money(c.cobrado || c.total);
+    const es = el('span', 'cita__estado'); es.textContent = ETIQUETA[ev];
+    pie.append(to, es, acciones(c));
+    n.append(cab, cli, sv, pie);
     return n;
   }
 
-  function tarjetaBloqueo(b) {
-    const n = el('div', 'bloqueo');
+  function filaBloqueo(b) {
+    const n = el('div', 'bloqueo-fila');
     const t = el('span');
     t.textContent = hora(b.inicio) + '–' + hora(b.fin) + ' · ' + (b.motivo || 'Bloqueado');
     n.appendChild(t);
-    const quitar = el('button', 'cita__btn');
-    quitar.type = 'button';
-    quitar.textContent = 'Quitar';
-    quitar.style.marginLeft = 'auto';
-    quitar.addEventListener('click', async () => {
+    const q = el('button', 'bt bt--mini');
+    q.type = 'button'; q.textContent = 'Quitar'; q.style.marginLeft = 'auto';
+    q.addEventListener('click', async () => {
       await api('/panel/bloqueo?id=' + b.id, { method: 'DELETE' }).catch(() => {});
-      cargar();
+      avisar('Bloqueo quitado'); cargarDia();
     });
-    n.appendChild(quitar);
+    n.appendChild(q);
     return n;
   }
 
-  /* ---------- acciones compartidas por lista y ficha ---------- */
+  /* =========================================================
+     Acciones sobre una cita
+     ========================================================= */
   function acciones(c) {
-    const btns = el('div', 'cita__btns');
+    const cont = el('div', 'actual__btns');
+    const ev = estadoVisual(c);
 
-    /* WhatsApp por enlace directo: abre el chat con el mensaje escrito y sale
-       del número real del local. Sin API de Meta y sin costo por mensaje. */
-    const wa = el('a', 'cita__btn cita__btn--wa');
-    wa.href = 'https://wa.me/' + String(c.telefono).replace(/\D/g, '') +
+    const wa = el('a', 'bt');
+    wa.href = 'https://wa.me/' + String(c.telefono || '').replace(/\D/g, '') +
               '?text=' + encodeURIComponent(mensaje(c));
-    wa.target = '_blank';
-    wa.rel = 'noopener noreferrer';
-    wa.textContent = 'WhatsApp';
-    btns.appendChild(wa);
+    wa.target = '_blank'; wa.rel = 'noopener noreferrer'; wa.textContent = 'WhatsApp';
+    cont.appendChild(wa);
 
-    if (c.estado === 'confirmada') {
-      /* Marcar cumplida pasa por el cobro: si el estado se pudiera cerrar sin
-         registrar cuánto entró, la caja del día quedaría siempre incompleta y
-         el panel volvería a ser solo una lista. */
-      btns.appendChild(boton('Cobrar', () => abrirCobro(c)));
-      btns.appendChild(boton('No vino', () => cambiar(c.id, 'no_asistio')));
-      btns.appendChild(boton('Cancelar', () => {
+    if (ev === 'confirmada' || ev === 'porcobrar') {
+      cont.appendChild(boton('Cobrar', () => abrirCobro(c), true));
+      cont.appendChild(boton('No vino', () => cambiar(c.id, 'no_asistio')));
+      cont.appendChild(boton('Cancelar', () => {
         if (confirm('¿Cancelar la cita de ' + c.cliente + '? La hora vuelve a quedar libre.')) {
           cambiar(c.id, 'cancelada');
         }
       }));
     } else {
-      btns.appendChild(boton('Deshacer', () => cambiar(c.id, 'confirmada')));
+      cont.appendChild(boton('Deshacer', () => cambiar(c.id, 'confirmada')));
     }
-    return btns;
+    return cont;
   }
 
   function mensaje(c) {
-    return '¡Hola ' + c.cliente + '! Te recordamos tu cita en The Imperial Clasic ' +
-           'el ' + DIAS[new Date(c.inicio).getDay()].toLowerCase() + ' a las ' + hora(c.inicio) +
+    return '¡Hola ' + c.cliente + '! Te recordamos tu cita en El Imperio el ' +
+           DIAS[new Date(c.inicio).getDay()].toLowerCase() + ' a las ' + hora(c.inicio) +
            ' con ' + c.profesional + '. Código: ' + c.codigo + '. ¿Nos confirmas?';
   }
 
-  function boton(texto, onClick) {
-    const b = el('button', 'cita__btn');
-    b.type = 'button';
-    b.textContent = texto;
+  function boton(texto, fn, destacado) {
+    const b = el('button', 'bt' + (destacado ? ' bt--vino' : ''));
+    b.type = 'button'; b.textContent = texto;
     b.addEventListener('click', async () => {
       b.disabled = true;
-      try { await onClick(); } finally { b.disabled = false; }
+      try { await fn(); } finally { b.disabled = false; }
     });
     return b;
   }
 
   async function cambiar(id, estado) {
     try {
-      await api('/panel/cita', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, estado })
-      });
-      await cargar();
-    } catch (e) {
-      alert(e.message || 'No se pudo actualizar');
-    }
+      await api('/panel/cita', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ id, estado }) });
+      cerrarFicha(); avisar('Cita actualizada'); cargarDia();
+    } catch (e) { avisar(e.message || 'No se pudo actualizar'); }
+  }
+
+  async function mover(id, hhmm, profId) {
+    try {
+      await api('/panel/mover', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id, fecha: ymd(dia), hora: hhmm, profesional: profId }) });
+      avisar('Cita movida a las ' + hhmm); cargarDia();
+    } catch (e) { avisar(e.message || 'No se pudo mover'); cargarDia(); }
   }
 
   /* ---------- ficha ---------- */
   function abrirFicha(c) {
     $('#ficha-cliente').textContent = c.cliente;
-    $('#ficha-cuando').textContent =
-      hora(c.inicio) + '–' + hora(c.fin) + ' · ' + c.profesional + ' · ' + (ESTADOS[c.estado] || c.estado);
-    const tel = $('#ficha-tel');
-    tel.textContent = c.telefono;
+    $('#ficha-cuando').textContent = hora(c.inicio) + '–' + hora(c.fin) + ' · ' +
+      c.profesional + ' · ' + ETIQUETA[estadoVisual(c)];
+    $('#ficha-tel').textContent = c.telefono || 'Sin celular';
     $('#ficha-serv').textContent = c.servicios || '—';
-    $('#ficha-total').textContent = '$' + (c.total || 0).toLocaleString('es-CO');
-    const cont = $('#ficha-btns');
-    cont.textContent = '';
-    cont.appendChild(acciones(c));
+    $('#ficha-total').textContent = money(c.cobrado || c.total);
+    const b = $('#ficha-btns'); b.textContent = ''; b.appendChild(acciones(c));
     $('#ficha').hidden = false;
   }
-  function cerrarFicha() { const f = $('#ficha'); if (f) f.hidden = true; }
+  function cerrarFicha() { $('#ficha').hidden = true; }
   $('#ficha-cerrar').addEventListener('click', cerrarFicha);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarFicha(); });
 
+  /* =========================================================
+     Mi día
+     ========================================================= */
+  function pintarMiDia() {
+    $('#mi-titulo').textContent = 'Mi día · ' + DIAS[dia.getDay()] + ' ' + dia.getDate();
+    $('#mi-nombre').textContent = YO.nombre;
+    $('#mi-comision').textContent = money(datos.comision ? datos.comision.gana : 0);
+
+    const citas = (datos.citas || []).filter(c => c.estado !== 'cancelada');
+    $('#mi-atendidas').textContent = citas.filter(c => c.estado === 'cumplida').length;
+
+    const abre = aMin(datos.horario.abre);
+    let cierra = aMin(datos.horario.cierra);
+    if (cierra <= abre) cierra += 1440;
+    const jornada = Math.max(1, cierra - abre);
+    const ocupado = citas.reduce((t, c) => t + (minLocal(c.fin) - minLocal(c.inicio)), 0);
+    $('#mi-ocupado').textContent = Math.round(ocupado / jornada * 100) + '%';
+
+    /* Huecos aprovechables: media hora libre entre citas. Contar cada rendija
+       de quince minutos daría un número grande y falso. */
+    const rangos = citas.map(c => [minLocal(c.inicio), minLocal(c.fin)]).sort((a, b) => a[0] - b[0]);
+    let cursor = abre, huecos = 0;
+    rangos.forEach(([a, b]) => { if (a - cursor >= 30) huecos++; cursor = Math.max(cursor, b); });
+    if (cierra - cursor >= 30) huecos++;
+    $('#mi-huecos').textContent = huecos;
+
+    const ahora = new Date();
+    const pend = citas.filter(c => c.estado === 'confirmada' && new Date(c.fin) > ahora)
+                      .sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+    const act = pend[0];
+    $('#actual').hidden = !act;
+    $('#sin-actual').hidden = !!act;
+    if (act) {
+      $('#actual-estado').textContent = new Date(act.inicio) <= ahora ? 'En curso' : 'Sigue · ' + hora(act.inicio);
+      $('#actual-cliente').textContent = act.cliente;
+      $('#actual-serv').textContent = act.servicios || '—';
+      $('#actual-valor').textContent = money(act.total);
+      $('#actual-tel').textContent = act.telefono || 'Sin celular';
+      const b = $('#actual-btns'); b.textContent = ''; b.appendChild(acciones(act));
+    }
+
+    const sig = $('#despues-lista');
+    sig.textContent = '';
+    pend.slice(1).forEach(c => {
+      const f = el('div', 'sig');
+      const h = el('span', 'sig__h'); h.textContent = hora(c.inicio);
+      const q = el('span', 'sig__q');
+      const n = el('strong'); n.textContent = c.cliente;
+      const s = el('span'); s.textContent = c.servicios || '—';
+      q.append(n, s);
+      const v = el('span', 'sig__v'); v.textContent = money(c.total);
+      f.append(h, q, v);
+      f.addEventListener('click', () => abrirFicha(c));
+      sig.appendChild(f);
+    });
+    if (!pend.slice(1).length) {
+      const p = el('p', 'nota'); p.textContent = 'No hay más citas después de esta.';
+      sig.appendChild(p);
+    }
+  }
+
+  $('#mi-crear').addEventListener('click', () => {
+    const m = Math.ceil((new Date().getHours() * 60 + new Date().getMinutes()) / PASO) * PASO;
+    abrirCrear(YO.profId, aHHMM(m));
+  });
+  $('#mi-bloquear').addEventListener('click', () => abrirBloqueo());
 
   /* =========================================================
-     Crear cita desde el mostrador
-     El local agenda a quien llama o entra caminando, que es la mayor parte de
-     su negocio. Sin esto el panel solo mira; con esto, trabaja.
+     Facturas
      ========================================================= */
-  let CATALOGO = [];        // se pide una vez: no cambia entre días
+  let fFiltro = 'todas', fOrden = 'reciente', fBusca = '';
+  const FILTROS = [['todas', 'Sin filtro'], ['efectivo', 'Efectivo'],
+                   ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta']];
+  const ORDENES = [['reciente', 'Más reciente'], ['antiguo', 'Más antiguo'],
+                   ['mayor', 'Mayor valor'], ['menor', 'Menor valor']];
+  let caja = null;
+
+  function opciones(cont, lista, actual, alElegir) {
+    const c = $(cont);
+    c.textContent = '';
+    lista.forEach(([id, nombre]) => {
+      const b = el('button', 'opcion' + (id === actual ? ' is-on' : ''));
+      b.type = 'button';
+      b.appendChild(el('i'));
+      b.appendChild(document.createTextNode(nombre));
+      b.addEventListener('click', () => { alElegir(id); });
+      c.appendChild(b);
+    });
+  }
+
+  async function cargarFacturas() {
+    opciones('#f-filtros', FILTROS, fFiltro, id => { fFiltro = id; cargarFacturas(); });
+    opciones('#f-ordenes', ORDENES, fOrden, id => { fOrden = id; cargarFacturas(); });
+    try {
+      caja = await api('/panel/caja?fecha=' + ymd(dia));
+      pintarFacturas();
+    } catch (e) {
+      $('#f-lista').textContent = e.message || 'No se pudo cargar.';
+    }
+  }
+
+  function pintarFacturas() {
+    if (!caja) return;
+    let filas = (caja.cobros || []).slice();
+    if (fFiltro !== 'todas') filas = filas.filter(f => f.metodo_pago === fFiltro);
+    if (fBusca) {
+      const q = fBusca.replace(/\D/g, '');
+      filas = filas.filter(f => String(f.telefono || '').replace(/\D/g, '').includes(q) ||
+                                String(f.cliente || '').toLowerCase().includes(fBusca.toLowerCase()));
+    }
+    filas.sort((a, b) => fOrden === 'reciente' ? new Date(b.cobrado_en) - new Date(a.cobrado_en)
+                       : fOrden === 'antiguo'  ? new Date(a.cobrado_en) - new Date(b.cobrado_en)
+                       : fOrden === 'mayor'    ? b.cobrado - a.cobrado
+                                               : a.cobrado - b.cobrado);
+
+    const suma = filas.reduce((t, f) => t + (f.cobrado || 0), 0);
+    $('#f-resumen').textContent = filas.length
+      ? filas.length + (filas.length === 1 ? ' factura · ' : ' facturas · ') + money(suma)
+      : 'Sin resultados';
+    $('#f-limpiar').hidden = !fBusca;
+
+    const cont = $('#f-lista');
+    cont.textContent = '';
+    if (!filas.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = 'Sin facturas';
+      const p = el('span'); p.textContent = 'Ningún cobro coincide con el filtro.';
+      v.append(s, p); cont.appendChild(v);
+    }
+    filas.forEach((f, i) => {
+      const n = el('div', 'factura');
+      const izq = el('div');
+      const num = el('div', 'factura__num');
+      num.textContent = 'Factura ' + String(i + 1).padStart(4, '0') + ' · ' + hora(f.cobrado_en);
+      const cli = el('div', 'factura__cli'); cli.textContent = f.cliente;
+      const li = el('div', 'factura__l'); li.textContent = f.servicios || '—';
+      const pr = el('div', 'factura__l'); pr.textContent = f.profesional;
+      izq.append(num, cli, li, pr);
+
+      const der = el('div', 'factura__der');
+      const ch = el('span', 'chip chip--cobrada'); ch.textContent = 'Cobrada';
+      const va = el('span', 'factura__val'); va.textContent = money(f.cobrado);
+      const me = el('span', 'factura__l'); me.textContent = MEDIOS[f.metodo_pago] || f.metodo_pago;
+      der.append(ch, va, me);
+
+      n.append(izq, der);
+      cont.appendChild(n);
+    });
+
+    $('#t-caja').textContent = money(caja.total);
+    $('#t-barra').style.width = Math.min(100, caja.total / META_LOCAL * 100) + '%';
+    $('#t-meta').textContent = caja.total >= META_LOCAL
+      ? 'Meta cumplida' : 'Meta ' + money(META_LOCAL);
+    const com = (caja.porProfesional || []).reduce((t, p) => t + (p.pagar || 0), 0);
+    $('#t-comisiones').textContent = money(com);
+
+    const pagos = $('#t-pagos'); pagos.textContent = '';
+    Object.keys(caja.porMetodo || {}).forEach(k => {
+      const d = el('div', 'medida');
+      const f = el('div', 'medida__f');
+      const a = el('span'); a.textContent = MEDIOS[k] || k;
+      const b = el('span'); b.textContent = money(caja.porMetodo[k]);
+      f.append(a, b);
+      const barra = el('div', 'barrita'); const in2 = el('div');
+      in2.style.width = (caja.total ? caja.porMetodo[k] / caja.total * 100 : 0) + '%';
+      barra.appendChild(in2);
+      d.append(f, barra); pagos.appendChild(d);
+    });
+
+    const pf = $('#t-profs'); pf.textContent = '';
+    (caja.porProfesional || []).forEach(p => {
+      const d = el('div', 'medida');
+      const f = el('div', 'medida__f');
+      const a = el('span'); a.textContent = p.nombre;
+      const b = el('span'); b.textContent = money(p.pagar);
+      f.append(a, b);
+      const l = el('div', 'factura__l');
+      l.textContent = p.cuantas + (p.cuantas === 1 ? ' cita · ' : ' citas · ') + money(p.bruto) +
+                      ' · ' + Math.round(p.comision * 100) + '%';
+      const barra = el('div', 'barrita'); const in2 = el('div');
+      in2.style.width = (caja.total ? p.bruto / caja.total * 100 : 0) + '%';
+      barra.appendChild(in2);
+      d.append(f, l, barra); pf.appendChild(d);
+    });
+  }
+
+  let tBusca = null;
+  $('#f-buscar').addEventListener('input', e => {
+    clearTimeout(tBusca);
+    const v = e.target.value;
+    tBusca = setTimeout(() => { fBusca = v; pintarFacturas(); }, 200);
+  });
+  $('#f-limpiar').addEventListener('click', () => {
+    fBusca = ''; $('#f-buscar').value = ''; pintarFacturas();
+  });
+
+  /* =========================================================
+     Servicios y disponibilidad
+     ========================================================= */
+  let ajustes = null, pestanaServ = 'activos', CATALOGO = [];
+
+  async function cargarAjustes() {
+    try {
+      ajustes = await api('/panel/ajustes');
+      CATALOGO = ajustes.servicios || [];
+      pintarServicios();
+      pintarDispo();
+    } catch (e) {
+      $('#s-lista').textContent = e.message || 'No se pudo cargar.';
+    }
+  }
+
+  $$('.pestana').forEach(b => b.addEventListener('click', () => {
+    pestanaServ = b.dataset.serv;
+    $$('.pestana').forEach(x => x.classList.toggle('is-on', x === b));
+    pintarServicios();
+  }));
+
+  function pintarServicios() {
+    if (!ajustes) return;
+    const cont = $('#s-lista');
+    cont.textContent = '';
+    const activos = pestanaServ === 'activos';
+    const lista = (ajustes.servicios || []).filter(s => !!s.activo === activos);
+    $('#s-resumen').textContent = lista.length + (lista.length === 1 ? ' servicio' : ' servicios');
+
+    if (!lista.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = activos ? 'Sin servicios' : 'Nada archivado';
+      const p = el('span'); p.textContent = activos
+        ? 'Añade el primero para que el cliente pueda reservar.'
+        : 'Los servicios que archives aparecen aquí.';
+      v.append(s, p); cont.appendChild(v);
+      return;
+    }
+
+    const porCat = {};
+    lista.forEach(s => { (porCat[s.segmento] = porCat[s.segmento] || []).push(s); });
+    Object.keys(porCat).forEach(cat => {
+      const t = el('div', 'cat__tit');
+      const a = el('span'); a.textContent = SEGMENTOS[cat] || cat;
+      const b = el('span'); b.textContent = porCat[cat].length;
+      t.append(a, b); cont.appendChild(t);
+
+      porCat[cat].forEach(s => {
+        const n = el('div', 'serv');
+        const nm = el('div', 'serv__n'); nm.textContent = s.nombre;
+        const pr = el('div', 'serv__p'); pr.textContent = s.precio === null ? 'A convenir' : money(s.precio);
+        const de = el('div', 'serv__d'); de.textContent = s.descripcion || 'Sin descripción.';
+        const me = el('div', 'serv__m');
+        me.textContent = 'Duración: ' + s.minutos + ' min';
+        const bs = el('div', 'serv__b');
+        bs.appendChild(boton('Editar', () => abrirServicio(s)));
+        bs.appendChild(boton(activos ? 'Archivar' : 'Reactivar', () => guardarServicio(
+          { id: s.id, precio: s.precio, minutos: s.minutos, activo: !activos },
+          activos ? 'Servicio archivado' : 'Servicio reactivado')));
+        n.append(nm, pr, de, me, bs);
+        cont.appendChild(n);
+      });
+    });
+  }
+
+  function pintarDispo() {
+    if (!ajustes) return;
+    const h = $('#d-horario');
+    h.textContent = '';
+    (ajustes.horario || []).forEach(d => {
+      const f = el('div', 'hfila');
+      const b = el('button', 'hdia' + (d.abierto ? ' is-on' : ''));
+      b.type = 'button';
+      b.appendChild(el('i'));
+      b.appendChild(document.createTextNode(DIAS[d.dow]));
+      const abre = el('input'); abre.type = 'time'; abre.value = d.abre;
+      const cierra = el('input'); cierra.type = 'time'; cierra.value = d.cierra;
+      const guardar = abierto => api('/panel/ajustes', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ horario: { dow: d.dow, abre: abre.value, cierra: cierra.value, abierto } })
+      }).then(() => avisar('Horario guardado')).catch(e => avisar(e.message));
+      b.addEventListener('click', () => {
+        const on = !b.classList.contains('is-on');
+        b.classList.toggle('is-on', on); d.abierto = on; guardar(on);
+      });
+      [abre, cierra].forEach(i => i.addEventListener('change', () => guardar(d.abierto)));
+      f.append(b, abre, cierra);
+      h.appendChild(f);
+    });
+
+    const e = $('#d-equipo');
+    e.textContent = '';
+    (ajustes.equipo || []).forEach(p => {
+      const f = el('div', 'prof-fila');
+      const cab = el('div', 'prof-fila__cab');
+      const ini = el('span', 'ficha-prof__ini'); ini.textContent = inicial(p.nombre);
+      const nm = el('span', 'prof-fila__n'); nm.textContent = p.nombre;
+      cab.append(ini, nm);
+
+      const campos = el('div', 'prof-fila__campos');
+      const mk = (rot, input) => { const l = el('label'); l.appendChild(document.createTextNode(rot));
+                                   l.appendChild(input); campos.appendChild(l); return input; };
+      const com = el('input'); com.type = 'number'; com.min = '0'; com.max = '100'; com.step = '5';
+      com.value = Math.round(p.comision * 100); mk('Comisión %', com);
+      const entra = el('input'); entra.type = 'time'; entra.value = p.entra; mk('Entra', entra);
+      const sale = el('input'); sale.type = 'time'; sale.value = p.sale; mk('Sale', sale);
+      const clave = el('input'); clave.type = 'password'; clave.autocomplete = 'new-password';
+      clave.placeholder = p.tiene_clave ? '•••••• (ya tiene)' : 'sin clave aún';
+      mk('Clave nueva', clave);
+
+      const guardar = () => api('/panel/ajustes', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profesional: { id: p.id, comision: Number(com.value) / 100,
+          entra: entra.value, sale: sale.value, activo: p.activo,
+          clave: clave.value || undefined } })
+      }).then(() => {
+        if (clave.value) { clave.value = ''; clave.placeholder = '•••••• (ya tiene)'; }
+        avisar('Guardado');
+      }).catch(er => avisar(er.message));
+      [com, entra, sale, clave].forEach(i => i.addEventListener('change', guardar));
+
+      f.append(cab, campos);
+      e.appendChild(f);
+    });
+  }
+
+  /* ---------- alta y edición de servicio ---------- */
+  let servEditando = null;
+
+  function abrirServicio(s) {
+    servEditando = s || null;
+    $('#sv-titulo').textContent = s ? 'Editar servicio' : 'Nuevo servicio';
+    $('#sv-nombre').value = s ? s.nombre : '';
+    $('#sv-nombre').disabled = !!s;   // el nombre es la identidad; se cambia en el código
+    $('#sv-precio').value = s && s.precio !== null ? s.precio : '';
+    $('#sv-min').value = s ? s.minutos : 45;
+    const cat = $('#sv-cat'); cat.textContent = '';
+    Object.keys(SEGMENTOS).forEach(k => {
+      const o = document.createElement('option'); o.value = k; o.textContent = SEGMENTOS[k];
+      cat.appendChild(o);
+    });
+    if (s) cat.value = s.segmento;
+    cat.disabled = !!s;
+    $('#sv-desc').value = s ? (s.descripcion || '') : '';
+    $('#sv-error').hidden = true;
+    vistaPrevia();
+    $('#dlg-servicio').showModal();
+  }
+
+  function vistaPrevia() {
+    $('#vp-nombre').textContent = $('#sv-nombre').value || 'Nombre del servicio';
+    const p = $('#sv-precio').value;
+    $('#vp-precio').textContent = p ? money(p) : 'A convenir';
+    $('#vp-desc').textContent = $('#sv-desc').value || 'La descripción que verá el cliente.';
+  }
+  ['#sv-nombre', '#sv-precio', '#sv-desc'].forEach(s => $(s).addEventListener('input', vistaPrevia));
+  $('#abrir-servicio').addEventListener('click', () => abrirServicio(null));
+
+  async function guardarServicio(datosServ, texto) {
+    try {
+      await api('/panel/ajustes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ servicio: datosServ }) });
+      avisar(texto || 'Guardado');
+      cargarAjustes();
+    } catch (e) { avisar(e.message || 'No se pudo guardar'); }
+  }
+
+  $('#sv-guardar').addEventListener('click', async () => {
+    const err = $('#sv-error');
+    err.hidden = true;
+    if (!servEditando) {
+      /* Crear servicios nuevos toca la carta pública y el catálogo de la base a
+         la vez. Se dice en vez de fallar en silencio. */
+      err.textContent = 'Crear servicios nuevos todavía no está conectado. Por ahora se editan los existentes.';
+      err.hidden = false;
+      return;
+    }
+    const precio = $('#sv-precio').value;
+    await guardarServicio({ id: servEditando.id, precio: precio === '' ? null : Number(precio),
+                            minutos: Number($('#sv-min').value), activo: true }, 'Servicio actualizado');
+    $('#dlg-servicio').close();
+  });
+
+  /* =========================================================
+     Cobro
+     ========================================================= */
+  let citaCobrando = null, medioElegido = 'efectivo';
+
+  function abrirCobro(c) {
+    citaCobrando = c;
+    $('#co-quien').textContent = c.cliente + ' · ' + (c.servicios || '—');
+    /* Se propone lo que valía al reservar, pero se puede cambiar: un descuento
+       o un servicio que se alargó hacen que lo cobrado difiera. */
+    $('#co-valor').value = c.total || 0;
+    medioElegido = 'efectivo';
+    const m = $('#co-medios'); m.textContent = '';
+    Object.keys(MEDIOS).forEach(k => {
+      const b = el('button', 'medio' + (k === medioElegido ? ' is-on' : ''));
+      b.type = 'button'; b.textContent = MEDIOS[k];
+      b.addEventListener('click', () => {
+        medioElegido = k;
+        m.querySelectorAll('.medio').forEach(x => x.classList.toggle('is-on', x === b));
+      });
+      m.appendChild(b);
+    });
+    $('#co-error').hidden = true;
+    $('#dlg-cobro').showModal();
+  }
+
+  $('#co-guardar').addEventListener('click', async () => {
+    const err = $('#co-error');
+    err.hidden = true;
+    try {
+      await api('/panel/cobrar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cita_id: citaCobrando.id, cobrado: Number($('#co-valor').value),
+                               metodo_pago: medioElegido }) });
+      $('#dlg-cobro').close();
+      cerrarFicha();
+      avisar('Cobro registrado · ' + money($('#co-valor').value));
+      cargarDia();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo registrar';
+      err.hidden = false;
+    }
+  });
+
+  /* =========================================================
+     Crear cita
+     ========================================================= */
   let clienteElegido = null;
 
   async function catalogo() {
@@ -510,45 +1059,43 @@
   async function abrirCrear(profId, hhmm) {
     $('#cr-error').hidden = true;
     limpiarCliente();
-
-    const profs = datos.profesionales || [];
-    const selP = $('#cr-prof');
-    selP.textContent = '';
-    profs.forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.id; o.textContent = p.nombre;
-      selP.appendChild(o);
+    const sel = $('#cr-prof');
+    sel.textContent = '';
+    (datos.profesionales || []).forEach(p => {
+      const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre;
+      sel.appendChild(o);
     });
-    if (profId) selP.value = String(profId);
+    if (profId) sel.value = String(profId);
     $('#cr-hora').value = hhmm || '';
-
     await catalogo();
-    pintarServicios();
+    pintarServiciosCrear();
     buscarClientes('');
     $('#dlg-crear').showModal();
   }
 
-  /* Solo se ofrecen los servicios que ese profesional presta: elegir uno que
-     no hace y descubrirlo al guardar es hacerle perder el tiempo. */
-  function pintarServicios() {
+  /* Solo se ofrecen los servicios que ese profesional presta: elegir uno que no
+     hace y descubrirlo al guardar es hacerle perder el tiempo a quien está con
+     el cliente delante. */
+  function pintarServiciosCrear() {
     const prof = Number($('#cr-prof').value);
     const sel = $('#cr-serv');
     const antes = sel.value;
     sel.textContent = '';
     let grupo = null, og = null;
-    CATALOGO.filter(s => (s.profesionales || []).map(Number).includes(prof)).forEach(s => {
-      if (s.segmento !== grupo) {
-        grupo = s.segmento;
-        og = document.createElement('optgroup');
-        og.label = SEGMENTOS[grupo] || grupo;
-        sel.appendChild(og);
-      }
-      const o = document.createElement('option');
-      o.value = s.id;
-      o.textContent = s.nombre + (s.precio ? ' · $' + s.precio.toLocaleString('es-CO') : '');
-      o.dataset.min = s.minutos;
-      og.appendChild(o);
-    });
+    CATALOGO.filter(s => s.activo !== false && (s.profesionales || []).map(Number).includes(prof))
+      .forEach(s => {
+        if (s.segmento !== grupo) {
+          grupo = s.segmento;
+          og = document.createElement('optgroup');
+          og.label = SEGMENTOS[grupo] || grupo;
+          sel.appendChild(og);
+        }
+        const o = document.createElement('option');
+        o.value = s.id;
+        o.textContent = s.nombre + (s.precio ? ' · ' + money(s.precio) : '');
+        o.dataset.min = s.minutos;
+        og.appendChild(o);
+      });
     if (antes && sel.querySelector('option[value="' + antes + '"]')) sel.value = antes;
     sincronizarDuracion();
   }
@@ -561,25 +1108,18 @@
     $('#cr-min').value = min || 30;
     $('#cr-dur-nota').textContent = min ? 'minutos · el servicio propone ' + min : 'minutos';
   }
-
-  /* Desde el botón no hay hueco que dé contexto: se abre en la próxima marca
-     de cuarto de hora, que es lo que casi siempre se quiere al agendar a
-     alguien que acaba de entrar. */
+  $('#cr-prof').addEventListener('change', pintarServiciosCrear);
+  $('#cr-serv').addEventListener('change', sincronizarDuracion);
   $('#abrir-crear').addEventListener('click', () => {
-    const ahora = new Date();
-    const m = Math.ceil((ahora.getHours() * 60 + ahora.getMinutes()) / PASO) * PASO;
-    abrirCrear(null, pad(Math.floor(m / 60) % 24) + ':' + pad(m % 60));
+    const m = Math.ceil((new Date().getHours() * 60 + new Date().getMinutes()) / PASO) * PASO;
+    abrirCrear(null, aHHMM(m));
   });
 
-  $('#cr-prof').addEventListener('change', pintarServicios);
-  $('#cr-serv').addEventListener('change', sincronizarDuracion);
-
-  /* ---- cliente ---- */
-  let tBusca = null;
+  let tCli = null;
   $('#cr-buscar').addEventListener('input', e => {
-    clearTimeout(tBusca);
+    clearTimeout(tCli);
     const q = e.target.value;
-    tBusca = setTimeout(() => buscarClientes(q), 220);
+    tCli = setTimeout(() => buscarClientes(q), 220);
   });
 
   async function buscarClientes(q) {
@@ -590,14 +1130,11 @@
       (r.clientes || []).forEach(c => {
         const li = document.createElement('li');
         const b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = c.nombre;
-        const s = document.createElement('small');
-        s.textContent = c.telefono || 'sin celular';
+        b.type = 'button'; b.textContent = c.nombre;
+        const s = document.createElement('small'); s.textContent = c.telefono || 'sin celular';
         b.appendChild(s);
         b.addEventListener('click', () => elegirCliente(c));
-        li.appendChild(b);
-        ul.appendChild(li);
+        li.appendChild(b); ul.appendChild(li);
       });
     } catch (e) { ul.textContent = ''; }
   }
@@ -607,25 +1144,19 @@
     const p = $('#cr-elegido');
     p.textContent = c.nombre + (c.telefono ? ' · ' + c.telefono : '');
     const q = document.createElement('button');
-    q.type = 'button';
-    q.textContent = 'cambiar';
+    q.type = 'button'; q.textContent = 'cambiar';
     q.addEventListener('click', limpiarCliente);
     p.appendChild(q);
     p.hidden = false;
-    $('#cr-buscar').hidden = true;
-    $('#cr-lista').hidden = true;
-    $('#cr-nuevo').hidden = true;
+    $('#cr-buscar').hidden = true; $('#cr-lista').hidden = true; $('#cr-nuevo').hidden = true;
   }
 
   function limpiarCliente() {
     clienteElegido = null;
     $('#cr-elegido').hidden = true;
-    $('#cr-buscar').hidden = false;
-    $('#cr-buscar').value = '';
-    $('#cr-lista').hidden = false;
-    $('#cr-nuevo').hidden = false;
-    $('#cr-nombre').value = '';
-    $('#cr-tel').value = '';
+    $('#cr-buscar').hidden = false; $('#cr-buscar').value = '';
+    $('#cr-lista').hidden = false; $('#cr-nuevo').hidden = false;
+    $('#cr-nombre').value = ''; $('#cr-tel').value = '';
   }
 
   $('#cr-guardar').addEventListener('click', async () => {
@@ -635,259 +1166,90 @@
     btn.disabled = true;
     try {
       const cuerpo = {
-        fecha: ymd(dia),
-        hora: $('#cr-hora').value,
-        minutos: Number($('#cr-min').value),
-        servicios: [$('#cr-serv').value].filter(Boolean),
-        profesional: Number($('#cr-prof').value)
+        fecha: ymd(dia), hora: $('#cr-hora').value, minutos: Number($('#cr-min').value),
+        servicios: [$('#cr-serv').value].filter(Boolean), profesional: Number($('#cr-prof').value)
       };
       if (clienteElegido) cuerpo.cliente_id = clienteElegido.id;
       else { cuerpo.nombre = $('#cr-nombre').value; cuerpo.telefono = $('#cr-tel').value; }
-
-      await api('/panel/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cuerpo)
-      });
+      await api('/panel/crear', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(cuerpo) });
       $('#dlg-crear').close();
-      cargar();
+      avisar('Cita creada');
+      cargarDia();
     } catch (e) {
       err.textContent = e.message || 'No se pudo crear la cita';
       err.hidden = false;
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-
-  /* =========================================================
-     Reprogramar arrastrando
-     ========================================================= */
-  let arrastrando = null;
-
-  async function mover(id, hhmm, profId) {
-    try {
-      await api('/panel/mover', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, fecha: ymd(dia), hora: hhmm, profesional: profId })
-      });
-      cargar();
-    } catch (e) {
-      alert(e.message || 'No se pudo mover la cita');
-      cargar();   // devuelve el bloque a su sitio
-    }
-  }
-
-  /* =========================================================
-     Cobro
-     ========================================================= */
-  let citaCobrando = null;
-
-  function abrirCobro(c) {
-    citaCobrando = c;
-    $('#co-quien').textContent = c.cliente + ' · ' + (c.servicios || '—');
-    /* Se propone lo que valía al reservar, pero se puede cambiar: un descuento
-       o un servicio que se alargó hacen que lo cobrado difiera. */
-    $('#co-valor').value = c.total || 0;
-    $('#co-metodo').value = 'efectivo';
-    $('#co-error').hidden = true;
-    $('#dlg-cobro').showModal();
-  }
-
-  $('#co-guardar').addEventListener('click', async () => {
-    const err = $('#co-error');
-    err.hidden = true;
-    try {
-      await api('/panel/cobrar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cita_id: citaCobrando.id,
-          cobrado: Number($('#co-valor').value),
-          metodo_pago: $('#co-metodo').value
-        })
-      });
-      $('#dlg-cobro').close();
-      cerrarFicha();
-      cargar();
-    } catch (e) {
-      err.textContent = e.message || 'No se pudo registrar';
-      err.hidden = false;
-    }
+    } finally { btn.disabled = false; }
   });
 
   /* =========================================================
-     Vistas: agenda / caja / ajustes
+     Bloquear horas
      ========================================================= */
-  const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
-  const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia',
-                    tarjeta: 'Tarjeta', otro: 'Otro' };
-
-  function mostrarVista(cual) {
-    $('#vista-caja').hidden = cual !== 'caja';
-    $('#vista-ajustes').hidden = cual !== 'ajustes';
-    const agenda = cual === 'agenda';
-    document.querySelector('.rejilla-wrap').style.display = agenda ? '' : 'none';
-    $('#lista').style.display = agenda ? '' : 'none';
-    if (cual === 'caja') cargarCaja();
-    if (cual === 'ajustes') cargarAjustes();
-  }
-
-  $('#ver-caja').addEventListener('click', () => mostrarVista('caja'));
-  $('#ver-ajustes').addEventListener('click', () => mostrarVista('ajustes'));
-  $('#ir-hoy').addEventListener('click', () => mostrarVista('agenda'));
-
-  function tabla(cabeceras, filas) {
-    const t = el('table', 'tabla');
-    const thead = el('thead'); const tr = el('tr');
-    cabeceras.forEach(h => {
-      const th = el('th', h.num ? 'num' : '');
-      th.textContent = h.t || h;
-      tr.appendChild(th);
-    });
-    thead.appendChild(tr); t.appendChild(thead);
-    const tb = el('tbody');
-    filas.forEach(f => {
-      const r = el('tr');
-      f.forEach(celda => {
-        const td = el('td', celda && celda.num ? 'num' : '');
-        if (celda && celda.nodo) td.appendChild(celda.nodo);
-        else { td.textContent = celda && celda.t !== undefined ? celda.t : celda; if (celda && celda.fuerte) td.className += ' fuerte'; }
-        r.appendChild(td);
-      });
-      tb.appendChild(r);
-    });
-    t.appendChild(tb);
-    return t;
-  }
-
-  async function cargarCaja() {
-    const cont = $('#caja-cuerpo');
-    cont.textContent = 'Cargando…';
-    try {
-      const d = await api('/panel/caja?fecha=' + ymd(dia));
-      cont.textContent = '';
-
-      const tot = el('p', 'vista__nota');
-      tot.innerHTML = '';
-      tot.textContent = d.cobros.length
-        ? d.cobros.length + (d.cobros.length === 1 ? ' cobro · ' : ' cobros · ') + money(d.total)
-        : 'Todavía no ha entrado nada hoy.';
-      cont.appendChild(tot);
-      if (!d.cobros.length) return;
-
-      cont.appendChild(el('h3')).textContent = 'Por forma de pago';
-      cont.appendChild(tabla(['Forma', { t: 'Valor', num: true }],
-        Object.keys(d.porMetodo).map(k => [METODOS[k] || k, { t: money(d.porMetodo[k]), num: true, fuerte: true }])));
-
-      cont.appendChild(el('h3')).textContent = 'Por profesional';
-      cont.appendChild(tabla(
-        ['Profesional', { t: 'Citas', num: true }, { t: 'Cobrado', num: true }, { t: 'Comisión', num: true }, { t: 'A pagar', num: true }],
-        d.porProfesional.map(p => [p.nombre, { t: p.cuantas, num: true }, { t: money(p.bruto), num: true },
-                                   { t: Math.round(p.comision * 100) + '%', num: true },
-                                   { t: money(p.pagar), num: true, fuerte: true }])));
-
-      cont.appendChild(el('h3')).textContent = 'Detalle';
-      cont.appendChild(tabla(['Hora', 'Cliente', 'Servicios', 'Profesional', 'Pago', { t: 'Valor', num: true }],
-        d.cobros.map(c => [hora(c.cobrado_en), c.cliente, c.servicios, c.profesional,
-                           METODOS[c.metodo_pago] || c.metodo_pago, { t: money(c.cobrado), num: true }])));
-    } catch (e) {
-      cont.textContent = e.message || 'No se pudo cargar la caja.';
-    }
-  }
-
-  async function cargarAjustes() {
-    const hCont = $('#aj-horario'), sCont = $('#aj-servicios');
-    hCont.textContent = 'Cargando…'; sCont.textContent = '';
-    try {
-      const d = await api('/panel/ajustes');
-      hCont.textContent = '';
-
-      hCont.appendChild(tabla(['Día', 'Abre', 'Cierra', 'Abierto'],
-        d.horario.map(h => {
-          const abre = el('input'); abre.type = 'time'; abre.value = h.abre;
-          const cierra = el('input'); cierra.type = 'time'; cierra.value = h.cierra;
-          const ab = el('input'); ab.type = 'checkbox'; ab.checked = h.abierto; ab.style.minHeight = 'auto'; ab.style.width = 'auto';
-          const guardar = () => api('/panel/ajustes', {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ horario: { dow: h.dow, abre: abre.value, cierra: cierra.value, abierto: ab.checked } })
-          }).catch(e => alert(e.message));
-          [abre, cierra].forEach(i => i.addEventListener('change', guardar));
-          ab.addEventListener('change', guardar);
-          return [DIAS[h.dow], { nodo: abre }, { nodo: cierra }, { nodo: ab }];
-        })));
-
-      sCont.appendChild(tabla(['Servicio', 'Segmento', { t: 'Precio', num: true }, { t: 'Minutos', num: true }, 'Activo'],
-        d.servicios.map(sv => {
-          const precio = el('input'); precio.type = 'number'; precio.step = '1000'; precio.min = '0';
-          precio.value = sv.precio === null ? '' : sv.precio;
-          precio.placeholder = 'a convenir';
-          const min = el('input'); min.type = 'number'; min.min = '5'; min.max = '600'; min.step = '5'; min.value = sv.minutos;
-          const act = el('input'); act.type = 'checkbox'; act.checked = sv.activo; act.style.minHeight = 'auto'; act.style.width = 'auto';
-          const guardar = () => api('/panel/ajustes', {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ servicio: { id: sv.id, precio: precio.value === '' ? null : Number(precio.value),
-                                               minutos: Number(min.value), activo: act.checked } })
-          }).then(() => { CATALOGO = []; }).catch(e => alert(e.message));
-          [precio, min].forEach(i => i.addEventListener('change', guardar));
-          act.addEventListener('change', guardar);
-          return [sv.nombre, SEGMENTOS[sv.segmento] || sv.segmento, { nodo: precio, num: true }, { nodo: min, num: true }, { nodo: act }];
-        })));
-    } catch (e) {
-      hCont.textContent = e.message || 'No se pudo cargar.';
-    }
-  }
-
-  /* ---------- bloquear horas ---------- */
-  const dlg = $('#dlg-bloqueo');
-  $('#abrir-bloqueo').addEventListener('click', () => {
+  function abrirBloqueo() {
     const sel = $('#bq-prof');
-    /* El equipo ya viene con la agenda; no hace falta pedirlo aparte. */
-    if (sel.options.length === 1) {
-      (datos.profesionales || []).forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.id; o.textContent = p.nombre;
-        sel.appendChild(o);
-      });
+    sel.textContent = '';
+    if (ROL === 'dueno') {
+      const t = document.createElement('option'); t.value = ''; t.textContent = 'Todo el local';
+      sel.appendChild(t);
     }
+    (datos.profesionales || []).forEach(p => {
+      const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre;
+      sel.appendChild(o);
+    });
+    if (ROL === 'profesional' && YO.profId) sel.value = String(YO.profId);
+    sel.disabled = ROL === 'profesional';   // no puede cerrarle la agenda a otro
     $('#bq-error').hidden = true;
-    dlg.showModal();
-  });
+    $('#dlg-bloqueo').showModal();
+  }
+  $('#abrir-bloqueo').addEventListener('click', abrirBloqueo);
 
   $('#bq-guardar').addEventListener('click', async () => {
     const err = $('#bq-error');
     err.hidden = true;
     try {
-      await api('/panel/bloqueo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profesional_id: $('#bq-prof').value || null,
-          fecha: ymd(dia),
-          desde: $('#bq-desde').value,
-          hasta: $('#bq-hasta').value,
-          motivo: $('#bq-motivo').value
-        })
-      });
-      dlg.close();
-      cargar();
+      await api('/panel/bloqueo', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profesional_id: $('#bq-prof').value || null, fecha: ymd(dia),
+                               desde: $('#bq-desde').value, hasta: $('#bq-hasta').value,
+                               motivo: $('#bq-motivo').value }) });
+      $('#dlg-bloqueo').close();
+      avisar('Horas bloqueadas');
+      cargarDia();
     } catch (e) {
       err.textContent = e.message || 'No se pudo bloquear';
       err.hidden = false;
     }
   });
 
+  /* =========================================================
+     Arranque
+     ========================================================= */
   if (DEMO) {
     /* Aviso permanente en pantalla: nada de lo que se ve aquí es real, y quien
        lo mire tiene que saberlo antes de sacar conclusiones. */
     const aviso = el('div', 'demo-aviso');
-    aviso.textContent = 'Modo demostración · datos inventados · en local no hay base de datos';
+    aviso.textContent = 'Modo demostración · datos inventados · ';
+    const cambiar = el('button', 'demo-rol');
+    cambiar.type = 'button';
+    const pinta = () => { cambiar.textContent = 'viendo como ' +
+      (ROL === 'dueno' ? 'ADMINISTRADOR' : 'PROFESIONAL') + ' · cambiar'; };
+    cambiar.addEventListener('click', () => {
+      ROL = ROL === 'dueno' ? 'profesional' : 'dueno';
+      YO = { nombre: ROL === 'dueno' ? 'Administrador' : 'Emanuel Gómez',
+             profId: ROL === 'dueno' ? null : 1 };
+      pinta(); abrir();
+    });
+    pinta();
+    aviso.appendChild(cambiar);
     document.body.insertBefore(aviso, document.body.firstChild);
     document.body.classList.add('con-aviso');
-    abrirPanel();
+    YO = { nombre: 'Administrador', profId: null };
+    abrir();
   } else {
     /* Si la cookie sigue viva se entra directo, sin volver a teclear la clave. */
-    api('/panel/agenda?fecha=' + ymd(dia)).then(abrirPanel).catch(() => {});
+    api('/panel/entrar').then(r => {
+      ROL = r.rol || 'dueno';
+      YO = { nombre: r.nombre || 'Administrador', profId: r.profId || null };
+      abrir();
+    }).catch(() => {});
   }
 })();
