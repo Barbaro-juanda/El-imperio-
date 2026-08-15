@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=13">
+<link rel="stylesheet" href="assets/styles.css?v=14">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -45,13 +45,15 @@
 <!--
   Datos estructurados del negocio.
 
-  AVISO sobre aggregateRating: la nota 5,0 con 454 reseñas viene del perfil de
-  Google, no de reseñas recogidas en este sitio. Las políticas de datos
-  estructurados de Google piden que la calificación marcada provenga del propio
-  sitio; replicar la de Google se considera "self-serving markup" y puede costar
-  una acción manual por marcado engañoso (se pierden los resultados
-  enriquecidos). Se incluye por decisión explícita del dueño. Para quitarlo,
-  borrar el bloque "aggregateRating" de aquí abajo.
+  Aquí NO va aggregateRating. La nota 5,0 con 454 reseñas es real, pero es del
+  perfil de Google y no de reseñas recogidas en este sitio. Las políticas de
+  datos estructurados piden que la calificación marcada venga del propio sitio;
+  replicar la de Google cuenta como "self-serving markup" y puede costar una
+  acción manual por marcado engañoso, que se lleva por delante todos los
+  resultados enriquecidos de la ficha, no solo las estrellas.
+
+  La nota se sigue enseñando en la página, enlazada a Google, que es su fuente.
+  Enseñarla es correcto; declararla como propia en el marcado, no.
 -->
 <script type="application/ld+json">
 {
@@ -109,13 +111,6 @@
       "closes": "00:00"
     }
   ],
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "5.0",
-    "reviewCount": "454",
-    "bestRating": "5",
-    "worstRating": "1"
-  },
   "makesOffer": [
     {
       "@type": "Offer",
@@ -969,11 +964,15 @@
     (se actualizan solas, requiere API key con facturación activa).
   -->
   <div class="gscore" data-rv>
-    <div class="gscore__figure">
+    <!-- La nota se enseña enlazada a su fuente. Es el mismo dato, pero así el
+         visitante puede comprobarlo en un clic en vez de tener que creernos, y
+         nosotros no lo estamos declarando como recogido aquí. -->
+    <a class="gscore__figure" href="https://www.google.com/maps?cid=7884828445267517729"
+       target="_blank" rel="noopener noreferrer">
       <span class="gscore__num">5,0</span>
       <span class="gscore__stars" aria-hidden="true">★★★★★</span>
       <span class="gscore__label">454 reseñas en Google</span>
-    </div>
+    </a>
   </div>
 
   <!--
@@ -1210,6 +1209,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=13"></script>
+<script src="assets/app.js?v=14"></script>
 </body>
 </html>

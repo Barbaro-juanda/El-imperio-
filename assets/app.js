@@ -242,11 +242,23 @@
         '<span class="barber__tag">Elegir</span>' +
       '</span>';
     const img = card.querySelector('.barber__photo');
-    img.src = b.photo;
-    /* El alt describe la foto (sirve para buscadores y si la imagen no carga),
-       y el botón lleva su propio aria-label para que el lector de pantalla no
-       lea el nombre dos veces. */
-    img.alt = b.alt || '';
+    if (b.photo) {
+      img.src = b.photo;
+      /* El alt describe la foto (sirve para buscadores y si la imagen no
+         carga), y el botón lleva su propio aria-label para que el lector de
+         pantalla no lea el nombre dos veces. */
+      img.alt = b.alt || '';
+    } else {
+      /* Sin foto NO se deja un <img> vacío: el navegador pinta el icono de
+         imagen rota con el alt desbordado encima, que se ve peor que no tener
+         foto. Se sustituye por la inicial, que llena el mismo hueco y no
+         parece un error. Que a alguien le falte el retrato es normal —entra
+         al equipo antes de que haya sesión de fotos—. */
+      const ini = el('span', 'barber__photo barber__inicial');
+      ini.setAttribute('aria-hidden', 'true');
+      ini.textContent = String(b.name || '?').trim().charAt(0).toUpperCase();
+      img.replaceWith(ini);
+    }
     card.setAttribute('aria-label', 'Elegir a ' + b.name);
     card.querySelector('.barber__name').textContent = b.name;
     const spec = card.querySelector('.barber__spec');

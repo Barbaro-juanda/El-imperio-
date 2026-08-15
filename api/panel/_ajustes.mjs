@@ -34,7 +34,17 @@ export default protegido(async (req, res) => {
         SELECT id, nombre, comision, entra, sale, activo,
                (clave_hash IS NOT NULL) AS tiene_clave
           FROM profesional ORDER BY nombre`;
+      /* La meta vive en la base y no en el código: cambiarla no puede exigir
+         publicar el sitio. Si la tabla aún no existe se usa el valor que había
+         escrito, para que el panel siga pintando la barra. */
+      let meta = 300000;
+      try {
+        const r = await sql`SELECT valor FROM ajuste WHERE clave = 'meta_diaria'`;
+        if (r.length) meta = Number(r[0].valor) || meta;
+      } catch (e) { /* sin tabla de ajustes todavía */ }
+
       return json(res, 200, {
+        meta,
         servicios,
         horario: horario.map(h => ({ ...h, abre: String(h.abre).slice(0,5), cierra: String(h.cierra).slice(0,5) })),
         equipo: equipo.map(p => ({ ...p, entra: String(p.entra).slice(0,5), sale: String(p.sale).slice(0,5),
@@ -139,6 +149,20 @@ export default protegido(async (req, res) => {
         await sql`UPDATE profesional SET clave_hash = ${hashClave(String(p.clave))} WHERE id = ${p.id}`;
       }
       return json(res, 200, { id: p.id });
+    }
+
+    if (b.meta !== undefined) {
+      const v = Math.round(Number(b.meta));
+      /* Cero es legítimo: significa «no medimos contra meta». Un tope alto
+         evita que un dedo de más convierta la barra en algo inútil. */
+      if (!Number.isFinite(v) || v < 0 || v > 100000000) {
+        return json(res, 400, { error: 'Meta no válida' });
+      }
+      await sql`
+        INSERT INTO ajuste (clave, valor, nota)
+        VALUES ('meta_diaria', ${String(v)}, 'Meta de caja por día, en pesos.')
+        ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor`;
+      return json(res, 200, { meta: v });
     }
 
     return json(res, 400, { error: 'Nada que actualizar' });

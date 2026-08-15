@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=19">
+<link rel="stylesheet" href="assets/panel.css?v=20">
 </head>
 <body class="panel">
 
@@ -254,6 +254,14 @@
   <!-- ========================= DISPONIBILIDAD ========================= -->
   <section class="vista dispo" id="v-dispo" hidden>
     <div class="tarjeta">
+      <div class="tarjeta__tit">Meta de caja</div>
+      <p class="nota">Contra esto se mide la barra de la agenda y la de facturas. En periodos largos se multiplica por los días. Cero la apaga.</p>
+      <div class="meta-fila">
+        <label>Meta por día <span class="monto"><span>$</span><input id="aj-meta" type="number" min="0" step="10000"></span></label>
+        <button class="bt bt--vino" type="button" id="aj-meta-guardar">Guardar meta</button>
+      </div>
+    </div>
+    <div class="tarjeta">
       <div class="tarjeta__tit">Horario del negocio</div>
       <div class="horario" id="d-horario"></div>
     </div>
@@ -480,6 +488,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=18"></script>
+<script src="assets/panel.js?v=19"></script>
 </body>
 </html>

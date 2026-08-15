@@ -35,7 +35,9 @@
      como se mira una agenda de verdad. */
   const PASO = 15;
   const FILA = 30;
-  const META_LOCAL = 300000;  // meta diaria; se edita aquí hasta que el local la fije
+  /* Meta diaria de caja. El valor de verdad vive en la base y llega con los
+     ajustes; este solo sirve mientras la primera carga está en camino. */
+  let META_LOCAL = 300000;
 
   /* Quién entró. Manda el servidor: el panel solo lo usa para no enseñar
      botones que la API va a rechazar de todos modos. La seguridad está allá. */
@@ -196,7 +198,8 @@
                                                        movimientos: MUESTRA.movimientos,
                                                        profesionales: MUESTRA.profesionales };
     if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios,
-                                                      horario: MUESTRA.horarioSemana, equipo: MUESTRA.equipo };
+                                                      horario: MUESTRA.horarioSemana,
+                                                      equipo: MUESTRA.equipo, meta: 300000 };
     if (ruta.startsWith('/panel/entrar'))    return { rol: ROL, nombre: 'Emanuel Gómez' };
     return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar
   }
@@ -1272,6 +1275,7 @@
     try {
       ajustes = await api('/panel/ajustes');
       CATALOGO = ajustes.servicios || [];
+      if (Number.isFinite(Number(ajustes.meta))) META_LOCAL = Number(ajustes.meta);
       pintarServicios();
       pintarDispo();
     } catch (e) {
@@ -1331,6 +1335,7 @@
 
   function pintarDispo() {
     if (!ajustes) return;
+    $('#aj-meta').value = META_LOCAL;
     const h = $('#d-horario');
     h.textContent = '';
     (ajustes.horario || []).forEach(d => {
@@ -1515,6 +1520,22 @@
     } catch (e) {
       err.textContent = e.message || 'No se pudo publicar'; err.hidden = false;
     } finally { btn.disabled = false; btn.textContent = antes; }
+  });
+
+  $('#aj-meta-guardar').addEventListener('click', async () => {
+    const v = Number($('#aj-meta').value);
+    if (!Number.isFinite(v) || v < 0) { avisar('Esa meta no es válida'); return; }
+    const antes = META_LOCAL;
+    try {
+      await api('/panel/ajustes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ meta: v }) });
+      META_LOCAL = v;
+      avisar('Meta guardada · ' + money(v), async () => {
+        await api('/panel/ajustes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ meta: antes }) });
+        META_LOCAL = antes; $('#aj-meta').value = antes; avisar('Meta anterior restaurada');
+      });
+    } catch (e) { avisar(e.message || 'No se pudo guardar'); }
   });
 
   /* =========================================================
