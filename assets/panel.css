@@ -16,6 +16,11 @@
   --tenue:   rgba(13, 13, 13, .55);   /* 5.9:1 sobre lino */
   --verde:   #2F6B4A;                 /* cobrada */
   --ambar:   #B9973F;                 /* falta cobrar */
+  /* Los mismos dos colores de la marca, con el nombre en espanol que usa el
+     resto de este archivo. Sin esta pareja, cada var(--vino) de aqui abajo se
+     quedaba sin valor y la regla se descartaba sin avisar. */
+  --vino:    var(--wine);             /* #9B3040 - el unico rojo de la casa */
+  --tinta:   var(--ink);
 }
 
 .panel { background: var(--lino); color: var(--ink); min-height: 100dvh; margin: 0; }
@@ -906,3 +911,126 @@
 .demo-rol:hover { background: var(--cream); color: var(--wine); }
 .con-aviso .barra { top: 32px; }
 .con-aviso .rej__cab { top: 94px; }
+
+/* =========================================================
+   Inventario
+   ========================================================= */
+
+/* Lo que se está acabando va arriba y con el vino de la casa: es el único
+   bloque de esta pantalla que pide hacer algo hoy. */
+.porpedir {
+  border: 1px solid rgba(155, 48, 64, .28);
+  border-left: 3px solid var(--vino);
+  background: rgba(155, 48, 64, .05);
+  border-radius: 10px;
+  padding: .7rem .85rem;
+  margin-bottom: .9rem;
+  animation: deslizar .28s ease both;
+}
+.porpedir > strong {
+  display: block;
+  font-size: .78rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--vino);
+  margin-bottom: .45rem;
+}
+.porpedir__lista { display: flex; flex-wrap: wrap; gap: .4rem; }
+.porpedir__x {
+  border: 1px solid rgba(155, 48, 64, .3);
+  background: #fff;
+  color: var(--tinta);
+  border-radius: 999px;
+  padding: .28rem .7rem;
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.porpedir__x:hover { background: rgba(155, 48, 64, .09); border-color: var(--vino); }
+
+.prods { display: grid; gap: .55rem; }
+
+.prod {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: 'n p e' 'd d d' 'b b b';
+  gap: .25rem .9rem;
+  align-items: baseline;
+  border: 1px solid var(--linea);
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  padding: .7rem .85rem;
+  background: #fff;
+}
+.prod__n { grid-area: n; font-weight: 600; }
+.prod__n em { font-style: normal; font-weight: 400; opacity: .55; font-size: .88em; }
+.prod__p { grid-area: p; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* El número de existencias es lo que más se consulta de esta pantalla, así que
+   se lee de un vistazo y no dentro de una frase. */
+.prod__e { grid-area: e; display: flex; align-items: baseline; gap: .3rem; min-width: 5.5rem; justify-content: flex-end; }
+.prod__e strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.prod__e span { font-size: .75rem; opacity: .6; }
+.prod__d { grid-area: d; font-size: .85rem; opacity: .68; }
+.prod__b { grid-area: b; display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+
+/* Falta de existencias marcada por borde y por texto, no solo por color: quien
+   no distingue el vino del gris tiene que poder verlo igual. */
+.prod--falta { border-left-color: var(--vino); background: rgba(155, 48, 64, .035); }
+.prod--falta .prod__e strong { color: var(--vino); }
+.prod--cero { border-style: dashed; }
+.prod--cero .prod__e span { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--vino); opacity: 1; }
+
+/* ---------- movimientos ---------- */
+.mov {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr auto;
+  grid-template-areas: 'q n c' 'q d d';
+  gap: 0 .7rem;
+  align-items: center;
+  padding: .5rem .2rem;
+  border-bottom: 1px solid var(--linea);
+  font-size: .88rem;
+}
+.mov:last-child { border-bottom: 0; }
+.mov__q {
+  grid-area: q;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  font-size: 1rem;
+}
+.mov--venta   .mov__q { color: var(--vino); }
+.mov--entrada .mov__q { color: var(--verde); }
+.mov--ajuste  .mov__q { color: var(--ambar); }
+.mov__n { grid-area: n; font-weight: 600; }
+.mov__d { grid-area: d; font-size: .8rem; opacity: .62; }
+.mov__c { grid-area: c; font-size: .78rem; opacity: .5; white-space: nowrap; }
+
+/* ---------- diálogo de venta ---------- */
+.ve__cant { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .8rem; }
+.ve__cant input {
+  width: 4.5rem;
+  text-align: center;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+.ve__quedan { font-size: .82rem; opacity: .6; margin-left: .3rem; }
+.ve__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 1px solid var(--linea);
+  margin-top: .7rem;
+  padding-top: .6rem;
+}
+.ve__total strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+
+.desglose { display: grid; gap: .2rem; margin: .5rem 0 .2rem; font-size: .85rem; opacity: .75; }
+
+@media (max-width: 720px) {
+  .prod { grid-template-columns: 1fr auto; grid-template-areas: 'n e' 'p e' 'd d' 'b b'; }
+  .mov { grid-template-columns: 2.6rem 1fr; grid-template-areas: 'q n' 'q d' 'q c'; }
+  .mov__c { text-align: left; }
+}

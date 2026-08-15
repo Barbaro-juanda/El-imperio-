@@ -5,6 +5,7 @@
    una caja es cuándo entró el dinero, no cuándo estaba agendado el corte. */
 import { sql, json, aUTC } from '../_db.mjs';
 import { protegido } from '../_auth.mjs';
+import { ventasDelRango } from './_inventario.mjs';
 
 export default protegido(async (req, res) => {
   if (req.method !== 'GET') return json(res, 405, { error: 'Solo GET' });
@@ -35,7 +36,13 @@ export default protegido(async (req, res) => {
        GROUP BY c.id, cl.nombre, cl.telefono, p.id, p.nombre, p.comision
        ORDER BY c.cobrado_en`;
 
-    const total = cobros.reduce((t, c) => t + (c.cobrado || 0), 0);
+    /* La venta de productos entra a la misma caja: para el local es el mismo
+       dinero del mismo día, y separarla en otra pantalla obligaría a sumar dos
+       cifras a mano cada noche. Se marca de dónde viene para poder distinguir
+       servicio de mostrador cuando interese. */
+    const ventas = await ventasDelRango(d1, d2);
+    const totalProductos = ventas.reduce((t, v) => t + (v.total || 0), 0);
+    const total = cobros.reduce((t, c) => t + (c.cobrado || 0), 0) + totalProductos;
 
     const porMetodo = {};
     const porProf = {};
@@ -48,7 +55,16 @@ export default protegido(async (req, res) => {
       porProf[k].pagar = Math.round(porProf[k].bruto * porProf[k].comision);
     });
 
+    /* Las ventas suman al medio de pago igual que un cobro. En cambio NO
+       suman a la comisión del profesional: la comisión es sobre el trabajo que
+       hizo, y vender un frasco de la vitrina no es lo mismo que atender. Si el
+       local decide comisionar la venta, se cambia aquí. */
+    ventas.forEach(v => {
+      porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + (v.total || 0);
+    });
+
     return json(res, 200, { cobros, total, porMetodo, porProfesional: Object.values(porProf),
+                            ventas, totalProductos, totalServicios: total - totalProductos,
                             desde: d1, hasta: d2 });
   } catch (e) {
     console.error('caja', e);

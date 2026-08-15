@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=13">
+<link rel="stylesheet" href="assets/panel.css?v=14">
 </head>
 <body class="panel">
 
@@ -185,6 +185,7 @@
       <div class="facturas__gran" id="t-caja">$0</div>
       <div class="barrita"><div id="t-barra"></div></div>
       <div class="resumen__pie" id="t-meta">—</div>
+      <div class="desglose" id="t-desglose"></div>
 
       <div class="facturas__rot">Total comisiones</div>
       <div class="facturas__gran" id="t-comisiones">$0</div>
@@ -213,6 +214,40 @@
         <button type="button" class="pestana" data-serv="archivados">Archivados</button>
       </div>
       <div id="s-lista"></div>
+    </div>
+  </section>
+
+  <!-- ============================ INVENTARIO ============================ -->
+  <section class="vista inv" id="v-inventario" hidden>
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Inventario</span>
+        <span class="resumen__pie" id="i-resumen">—</span>
+        <button class="bt bt--vino" type="button" id="abrir-producto" hidden>＋ Añadir producto</button>
+      </div>
+
+      <!-- Lo primero que hay que ver al entrar no es el catálogo, es qué se
+           está acabando: es lo único que obliga a hacer algo hoy. -->
+      <div class="porpedir" id="i-porpedir" hidden></div>
+
+      <div class="buscador">
+        <span aria-hidden="true">⌕</span>
+        <input id="i-buscar" type="search" placeholder="Buscar producto — ej. cera, shampoo" aria-label="Buscar producto">
+        <span class="buscador__n" id="i-conteo" hidden></span>
+        <button class="bt bt--mini" type="button" id="i-limpiar" hidden>Limpiar</button>
+      </div>
+
+      <div class="pestanas">
+        <button type="button" class="pestana is-on" data-prod="activos">En venta</button>
+        <button type="button" class="pestana" data-prod="archivados">Archivados</button>
+      </div>
+      <div class="prods" id="i-lista"></div>
+    </div>
+
+    <div class="tarjeta" id="i-tarjeta-mov">
+      <div class="tarjeta__tit">Últimos movimientos</div>
+      <p class="nota">Cada venta, entrada de mercancía y corrección de conteo, en orden. Es lo que se mira cuando la vitrina no cuadra con el número.</p>
+      <div id="i-movs"></div>
     </div>
   </section>
 
@@ -331,6 +366,95 @@
     </form>
   </dialog>
 
+  <dialog id="dlg-venta" class="hoja">
+    <form method="dialog">
+      <h2>Vender producto</h2>
+      <p class="nota" id="ve-quien"></p>
+
+      <div class="ve__cant">
+        <button class="bt bt--flecha" type="button" id="ve-menos" aria-label="Uno menos">−</button>
+        <input id="ve-cantidad" type="number" min="1" step="1" value="1" aria-label="Cantidad">
+        <button class="bt bt--flecha" type="button" id="ve-mas" aria-label="Uno más">＋</button>
+        <span class="ve__quedan" id="ve-quedan">—</span>
+      </div>
+
+      <label>Precio unitario · se puede bajar para un descuento
+        <span class="monto"><span>$</span><input id="ve-precio" type="number" min="0" step="500"></span>
+      </label>
+
+      <div class="ve__total"><span>Total</span><strong id="ve-total">$0</strong></div>
+
+      <label id="ve-lprof">Quién la hizo <select id="ve-prof"><option value="">Sin asignar</option></select></label>
+
+      <div class="medios" id="ve-medios"></div>
+
+      <div class="comprobante" id="ve-comprobante" hidden>
+        <div class="comprobante__rot">
+          <span>Comprobante</span><span>obligatorio para transferencia</span>
+        </div>
+        <label class="comprobante__soltar" id="ve-soltar">
+          ＋ Adjuntar foto de la transferencia
+          <input type="file" accept="image/*" id="ve-archivo" class="sr-only">
+        </label>
+        <div class="comprobante__hecho" id="ve-hecho" hidden>
+          <img id="ve-mini" alt="Comprobante de la transferencia">
+          <span class="comprobante__nom" id="ve-nombre"></span>
+          <button class="bt bt--mini" type="button" id="ve-cambiar">Cambiar</button>
+        </div>
+      </div>
+
+      <p class="nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
+      <p class="acceso__error" id="ve-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="ve-guardar" type="button">Registrar venta</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-producto" class="hoja">
+    <form method="dialog">
+      <h2 id="pr-titulo">Nuevo producto</h2>
+      <label>Nombre <input id="pr-nombre" type="text" placeholder="ej. Cera mate"></label>
+      <div class="par">
+        <label>Marca <input id="pr-marca" type="text" placeholder="Opcional"></label>
+        <label>Precio de venta <input id="pr-precio" type="number" step="500" placeholder="35000"></label>
+      </div>
+      <div class="par">
+        <label>Costo · lo que te cuesta <input id="pr-costo" type="number" step="500" placeholder="Opcional"></label>
+        <label>Avisar cuando queden <input id="pr-minimo" type="number" min="0" step="1" placeholder="0"></label>
+      </div>
+      <label id="pr-lexist">Existencias iniciales <input id="pr-existencias" type="number" min="0" step="1" placeholder="0"></label>
+      <label>Descripción <textarea id="pr-desc" rows="2" placeholder="Fijación fuerte, acabado sin brillo."></textarea></label>
+      <div class="ve__total" id="pr-margen" hidden><span>Te queda por unidad</span><strong id="pr-margenv">—</strong></div>
+      <p class="nota" id="pr-nota-exist">Las existencias solo se cambian registrando entrada de mercancía o corrección de conteo, para que el historial siempre explique el número.</p>
+      <p class="acceso__error" id="pr-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="pr-guardar" type="button">Guardar producto</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-entrada" class="hoja">
+    <form method="dialog">
+      <h2 id="en-titulo">Entrada de mercancía</h2>
+      <p class="nota" id="en-quien"></p>
+      <div class="pestanas">
+        <button type="button" class="pestana is-on" data-mov="entrada">Llegó mercancía</button>
+        <button type="button" class="pestana" data-mov="ajuste">Corregir conteo</button>
+      </div>
+      <label id="en-lcant">¿Cuántas llegaron? <input id="en-cantidad" type="number" step="1" value="1"></label>
+      <p class="nota" id="en-pista">Se suman a lo que ya hay.</p>
+      <label>Nota <input id="en-nota" type="text" placeholder="Factura del proveedor, conteo del lunes…"></label>
+      <p class="acceso__error" id="en-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <button class="bt bt--vino" id="en-guardar" type="button">Registrar</button>
+      </menu>
+    </form>
+  </dialog>
+
   <dialog id="dlg-bloqueo" class="hoja">
     <form method="dialog">
       <h2>Bloquear horas</h2>
@@ -351,6 +475,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=15"></script>
+<script src="assets/panel.js?v=16"></script>
 </body>
 </html>

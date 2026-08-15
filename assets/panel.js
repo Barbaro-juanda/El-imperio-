@@ -108,7 +108,21 @@
       horarioSemana: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
         dow, abre: '09:00', cierra: dow === 6 ? '18:00' : '20:00', abierto: dow !== 0 })),
       clientes: [{ id: 1, nombre: 'Andrés Mejía', telefono: '+573001112233' },
-                 { id: 2, nombre: 'Santiago Ruiz', telefono: '+573004445566' }]
+                 { id: 2, nombre: 'Santiago Ruiz', telefono: '+573004445566' }],
+      productos: [
+        { id: 'cera-mate', nombre: 'Cera mate', marca: 'Reuzel', descripcion: 'Fijación fuerte, acabado sin brillo.', precio: 48000, costo: 27000, existencias: 9, minimo: 3, activo: true },
+        { id: 'aceite-barba', nombre: 'Aceite de barba', marca: 'Barba Negra', descripcion: 'Suaviza y quita la comezón de la barba nueva.', precio: 38000, costo: 21000, existencias: 2, minimo: 3, activo: true },
+        { id: 'shampoo-anticaida', nombre: 'Shampoo anticaída', marca: 'Nioxin', descripcion: null, precio: 62000, costo: 40000, existencias: 5, minimo: 2, activo: true },
+        { id: 'talco-cuello', nombre: 'Talco para cuello', marca: null, descripcion: 'El que usamos en la silla.', precio: 15000, costo: 8000, existencias: 0, minimo: 2, activo: true },
+        { id: 'gel-fijador', nombre: 'Gel fijador', marca: 'Ébano', descripcion: 'Descontinuado por el proveedor.', precio: 22000, costo: 12000, existencias: 0, minimo: 0, activo: false }
+      ],
+      movimientos: [
+        { id: 5, producto_id: 'cera-mate', producto: 'Cera mate', tipo: 'venta', cantidad: -1, total: 48000, metodo_pago: 'efectivo', profesional: 'Emanuel Gómez', nota: null, creado: hace(95) },
+        { id: 4, producto_id: 'aceite-barba', producto: 'Aceite de barba', tipo: 'venta', cantidad: -2, total: 76000, metodo_pago: 'transferencia', profesional: 'Jeronimo Garcia', nota: null, creado: hace(210) },
+        { id: 3, producto_id: 'talco-cuello', producto: 'Talco para cuello', tipo: 'ajuste', cantidad: -1, total: null, metodo_pago: null, profesional: null, nota: 'Conteo del lunes', creado: hace(1500) },
+        { id: 2, producto_id: 'shampoo-anticaida', producto: 'Shampoo anticaída', tipo: 'entrada', cantidad: 6, total: null, metodo_pago: null, profesional: null, nota: 'Factura 4471 del proveedor', creado: hace(2900) },
+        { id: 1, producto_id: 'cera-mate', producto: 'Cera mate', tipo: 'entrada', cantidad: 10, total: null, metodo_pago: null, profesional: null, nota: 'Existencias iniciales', creado: hace(4400) }
+      ]
     };
   })();
 
@@ -132,9 +146,12 @@
 
   function demoCaja() {
     const cobradas = MUESTRA.citas.filter(c => c.cobrado);
-    const total = cobradas.reduce((t, c) => t + c.cobrado, 0);
+    const ventas = MUESTRA.movimientos.filter(m => m.tipo === 'venta');
+    const totalProductos = ventas.reduce((t, v) => t + v.total, 0);
+    const total = cobradas.reduce((t, c) => t + c.cobrado, 0) + totalProductos;
     const porMetodo = {};
     cobradas.forEach(c => { porMetodo[c.metodo_pago] = (porMetodo[c.metodo_pago] || 0) + c.cobrado; });
+    ventas.forEach(v => { porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + v.total; });
     const porProf = {};
     cobradas.forEach(c => {
       const k = c.profesional;
@@ -142,7 +159,8 @@
       porProf[k].bruto += c.cobrado; porProf[k].cuantas += 1;
       porProf[k].pagar = Math.round(porProf[k].bruto * .5);
     });
-    return { total, porMetodo, porProfesional: Object.values(porProf),
+    return { total, totalProductos, totalServicios: total - totalProductos, ventas,
+             porMetodo, porProfesional: Object.values(porProf),
              cobros: cobradas.map(c => ({ id: c.id, cobrado_en: c.fin, cliente: c.cliente,
                telefono: c.telefono, servicios: c.servicios, profesional: c.profesional,
                metodo_pago: c.metodo_pago, cobrado: c.cobrado, comprobante: c.comprobante || null })) };
@@ -153,6 +171,9 @@
     if (ruta.startsWith('/panel/caja'))      return demoCaja();
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
     if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
+    if (ruta.startsWith('/panel/inventario')) return { productos: MUESTRA.productos,
+                                                       movimientos: MUESTRA.movimientos,
+                                                       profesionales: MUESTRA.profesionales };
     if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios,
                                                       horario: MUESTRA.horarioSemana, equipo: MUESTRA.equipo };
     if (ruta.startsWith('/panel/entrar'))    return { rol: ROL, nombre: 'Emanuel Gómez' };
@@ -244,8 +265,12 @@
      Navegación
      ========================================================= */
   const TABS_DUENO = [['agenda', 'Agenda'], ['facturas', 'Facturas'],
-                      ['servicios', 'Servicios'], ['dispo', 'Disponibilidad']];
-  const TABS_PROF  = [['midia', 'Mi día']];
+                      ['servicios', 'Servicios'], ['inventario', 'Inventario'],
+                      ['dispo', 'Disponibilidad']];
+  /* El barbero también entra al inventario, pero solo para vender: la vitrina
+     está junto a la silla y mandarlo a buscar al administrador para cobrar una
+     cera es lo que hace que la venta no se registre. */
+  const TABS_PROF  = [['midia', 'Mi día'], ['inventario', 'Productos']];
 
   function pintarNav() {
     const nav = $('#nav');
@@ -260,7 +285,7 @@
 
   function irA(cual) {
     vista = cual;
-    ['agenda', 'midia', 'facturas', 'servicios', 'dispo'].forEach(v => {
+    ['agenda', 'midia', 'facturas', 'servicios', 'inventario', 'dispo'].forEach(v => {
       const n = $('#v-' + v); if (n) n.hidden = v !== cual;
     });
     $$('.barra__tab').forEach(b => b.classList.toggle('is-on', b.dataset.ir === cual));
@@ -276,6 +301,7 @@
     if (cual === 'agenda' || cual === 'midia') cargarDia();
     if (cual === 'facturas')  cargarFacturas();
     if (cual === 'servicios' || cual === 'dispo') cargarAjustes();
+    if (cual === 'inventario') { $('#abrir-producto').hidden = ROL !== 'dueno'; cargarInventario(); }
   }
 
   /* Rango que cubre el periodo elegido, terminando en el día que se mira. */
@@ -1159,6 +1185,20 @@
     $('#t-meta').textContent = caja.total >= meta
       ? 'Meta cumplida · ' + NOMBRE_PERIODO[periodo]
       : 'Meta ' + money(meta) + ' · ' + NOMBRE_PERIODO[periodo];
+    /* El total junta servicios y productos porque es el dinero del día, pero
+       el desglose importa: si la vitrina está aportando un tercio de la caja,
+       eso cambia qué se repone y qué se deja de traer. */
+    const desglose = $('#t-desglose');
+    desglose.textContent = '';
+    if (caja.totalProductos) {
+      [['Servicios', caja.totalServicios], ['Productos', caja.totalProductos]].forEach(([rot, v]) => {
+        const d = el('div', 'medida__f');
+        const a2 = el('span'); a2.textContent = rot;
+        const b2 = el('span'); b2.textContent = money(v);
+        d.append(a2, b2); desglose.appendChild(d);
+      });
+    }
+
     const com = (caja.porProfesional || []).reduce((t, p) => t + (p.pagar || 0), 0);
     $('#t-comisiones').textContent = money(com);
 
@@ -1454,6 +1494,450 @@
     } catch (e) {
       err.textContent = e.message || 'No se pudo publicar'; err.hidden = false;
     } finally { btn.disabled = false; btn.textContent = antes; }
+  });
+
+  /* =========================================================
+     Inventario y venta de productos
+     ========================================================= */
+  let inv = null, pestanaProd = 'activos', buscaProd = '', prodEditando = null,
+      prodVendiendo = null, prodEntrando = null, tipoMov = 'entrada',
+      medioVenta = 'efectivo', compVenta = null;
+
+  async function cargarInventario() {
+    try {
+      inv = await api('/panel/inventario');
+      pintarInventario();
+    } catch (e) {
+      $('#i-lista').textContent = e.message || 'No se pudo cargar.';
+    }
+  }
+
+  $$('.pestana[data-prod]').forEach(b => b.addEventListener('click', () => {
+    pestanaProd = b.dataset.prod;
+    $$('.pestana[data-prod]').forEach(x => x.classList.toggle('is-on', x === b));
+    pintarInventario();
+  }));
+
+  $('#i-buscar').addEventListener('input', e => {
+    buscaProd = e.target.value.trim().toLowerCase();
+    $('#i-limpiar').hidden = !buscaProd;
+    pintarInventario();
+  });
+  $('#i-limpiar').addEventListener('click', () => {
+    buscaProd = ''; $('#i-buscar').value = ''; $('#i-limpiar').hidden = true; pintarInventario();
+  });
+
+  /* Un producto está «por pedir» cuando le queda igual o menos que su mínimo.
+     El mínimo en cero significa que al local no le preocupa quedarse sin él. */
+  const porPedir = p => p.activo && p.minimo > 0 && p.existencias <= p.minimo;
+
+  function pintarInventario() {
+    if (!inv) return;
+    const todos = inv.productos || [];
+    const activos = pestanaProd === 'activos';
+
+    /* El aviso de faltantes se calcula sobre TODO el catálogo, no sobre lo
+       filtrado: si dependiera del buscador, escribir una palabra escondería
+       justo lo que hay que reponer. */
+    const faltan = todos.filter(porPedir);
+    const av = $('#i-porpedir');
+    av.textContent = '';
+    av.hidden = !faltan.length;
+    if (faltan.length) {
+      const t = el('strong');
+      t.textContent = faltan.length === 1 ? 'Se está acabando' : 'Se están acabando ' + faltan.length;
+      av.appendChild(t);
+      const ul = el('div', 'porpedir__lista');
+      faltan.forEach(p => {
+        const s = el('button', 'porpedir__x');
+        s.type = 'button';
+        s.textContent = p.nombre + ' · ' + (p.existencias === 0 ? 'agotado' : 'quedan ' + p.existencias);
+        s.addEventListener('click', () => abrirEntrada(p));
+        ul.appendChild(s);
+      });
+      av.appendChild(ul);
+    }
+
+    const lista = todos
+      .filter(p => !!p.activo === activos)
+      .filter(p => !buscaProd ||
+        (p.nombre + ' ' + (p.marca || '')).toLowerCase().indexOf(buscaProd) !== -1);
+
+    const enVenta = todos.filter(p => p.activo);
+    const valor = enVenta.reduce((t, p) => t + p.precio * p.existencias, 0);
+    $('#i-resumen').textContent = buscaProd
+      ? lista.length + (lista.length === 1 ? ' resultado' : ' resultados')
+      : enVenta.length + (enVenta.length === 1 ? ' producto · ' : ' productos · ') +
+        enVenta.reduce((t, p) => t + p.existencias, 0) + ' en vitrina · ' + money(valor) + ' en mercancía';
+    $('#i-conteo').hidden = !buscaProd;
+    $('#i-conteo').textContent = lista.length;
+
+    const cont = $('#i-lista');
+    cont.textContent = '';
+    if (!lista.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong');
+      const p = el('span');
+      if (buscaProd) {
+        s.textContent = 'Nada con «' + buscaProd + '»';
+        p.textContent = 'Prueba con parte del nombre o con la marca.';
+      } else {
+        s.textContent = activos ? 'Sin productos' : 'Nada archivado';
+        p.textContent = activos
+          ? (ROL === 'dueno' ? 'Añade el primero para poder venderlo desde aquí.'
+                             : 'El administrador todavía no ha cargado productos.')
+          : 'Los productos que archives aparecen aquí.';
+      }
+      v.append(s, p); cont.appendChild(v);
+    }
+
+    lista.forEach(p => {
+      const n = el('div', 'prod' + (porPedir(p) ? ' prod--falta' : '') +
+                             (p.existencias === 0 ? ' prod--cero' : ''));
+      const nm = el('div', 'prod__n');
+      nm.textContent = p.nombre;
+      if (p.marca) { const m = el('em'); m.textContent = ' · ' + p.marca; nm.appendChild(m); }
+
+      const pr = el('div', 'prod__p'); pr.textContent = money(p.precio);
+
+      const ex = el('div', 'prod__e');
+      const num = el('strong'); num.textContent = p.existencias;
+      const rot = el('span');
+      rot.textContent = p.existencias === 0 ? 'agotado'
+                      : p.existencias === 1 ? 'queda' : 'quedan';
+      ex.append(num, rot);
+
+      const de = el('div', 'prod__d');
+      de.textContent = p.descripcion || (p.costo !== null && ROL === 'dueno'
+        ? 'Costo ' + money(p.costo) + ' · deja ' + money(p.precio - p.costo) + ' por unidad'
+        : 'Sin descripción.');
+
+      const bs = el('div', 'prod__b');
+      if (p.activo) {
+        const vender = boton('Vender', () => abrirVenta(p));
+        vender.classList.add('bt--vino');
+        vender.disabled = p.existencias === 0;
+        if (p.existencias === 0) vender.title = 'No queda ninguno en vitrina';
+        bs.appendChild(vender);
+      }
+      if (ROL === 'dueno') {
+        bs.appendChild(boton('Entrada', () => abrirEntrada(p)));
+        bs.appendChild(boton('Editar', () => abrirProducto(p)));
+        bs.appendChild(boton(p.activo ? 'Archivar' : 'Reactivar',
+          () => guardarProducto({ id: p.id, precio: p.precio, costo: p.costo, minimo: p.minimo,
+                                  marca: p.marca, activo: !p.activo },
+            p.activo ? 'Producto archivado' : 'Producto reactivado')));
+      }
+      n.append(nm, pr, ex, de, bs);
+      cont.appendChild(n);
+    });
+
+    pintarMovimientos();
+  }
+
+  const ROTULO_MOV = { venta: 'Venta', entrada: 'Entrada', ajuste: 'Corrección' };
+
+  function pintarMovimientos() {
+    /* El historial es de administración: el barbero vende y ya, no tiene por
+       qué ver los costos ni el conteo del local. */
+    $('#i-tarjeta-mov').hidden = ROL !== 'dueno';
+    if (ROL !== 'dueno') return;
+    const c = $('#i-movs');
+    c.textContent = '';
+    const movs = inv.movimientos || [];
+    if (!movs.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = 'Sin movimientos';
+      const p = el('span'); p.textContent = 'Aquí queda cada venta y cada entrada de mercancía.';
+      v.append(s, p); c.appendChild(v);
+      return;
+    }
+    movs.forEach(m => {
+      const f = el('div', 'mov mov--' + m.tipo);
+      const q = el('span', 'mov__q');
+      q.textContent = (m.cantidad > 0 ? '+' : '') + m.cantidad;
+      const n = el('span', 'mov__n'); n.textContent = m.producto;
+      const d = el('span', 'mov__d');
+      const partes = [ROTULO_MOV[m.tipo] || m.tipo];
+      if (m.total) partes.push(money(m.total));
+      if (m.metodo_pago) partes.push(MEDIOS[m.metodo_pago] || m.metodo_pago);
+      if (m.profesional) partes.push(m.profesional);
+      if (m.nota) partes.push(m.nota);
+      d.textContent = partes.join(' · ');
+      const w = el('span', 'mov__c');
+      const cu = new Date(m.creado);
+      w.textContent = cu.getDate() + ' ' + MESES3[cu.getMonth()] + ' · ' + hora(m.creado);
+      f.append(q, n, d, w);
+      c.appendChild(f);
+    });
+  }
+
+  /* ---------- alta y edición de producto ---------- */
+  function abrirProducto(p) {
+    prodEditando = p || null;
+    $('#pr-titulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
+    $('#pr-nombre').value = p ? p.nombre : '';
+    $('#pr-nombre').disabled = !!p;   // el id sale del nombre y ya hay movimientos colgando
+    $('#pr-marca').value = p ? (p.marca || '') : '';
+    $('#pr-precio').value = p ? p.precio : '';
+    $('#pr-costo').value = p && p.costo !== null ? p.costo : '';
+    $('#pr-minimo').value = p ? p.minimo : '';
+    $('#pr-existencias').value = '';
+    $('#pr-desc').value = p ? (p.descripcion || '') : '';
+    $('#pr-lexist').hidden = !!p;
+    $('#pr-nota-exist').hidden = !p;
+    $('#pr-guardar').textContent = p ? 'Guardar cambios' : 'Añadir producto';
+    $('#pr-error').hidden = true;
+    verMargen();
+    $('#dlg-producto').showModal();
+  }
+
+  /* Enseñar lo que deja cada unidad mientras se escribe el precio evita la
+     cuenta mental que nadie hace y que es justo la que decide si vale la pena
+     tener el producto en la vitrina. */
+  function verMargen() {
+    const v = Number($('#pr-precio').value), c = $('#pr-costo').value;
+    const hay = c !== '' && Number.isFinite(v) && v > 0;
+    $('#pr-margen').hidden = !hay;
+    if (hay) {
+      const m = v - Number(c);
+      $('#pr-margenv').textContent = money(m) + (v ? '  ·  ' + Math.round(m / v * 100) + '%' : '');
+    }
+  }
+  ['#pr-precio', '#pr-costo'].forEach(s => $(s).addEventListener('input', verMargen));
+  $('#abrir-producto').addEventListener('click', () => abrirProducto(null));
+
+  async function guardarProducto(datos, texto) {
+    try {
+      await api('/panel/inventario', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify({ producto: datos }) });
+      avisar(texto || 'Guardado');
+      cargarInventario();
+    } catch (e) { avisar(e.message || 'No se pudo guardar'); }
+  }
+
+  $('#pr-guardar').addEventListener('click', async () => {
+    const err = $('#pr-error');
+    err.hidden = true;
+    const btn = $('#pr-guardar');
+    const precio = Number($('#pr-precio').value);
+    if (!Number.isFinite(precio) || precio <= 0) {
+      err.textContent = 'Ponle un precio de venta.'; err.hidden = false; return;
+    }
+    const base = {
+      marca: $('#pr-marca').value.trim() || null,
+      descripcion: $('#pr-desc').value.trim(),
+      precio: precio,
+      costo: $('#pr-costo').value === '' ? null : Number($('#pr-costo').value),
+      minimo: Number($('#pr-minimo').value) || 0
+    };
+
+    if (prodEditando) {
+      btn.disabled = true;
+      try {
+        await guardarProducto(Object.assign({ id: prodEditando.id, activo: prodEditando.activo }, base),
+                              'Producto actualizado');
+        $('#dlg-producto').close();
+      } finally { btn.disabled = false; }
+      return;
+    }
+
+    const nombre = $('#pr-nombre').value.trim();
+    if (!nombre) { err.textContent = 'Ponle un nombre al producto.'; err.hidden = false; return; }
+    if ((inv && inv.productos || []).some(x => x.id === idDesde(nombre))) {
+      err.textContent = 'Ya existe un producto con ese nombre.'; err.hidden = false; return;
+    }
+    btn.disabled = true;
+    try {
+      await api('/panel/inventario', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ producto: Object.assign({ nombre,
+          existencias: Number($('#pr-existencias').value) || 0 }, base) }) });
+      $('#dlg-producto').close();
+      avisar('Producto añadido · ' + nombre);
+      cargarInventario();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo añadir'; err.hidden = false;
+    } finally { btn.disabled = false; }
+  });
+
+  /* ---------- entrada de mercancía y corrección de conteo ---------- */
+  function abrirEntrada(p) {
+    prodEntrando = p;
+    tipoMov = 'entrada';
+    $$('.pestana[data-mov]').forEach(x => x.classList.toggle('is-on', x.dataset.mov === 'entrada'));
+    $('#en-quien').textContent = p.nombre + ' · hay ' + p.existencias + ' en vitrina';
+    $('#en-cantidad').value = 1;
+    $('#en-nota').value = '';
+    $('#en-error').hidden = true;
+    sincronizarMov();
+    $('#dlg-entrada').showModal();
+  }
+
+  function sincronizarMov() {
+    const ajuste = tipoMov === 'ajuste';
+    $('#en-titulo').textContent = ajuste ? 'Corregir el conteo' : 'Entrada de mercancía';
+    $('#en-lcant').firstChild.textContent = ajuste ? 'Diferencia contra lo que dice el panel '
+                                                   : '¿Cuántas llegaron? ';
+    /* En una entrada la cantidad solo puede sumar. En una corrección puede ir
+       en las dos direcciones, que es justo para lo que sirve. */
+    $('#en-cantidad').min = ajuste ? '-9999' : '1';
+    $('#en-pista').textContent = ajuste
+      ? 'Cuenta lo que hay de verdad y escribe la diferencia: −2 si faltan dos, +2 si sobran.'
+      : 'Se suman a lo que ya hay.';
+  }
+
+  $$('.pestana[data-mov]').forEach(b => b.addEventListener('click', () => {
+    tipoMov = b.dataset.mov;
+    $$('.pestana[data-mov]').forEach(x => x.classList.toggle('is-on', x === b));
+    sincronizarMov();
+  }));
+
+  $('#en-guardar').addEventListener('click', async () => {
+    const err = $('#en-error');
+    err.hidden = true;
+    const cant = Math.round(Number($('#en-cantidad').value));
+    if (!Number.isFinite(cant) || cant === 0) {
+      err.textContent = 'Escribe cuántas unidades.'; err.hidden = false; return;
+    }
+    if (tipoMov === 'entrada' && cant < 0) {
+      err.textContent = 'Una entrada suma. Para restar usa «Corregir conteo».';
+      err.hidden = false; return;
+    }
+    const btn = $('#en-guardar');
+    btn.disabled = true;
+    try {
+      const r = await api('/panel/inventario', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entrada: { producto_id: prodEntrando.id, cantidad: cant,
+                                          tipo: tipoMov, nota: $('#en-nota').value.trim() || null } }) });
+      $('#dlg-entrada').close();
+      avisar(prodEntrando.nombre + ' · quedan ' + r.quedan);
+      cargarInventario();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo registrar'; err.hidden = false;
+    } finally { btn.disabled = false; }
+  });
+
+  /* ---------- venta ---------- */
+  function abrirVenta(p) {
+    prodVendiendo = p;
+    medioVenta = 'efectivo';
+    compVenta = null;
+    $('#ve-archivo').value = ''; $('#ve-nombre').textContent = '';
+    $('#ve-quien').textContent = p.nombre + (p.marca ? ' · ' + p.marca : '');
+    $('#ve-cantidad').value = 1;
+    $('#ve-cantidad').max = p.existencias;
+    $('#ve-precio').value = p.precio;
+
+    /* Solo el dueño elige a quién se le apunta: el profesional se la apunta a
+       sí mismo y el servidor lo obliga, así que enseñarle el selector sería
+       ofrecerle algo que no puede hacer. */
+    const lp = $('#ve-lprof');
+    lp.hidden = ROL !== 'dueno';
+    const sel = $('#ve-prof');
+    sel.textContent = '';
+    const cero = document.createElement('option');
+    cero.value = ''; cero.textContent = 'Sin asignar';
+    sel.appendChild(cero);
+    ((datos && datos.profesionales) || (inv && inv.profesionales) || []).forEach(x => {
+      const o = document.createElement('option');
+      o.value = x.id; o.textContent = x.nombre;
+      sel.appendChild(o);
+    });
+
+    const m = $('#ve-medios');
+    m.textContent = '';
+    Object.keys(MEDIOS).forEach(k => {
+      const b = el('button', 'medio' + (k === medioVenta ? ' is-on' : ''));
+      b.type = 'button'; b.textContent = MEDIOS[k];
+      b.addEventListener('click', () => {
+        medioVenta = k;
+        m.querySelectorAll('.medio').forEach(x => x.classList.toggle('is-on', x === b));
+        sincronizarVenta();
+      });
+      m.appendChild(b);
+    });
+    $('#ve-error').hidden = true;
+    sincronizarVenta();
+    $('#dlg-venta').showModal();
+  }
+
+  function sincronizarVenta() {
+    if (!prodVendiendo) return;
+    const hay = prodVendiendo.existencias;
+    let cant = Math.round(Number($('#ve-cantidad').value)) || 1;
+    /* La cantidad se recorta aquí mismo contra lo que hay: dejar escribir 10
+       cuando quedan 3 solo sirve para que el servidor lo rechace después de
+       que el cliente ya está esperando. */
+    if (cant < 1) cant = 1;
+    if (cant > hay) cant = hay;
+    $('#ve-cantidad').value = cant;
+
+    const unit = Number($('#ve-precio').value) || 0;
+    $('#ve-total').textContent = money(unit * cant);
+    $('#ve-quedan').textContent = 'quedan ' + (hay - cant) + ' de ' + hay;
+    $('#ve-menos').disabled = cant <= 1;
+    $('#ve-mas').disabled = cant >= hay;
+
+    const pide = medioVenta === 'transferencia';
+    $('#ve-comprobante').hidden = !pide;
+    $('#ve-hecho').hidden = !compVenta;
+    $('#ve-soltar').hidden = !!compVenta;
+    if (compVenta) $('#ve-mini').src = compVenta;
+    const falta = pide && !compVenta;
+    const b = $('#ve-guardar');
+    b.disabled = falta;
+    b.title = falta ? 'Adjunta la foto del comprobante para registrar una transferencia' : '';
+    const err = $('#ve-error');
+    if (falta) {
+      err.textContent = 'Adjunta la foto del comprobante para registrar una transferencia';
+      err.hidden = false;
+    } else if (err.textContent.startsWith('Adjunta la foto')) {
+      err.hidden = true;
+    }
+  }
+
+  ['#ve-cantidad', '#ve-precio'].forEach(s => $(s).addEventListener('input', sincronizarVenta));
+  $('#ve-menos').addEventListener('click', () => {
+    $('#ve-cantidad').value = Number($('#ve-cantidad').value) - 1; sincronizarVenta();
+  });
+  $('#ve-mas').addEventListener('click', () => {
+    $('#ve-cantidad').value = Number($('#ve-cantidad').value) + 1; sincronizarVenta();
+  });
+  $('#ve-archivo').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      compVenta = await encoger(f);
+      $('#ve-nombre').textContent = f.name;
+      sincronizarVenta();
+    } catch (err) {
+      $('#ve-error').textContent = err.message; $('#ve-error').hidden = false;
+    }
+  });
+  $('#ve-cambiar').addEventListener('click', () => {
+    compVenta = null; $('#ve-archivo').value = ''; sincronizarVenta();
+  });
+
+  $('#ve-guardar').addEventListener('click', async () => {
+    const err = $('#ve-error');
+    err.hidden = true;
+    const btn = $('#ve-guardar');
+    btn.disabled = true;
+    const cant = Number($('#ve-cantidad').value);
+    try {
+      const r = await api('/panel/inventario', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venta: { producto_id: prodVendiendo.id, cantidad: cant,
+          precio_unit: Number($('#ve-precio').value), metodo_pago: medioVenta,
+          comprobante: compVenta,
+          profesional_id: ROL === 'dueno' ? ($('#ve-prof').value || null) : null } }) });
+      $('#dlg-venta').close();
+      avisar('Venta registrada · ' + money(r.total) + ' · quedan ' + r.quedan);
+      cargarInventario();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo registrar'; err.hidden = false;
+      /* Si falló por stock, el número que enseñamos ya no es el bueno. */
+      if (e.estado === 409) cargarInventario();
+    } finally { btn.disabled = false; }
   });
 
   /* =========================================================
