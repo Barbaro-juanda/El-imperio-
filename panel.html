@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=10">
+<link rel="stylesheet" href="assets/panel.css?v=12">
 </head>
 <body class="panel">
 
@@ -37,6 +37,12 @@
     </div>
     <nav class="barra__nav" id="nav" aria-label="Secciones"></nav>
     <div class="barra__yo">
+      <!-- Solo para el dueño: mirar «Mi día» como lo ve un profesional. Es una
+           ayuda de revisión, así que va en solo lectura. -->
+      <div class="conmutador" id="conmutador" hidden>
+        <button type="button" class="conmutador__b is-on" data-ver="dueno">Administrador</button>
+        <button type="button" class="conmutador__b" data-ver="midia">Mi día</button>
+      </div>
       <div class="barra__usuario">
         <div class="barra__txt">
           <div class="barra__quien" id="yo-nombre">—</div>
@@ -48,21 +54,25 @@
     </div>
   </header>
 
-  <!-- ============================ AGENDA ============================ -->
-  <section class="vista" id="v-agenda">
+  <!-- Barra de día y equipo. Vive fuera de las vistas porque Agenda y Facturas
+       hablan del mismo día y del mismo equipo: tenerla duplicada obligaba a
+       recordar en cuál de las dos se cambió la fecha. -->
+  <div class="contexto" id="contexto">
+    <div class="periodos" id="periodos"></div>
     <div class="herramientas">
       <button class="bt bt--vino" type="button" id="abrir-crear">＋ Crear</button>
       <button class="bt" type="button" id="ir-hoy">Hoy</button>
-      <button class="bt bt--flecha" type="button" id="dia-ant" aria-label="Día anterior">‹</button>
+      <button class="bt bt--flecha" type="button" id="dia-ant" aria-label="Anterior">‹</button>
       <div class="tira" id="tira"></div>
-      <button class="bt bt--flecha" type="button" id="dia-sig" aria-label="Día siguiente">›</button>
+      <button class="bt bt--flecha" type="button" id="dia-sig" aria-label="Siguiente">›</button>
       <label class="sr-only" for="dia-picker">Ir a una fecha</label>
       <input type="date" id="dia-picker">
     </div>
-
-    <!-- Filtro por profesional -->
     <div class="fichas" id="fichas"></div>
+  </div>
 
+  <!-- ============================ AGENDA ============================ -->
+  <section class="vista" id="v-agenda">
     <!-- Resumen del día -->
     <div class="resumen" id="resumen">
       <div class="resumen__ocupacion">
@@ -163,8 +173,10 @@
       <div class="buscador">
         <span aria-hidden="true">⌕</span>
         <input id="f-buscar" type="search" placeholder="Buscar por teléfono del cliente — ej. 300 444" aria-label="Buscar por teléfono">
+        <span class="buscador__n" id="f-conteo" hidden></span>
         <button class="bt bt--mini" type="button" id="f-limpiar" hidden>Limpiar</button>
       </div>
+      <div class="sugerencias" id="f-sugerencias" hidden></div>
       <div id="f-lista"></div>
     </div>
 
@@ -234,6 +246,24 @@
       <p class="nota" id="co-quien"></p>
       <div class="monto"><span>$</span><input id="co-valor" type="number" min="0" step="1000" required></div>
       <div class="medios" id="co-medios"></div>
+
+      <!-- Solo para transferencia: es la única forma de pago que no deja rastro
+           en el local, así que sin la foto no hay con qué cuadrar el día. -->
+      <div class="comprobante" id="co-comprobante" hidden>
+        <div class="comprobante__rot">
+          <span>Comprobante</span><span>obligatorio para transferencia</span>
+        </div>
+        <label class="comprobante__soltar" id="co-soltar">
+          ＋ Adjuntar foto de la transferencia
+          <input type="file" accept="image/*" id="co-archivo" class="sr-only">
+        </label>
+        <div class="comprobante__hecho" id="co-hecho" hidden>
+          <img id="co-mini" alt="Comprobante de la transferencia">
+          <span class="comprobante__nom" id="co-nombre"></span>
+          <button class="bt bt--mini" type="button" id="co-cambiar">Cambiar</button>
+        </div>
+      </div>
+
       <p class="nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
       <p class="acceso__error" id="co-error" role="alert" hidden></p>
       <menu>
@@ -279,7 +309,7 @@
       <label>Nombre del servicio <input id="sv-nombre" type="text" placeholder="ej. Corte y Barba VIP"></label>
       <div class="par">
         <label>Precio (COP) <input id="sv-precio" type="number" step="1000" placeholder="45000"></label>
-        <label>Duración (min) <input id="sv-min" type="number" min="5" max="600" step="5" value="45"></label>
+        <label>Duración <select id="sv-min"></select></label>
       </div>
       <label>Categoría <select id="sv-cat"></select></label>
       <label>Descripción · la ve el cliente
@@ -318,6 +348,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=11"></script>
+<script src="assets/panel.js?v=13"></script>
 </body>
 </html>

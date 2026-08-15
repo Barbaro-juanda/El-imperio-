@@ -7,12 +7,26 @@ import { sql, json } from '../_db.mjs';
 import { protegido } from '../_auth.mjs';
 import { hashClave } from '../_hash.mjs';
 
+const SEGMENTOS = ['cortes', 'color', 'depilacion', 'cejas', 'facial', 'unas', 'adicionales'];
+
+/* Identificador a partir del nombre: minúsculas, sin tildes y con guiones.
+   Se deriva y no se pide para que quien crea el servicio no tenga que pensar
+   en identificadores, que es cosa de la base y no del local. */
+function idDesde(nombre) {
+  return String(nombre)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
+
 export default protegido(async (req, res) => {
   try {
     if (req.method === 'GET') {
       const servicios = await sql`
-        SELECT id, nombre, segmento, precio, minutos, activo FROM servicio
-         ORDER BY segmento, nombre`;
+        SELECT id, nombre, segmento, precio, minutos, activo, descripcion, solo_adicional
+          FROM servicio ORDER BY segmento, nombre`;
       const horario = await sql`SELECT dow, abre, cierra, abierto FROM horario ORDER BY dow`;
       /* clave_hash NO sale de aquí. El panel solo necesita saber si esa persona
          ya tiene clave, no cuál es. */
@@ -27,9 +41,47 @@ export default protegido(async (req, res) => {
                                   comision: Number(p.comision) }))
       });
     }
-    if (req.method !== 'PATCH') return json(res, 405, { error: 'Solo GET o PATCH' });
-
     const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+
+    /* Alta de servicio. Va por POST y no por PATCH porque crear no es
+       actualizar: el id se deriva del nombre y tiene que ser único. */
+    if (req.method === 'POST') {
+      const s2 = b.servicio || {};
+      const nombre = String(s2.nombre || '').trim();
+      if (!nombre) return json(res, 400, { error: 'El servicio necesita un nombre' });
+      if (!SEGMENTOS.includes(s2.segmento)) return json(res, 400, { error: 'Categoría no válida' });
+
+      const min = Number(s2.minutos);
+      if (!Number.isFinite(min) || min < 5 || min > 600) {
+        return json(res, 400, { error: 'La duración debe estar entre 5 y 600 minutos' });
+      }
+      const precio = s2.precio === null || s2.precio === '' ? null : Math.round(Number(s2.precio));
+      if (precio !== null && (!Number.isFinite(precio) || precio < 0)) {
+        return json(res, 400, { error: 'Precio no válido' });
+      }
+
+      const id = idDesde(nombre);
+      if (!id) return json(res, 400, { error: 'Ese nombre no deja construir un identificador' });
+      const ya = await sql`SELECT 1 FROM servicio WHERE id = ${id}`;
+      if (ya.length) return json(res, 409, { error: 'Ya existe un servicio con ese nombre' });
+
+      await sql`
+        INSERT INTO servicio (id, segmento, nombre, precio, minutos, activo, descripcion, solo_adicional)
+        VALUES (${id}, ${s2.segmento}, ${nombre}, ${precio}, ${min}, TRUE,
+                ${s2.descripcion || null}, ${s2.segmento === 'adicionales' || !!s2.solo_adicional})`;
+
+      /* Nace sin nadie que lo preste, y entonces no se puede reservar. Se
+         asigna a todo el equipo activo: quitar a quien no lo haga es un clic,
+         descubrir que el servicio no aparece en la web es media hora perdida. */
+      await sql`
+        INSERT INTO servicio_profesional (servicio_id, profesional_id)
+        SELECT ${id}, id FROM profesional WHERE activo
+        ON CONFLICT DO NOTHING`;
+
+      return json(res, 201, { id });
+    }
+
+    if (req.method !== 'PATCH') return json(res, 405, { error: 'Solo GET, POST o PATCH' });
 
     if (b.servicio) {
       const s = b.servicio;
@@ -44,7 +96,9 @@ export default protegido(async (req, res) => {
         return json(res, 400, { error: 'Precio no válido' });
       }
       const r = await sql`
-        UPDATE servicio SET precio = ${precio}, minutos = ${min}, activo = ${s.activo !== false}
+        UPDATE servicio
+           SET precio = ${precio}, minutos = ${min}, activo = ${s.activo !== false},
+               descripcion = COALESCE(${s.descripcion === undefined ? null : s.descripcion}, descripcion)
          WHERE id = ${s.id} RETURNING id, precio, minutos, activo`;
       if (!r.length) return json(res, 404, { error: 'Ese servicio no existe' });
       return json(res, 200, r[0]);
