@@ -31,7 +31,7 @@ export default protegido(async (req, res) => {
       /* clave_hash NO sale de aquí. El panel solo necesita saber si esa persona
          ya tiene clave, no cuál es. */
       const equipo = await sql`
-        SELECT id, nombre, comision, entra, sale, activo,
+        SELECT id, nombre, foto, comision, entra, sale, activo,
                (clave_hash IS NOT NULL) AS tiene_clave
           FROM profesional ORDER BY nombre`;
       /* La meta vive en la base y no en el código: cambiarla no puede exigir
@@ -91,6 +91,51 @@ export default protegido(async (req, res) => {
       return json(res, 201, { id });
     }
 
+    /* Alta de profesional. */
+    if (req.method === 'POST' && b.profesional) {
+      const p = b.profesional;
+      const nombre = String(p.nombre || '').trim();
+      if (!nombre) return json(res, 400, { error: 'El profesional necesita un nombre' });
+
+      const com = p.comision === undefined ? 0.5 : Number(p.comision);
+      if (!Number.isFinite(com) || com < 0 || com > 1) {
+        return json(res, 400, { error: 'La comisión va entre 0 y 1' });
+      }
+      const entra = /^\d{2}:\d{2}$/.test(p.entra) ? p.entra : '09:00';
+      const sale  = /^\d{2}:\d{2}$/.test(p.sale)  ? p.sale  : '20:00';
+
+      /* El slug se deriva del nombre igual que el id de un servicio, para no
+         pedirle a nadie que invente identificadores. */
+      let slug = idDesde(nombre);
+      if (!slug) return json(res, 400, { error: 'Ese nombre no deja construir un identificador' });
+      const choque = await sql`SELECT 1 FROM profesional WHERE slug = ${slug}`;
+      if (choque.length) return json(res, 409, { error: 'Ya hay alguien con ese nombre en el equipo' });
+
+      const r = await sql`
+        INSERT INTO profesional (nombre, slug, foto, activo, comision, entra, sale)
+        VALUES (${nombre}, ${slug}, ${p.foto || null}, TRUE, ${com}, ${entra}, ${sale})
+        RETURNING id`;
+      const id = r[0].id;
+
+      if (p.clave) {
+        if (String(p.clave).length < 8) {
+          return json(res, 400, { error: 'La clave debe tener al menos 8 caracteres' });
+        }
+        await sql`UPDATE profesional SET clave_hash = ${hashClave(String(p.clave))} WHERE id = ${id}`;
+      }
+
+      /* Nace sin servicios asignados, y entonces no aparece en ninguna reserva
+         ni se le puede agendar nada. Se le asignan todos los activos: quitarle
+         los que no haga es un clic, y descubrir que no sale en la web es media
+         hora buscando por qué. */
+      await sql`
+        INSERT INTO servicio_profesional (servicio_id, profesional_id)
+        SELECT id, ${id} FROM servicio WHERE activo
+        ON CONFLICT DO NOTHING`;
+
+      return json(res, 201, { id, nombre });
+    }
+
     if (req.method !== 'PATCH') return json(res, 405, { error: 'Solo GET, POST o PATCH' });
 
     if (b.servicio) {
@@ -135,9 +180,17 @@ export default protegido(async (req, res) => {
       if (!/^\d{2}:\d{2}$/.test(p.entra) || !/^\d{2}:\d{2}$/.test(p.sale)) {
         return json(res, 400, { error: 'Horas no válidas' });
       }
+      /* El nombre y la foto solo se tocan si vienen: un PATCH que no los manda
+         significa «no los cambies», no «bórralos». */
+      const nombre = p.nombre === undefined ? null : String(p.nombre).trim();
+      if (nombre !== null && !nombre) return json(res, 400, { error: 'El nombre no puede quedar vacío' });
+
       await sql`
-        UPDATE profesional SET comision = ${com}, entra = ${p.entra}, sale = ${p.sale},
-                               activo = ${p.activo !== false}
+        UPDATE profesional
+           SET comision = ${com}, entra = ${p.entra}, sale = ${p.sale},
+               activo = ${p.activo !== false},
+               nombre = COALESCE(${nombre}, nombre),
+               foto = COALESCE(${p.foto === undefined ? null : p.foto}, foto)
          WHERE id = ${p.id}`;
 
       /* La clave se cambia solo si viene una nueva; el campo vacío significa

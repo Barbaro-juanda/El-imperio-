@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=20">
+<link rel="stylesheet" href="assets/panel.css?v=21">
 </head>
 <body class="panel">
 
@@ -266,7 +266,10 @@
       <div class="horario" id="d-horario"></div>
     </div>
     <div class="tarjeta">
-      <div class="tarjeta__tit">Profesionales</div>
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Profesionales</span>
+        <button class="bt bt--vino" type="button" id="abrir-prof">＋ Añadir profesional</button>
+      </div>
       <div id="d-equipo"></div>
       <p class="nota">La clave en blanco deja la actual. Mínimo 8 caracteres. Con ella el profesional entra a «Mi día» desde su celular.</p>
     </div>
@@ -313,7 +316,11 @@
       <p class="nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
       <p class="acceso__error" id="co-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="co-guardar" type="button">Registrar cobro</button>
       </menu>
     </form>
@@ -342,7 +349,11 @@
       </fieldset>
       <p class="acceso__error" id="cr-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="cr-guardar" type="button">Crear cita</button>
       </menu>
     </form>
@@ -368,7 +379,11 @@
       </div>
       <p class="acceso__error" id="sv-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="sv-guardar" type="button">Publicar servicio</button>
       </menu>
     </form>
@@ -414,7 +429,11 @@
       <p class="nota">Registro interno de caja. No es una factura electrónica DIAN.</p>
       <p class="acceso__error" id="ve-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="ve-guardar" type="button">Registrar venta</button>
       </menu>
     </form>
@@ -443,7 +462,11 @@
              junto al botón que se pulsa por costumbre. -->
         <button class="bt bt--borrar" id="pr-borrar" type="button" hidden>Eliminar producto</button>
         <span class="menu__hueco"></span>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="pr-guardar" type="button">Guardar producto</button>
       </menu>
     </form>
@@ -462,8 +485,35 @@
       <label>Nota <input id="en-nota" type="text" placeholder="Factura del proveedor, conteo del lunes…"></label>
       <p class="acceso__error" id="en-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="en-guardar" type="button">Registrar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-prof" class="hoja">
+    <form method="dialog">
+      <h2>Nuevo profesional</h2>
+      <p class="nota">Nace prestando todos los servicios activos. Quitarle los que no haga es un clic; descubrir que no sale en la web es media hora buscando por qué.</p>
+      <label>Nombre <input id="pf-nombre" type="text" placeholder="Como quieres que salga en la web"></label>
+      <div class="par">
+        <label>Entra <input id="pf-entra" type="time" value="09:00"></label>
+        <label>Sale <input id="pf-sale" type="time" value="20:00"></label>
+      </div>
+      <div class="par">
+        <label>Comisión % <input id="pf-comision" type="number" min="0" max="100" step="5" value="50"></label>
+        <label>Clave · mínimo 8 <input id="pf-clave" type="password" autocomplete="new-password" placeholder="Opcional, se puede poner después"></label>
+      </div>
+      <label>Foto · ruta del archivo <input id="pf-foto" type="text" placeholder="assets/barbero-nombre.jpg — opcional"></label>
+      <p class="nota">Sin foto se enseña su inicial. La foto se sube al repositorio, no desde aquí.</p>
+      <p class="acceso__error" id="pf-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
+        <button class="bt bt--vino" id="pf-guardar" type="button">Añadir al equipo</button>
       </menu>
     </form>
   </dialog>
@@ -479,7 +529,11 @@
       <label>Motivo <input id="bq-motivo" type="text" placeholder="Almuerzo, cita médica…"></label>
       <p class="acceso__error" id="bq-error" role="alert" hidden></p>
       <menu>
-        <button class="bt" value="cancel" type="submit">Cancelar</button>
+        <!-- formnovalidate: sin esto, cerrar exige que el formulario sea válido.
+             Cancelar es justamente lo que se pulsa cuando NO se puede llenar
+             —falta un dato, se abrió por error—, así que la validación lo
+             dejaba atrapado en el diálogo. -->
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
         <button class="bt bt--vino" id="bq-guardar" type="button">Bloquear</button>
       </menu>
     </form>
@@ -488,6 +542,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=19"></script>
+<script src="assets/panel.js?v=20"></script>
 </body>
 </html>

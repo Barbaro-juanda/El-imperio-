@@ -113,7 +113,9 @@
      —son dos personas distintas—, así que se deja como está hasta confirmar
      con el local. Faltan por sumar Jeronimo Garcia y Valentina Romero, que sí
      reciben citas allí. */
-  const BARBERS = [
+  /* Respaldo del equipo, igual que SERVICES: se ve al instante y sin API, y el
+     catálogo lo reemplaza con quien esté activo en la base. */
+  let BARBERS = [
     { id: 1, name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg',
       alt: 'Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
     /* Sin id: no figura entre los profesionales que reciben citas. Se muestra
@@ -1445,6 +1447,21 @@
       setupAcordeon();   // la carta se rehízo entera: hay que volver a plegarla
       renderSegs();
       renderPickServices();
+    }
+
+    if (cat.equipo && cat.equipo.length) {
+      /* Con esto «Las Manos» deja de ser una lista escrita a mano. Quien entra
+         o sale del equipo desde el panel entra o sale de la portada, y con su
+         id de verdad: la tarjeta preselecciona a esa persona al abrir la
+         reserva en vez de abrirla en blanco. */
+      BARBERS = cat.equipo.map(p => ({
+        id: p.id,
+        name: p.nombre,
+        spec: '',
+        photo: p.foto || '',
+        alt: p.foto ? p.nombre + ', del equipo de The Imperial Clasic' : ''
+      }));
+      renderBarbers();
     }
 
     if (cat.horario && cat.horario.length) pintarHorario(cat.horario);

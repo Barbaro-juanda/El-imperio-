@@ -105,7 +105,8 @@
       equipo: [
         { id: 1, nombre: 'Emanuel Gómez',    comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: true },
         { id: 2, nombre: 'Jeronimo Garcia',  comision: .5, entra: '11:00', sale: '20:00', activo: true,  tiene_clave: false },
-        { id: 3, nombre: 'Valentina Romero', comision: .5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true }
+        { id: 3, nombre: 'Valentina Romero', comision: .5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true },
+        { id: 4, nombre: 'Simon',            comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: false, foto: 'assets/barbero-simon.jpg' }
       ],
       horarioSemana: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
         dow, abre: '09:00', cierra: dow === 6 ? '18:00' : '20:00', abierto: dow !== 0 })),
@@ -1399,22 +1400,66 @@
       const clave = el('input'); clave.type = 'password'; clave.autocomplete = 'new-password';
       clave.placeholder = p.tiene_clave ? '•••••• (ya tiene)' : 'sin clave aún';
       mk('Clave nueva', clave);
+      /* El nombre es lo que ve el cliente en la web y en la reserva, así que
+         se corrige aquí y no pidiendo que se toque la base. */
+      const nom = el('input'); nom.type = 'text'; nom.value = p.nombre; mk('Nombre', nom);
+      const foto = el('input'); foto.type = 'text'; foto.value = p.foto || '';
+      foto.placeholder = 'assets/…jpg — sin foto va su inicial'; mk('Foto', foto);
 
       const guardar = () => api('/panel/ajustes', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profesional: { id: p.id, comision: Number(com.value) / 100,
           entra: entra.value, sale: sale.value, activo: p.activo,
+          nombre: nom.value.trim() || undefined,
+          foto: foto.value.trim() || undefined,
           clave: clave.value || undefined } })
       }).then(() => {
         if (clave.value) { clave.value = ''; clave.placeholder = '•••••• (ya tiene)'; }
+        p.nombre = nom.value.trim() || p.nombre;
         avisar('Guardado');
       }).catch(er => avisar(er.message));
-      [com, entra, sale, clave].forEach(i => i.addEventListener('change', guardar));
+      [com, entra, sale, clave, nom, foto].forEach(i => i.addEventListener('change', guardar));
 
       f.append(cab, campos);
       e.appendChild(f);
     });
   }
+
+  /* ---------- alta de profesional ---------- */
+  $('#abrir-prof').addEventListener('click', () => {
+    ['#pf-nombre', '#pf-clave', '#pf-foto'].forEach(x => { $(x).value = ''; });
+    $('#pf-entra').value = '09:00';
+    $('#pf-sale').value = '20:00';
+    $('#pf-comision').value = 50;
+    $('#pf-error').hidden = true;
+    $('#dlg-prof').showModal();
+  });
+
+  $('#pf-guardar').addEventListener('click', async () => {
+    const err = $('#pf-error');
+    err.hidden = true;
+    const nombre = $('#pf-nombre').value.trim();
+    if (!nombre) { err.textContent = 'Ponle un nombre.'; err.hidden = false; return; }
+    const clave = $('#pf-clave').value;
+    if (clave && clave.length < 8) {
+      err.textContent = 'La clave debe tener al menos 8 caracteres.'; err.hidden = false; return;
+    }
+    const btn = $('#pf-guardar');
+    btn.disabled = true;
+    try {
+      await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profesional: { nombre,
+          comision: Number($('#pf-comision').value) / 100,
+          entra: $('#pf-entra').value, sale: $('#pf-sale').value,
+          foto: $('#pf-foto').value.trim() || null,
+          clave: clave || undefined } }) });
+      $('#dlg-prof').close();
+      avisar(nombre + ' entró al equipo');
+      cargarAjustes();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo añadir'; err.hidden = false;
+    } finally { btn.disabled = false; }
+  });
 
   /* ---------- alta y edición de servicio ---------- */
   let servEditando = null;
@@ -2155,11 +2200,34 @@
     $('#cr-error').hidden = true;
     limpiarCliente();
     const sel = $('#cr-prof');
+
+    /* La lista sale de la agenda del día, pero la agenda puede no haber
+       llegado todavía —o haber fallado—, y entonces el selector quedaba vacío:
+       un desplegable sin opciones, en rojo porque es obligatorio, y sin forma
+       de llenarlo. Si falta, se piden los ajustes, que traen el equipo. */
+    let equipo = (datos.profesionales || []).slice();
+    if (!equipo.length) {
+      try {
+        if (!ajustes) await cargarAjustes();
+        equipo = (ajustes && ajustes.equipo || []).filter(p => p.activo)
+          .map(p => ({ id: p.id, nombre: p.nombre }));
+      } catch (e) { /* se avisa abajo */ }
+    }
+
     sel.textContent = '';
-    (datos.profesionales || []).forEach(p => {
+    equipo.forEach(p => {
       const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre;
       sel.appendChild(o);
     });
+
+    if (!equipo.length) {
+      /* Sin nadie a quien asignarle la cita no hay cita que crear. Se dice por
+         qué en vez de dejar un formulario que va a rebotar al guardar. */
+      $('#cr-error').textContent = 'No se pudo cargar el equipo. Recarga el panel; ' +
+        'si sigue igual, revisa que haya profesionales activos en Disponibilidad.';
+      $('#cr-error').hidden = false;
+    }
+
     if (profId) sel.value = String(profId);
     $('#cr-hora').value = hhmm || '';
     await catalogo();

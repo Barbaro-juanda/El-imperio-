@@ -40,6 +40,12 @@ export default async function handler(req, res) {
 
     const horario = await sql`SELECT dow, abre, cierra, abierto FROM horario ORDER BY dow`;
 
+    /* El equipo que sale en «Las Manos». Solo los activos y en el orden en que
+       entraron, que es el que el local reconoce. No sale la comisión, ni el
+       horario personal, ni si tiene clave: eso es de dentro. */
+    const equipo = await sql`
+      SELECT id, nombre, foto FROM profesional WHERE activo ORDER BY id`;
+
     /* Productos: solo los que están a la venta y de los que queda algo. Anunciar
        en la página algo que no está en la vitrina es prometer lo que no se
        puede cumplir. La cantidad exacta no sale: al cliente no le sirve y es
@@ -76,7 +82,8 @@ export default async function handler(req, res) {
         cierra: String(h.cierra).slice(0, 5),
         abierto: h.abierto
       })),
-      productos
+      productos,
+      equipo
     }));
   } catch (e) {
     console.error('catalogo', e);
