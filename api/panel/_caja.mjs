@@ -8,16 +8,22 @@ import { protegido } from '../_auth.mjs';
 
 export default protegido(async (req, res) => {
   if (req.method !== 'GET') return json(res, 405, { error: 'Solo GET' });
+  /* Acepta un día suelto o un rango. El selector de periodo manda `desde` y
+     `hasta`; la agenda sigue pidiendo un solo `fecha`. */
   const { fecha } = req.query;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return json(res, 400, { error: 'fecha inválida' });
+  const d1 = req.query.desde || fecha;
+  const d2 = req.query.hasta || fecha;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d1 || '') || !/^\d{4}-\d{2}-\d{2}$/.test(d2 || '')) {
+    return json(res, 400, { error: 'fecha inválida' });
+  }
 
   try {
-    const desde = aUTC(fecha, '00:00');
-    const hasta = new Date(desde.getTime() + 24 * 3600 * 1000);
+    const desde = aUTC(d1, '00:00');
+    const hasta = new Date(aUTC(d2, '00:00').getTime() + 24 * 3600 * 1000);
 
     const cobros = await sql`
-      SELECT c.id, c.codigo, c.cobrado, c.metodo_pago, c.cobrado_en, c.total,
-             cl.nombre AS cliente, p.id AS profesional_id, p.nombre AS profesional,
+      SELECT c.id, c.codigo, c.cobrado, c.metodo_pago, c.cobrado_en, c.total, c.comprobante,
+             cl.nombre AS cliente, cl.telefono, p.id AS profesional_id, p.nombre AS profesional,
              p.comision,
              COALESCE(string_agg(s.nombre, ', ' ORDER BY s.nombre), '') AS servicios
         FROM cita c
@@ -26,7 +32,7 @@ export default protegido(async (req, res) => {
         LEFT JOIN cita_servicio cs ON cs.cita_id = c.id
         LEFT JOIN servicio s ON s.id = cs.servicio_id
        WHERE c.cobrado_en >= ${desde.toISOString()} AND c.cobrado_en < ${hasta.toISOString()}
-       GROUP BY c.id, cl.nombre, p.id, p.nombre, p.comision
+       GROUP BY c.id, cl.nombre, cl.telefono, p.id, p.nombre, p.comision
        ORDER BY c.cobrado_en`;
 
     const total = cobros.reduce((t, c) => t + (c.cobrado || 0), 0);
@@ -42,7 +48,8 @@ export default protegido(async (req, res) => {
       porProf[k].pagar = Math.round(porProf[k].bruto * porProf[k].comision);
     });
 
-    return json(res, 200, { cobros, total, porMetodo, porProfesional: Object.values(porProf) });
+    return json(res, 200, { cobros, total, porMetodo, porProfesional: Object.values(porProf),
+                            desde: d1, hasta: d2 });
   } catch (e) {
     console.error('caja', e);
     return json(res, 500, { error: 'No se pudo cargar la caja' });

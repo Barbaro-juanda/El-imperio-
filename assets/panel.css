@@ -20,6 +20,61 @@
 
 .panel { background: var(--lino); color: var(--ink); min-height: 100dvh; margin: 0; }
 
+/* =========================================================
+   Movimiento
+   styles.css ya anula toda animación con prefers-reduced-motion, así que estas
+   quedan cubiertas sin repetir la regla: son adorno, no información. Todo lo
+   que dicen —qué falta cobrar, qué hora es, cuánto se lleva— se lee igual
+   quieto, por color, texto y posición.
+   ========================================================= */
+@keyframes pulso    { 0%, 100% { opacity: 1 } 50% { opacity: .32 } }
+@keyframes deslizar { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes crecer   { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+@keyframes brillo   { 0% { background-position: -200px 0 } 100% { background-position: 260px 0 } }
+@keyframes girar    { to { transform: rotate(360deg) } }
+
+/* El punto de «falta cobrar» late porque es lo único de la pantalla que pide
+   una acción ahora mismo. */
+.pt--porcobrar, .punto-cobrar { animation: pulso 2.4s ease-in-out infinite; }
+.ahora::before { animation: pulso 2.4s ease-in-out infinite; }
+
+/* Las tarjetas entran escalonadas: el ojo sigue el orden en que llegan y no
+   recibe veinte bloques de golpe. 60 ms por hermano, tope de doce para que la
+   última no aparezca dos segundos tarde. */
+.cita, .factura, .sig, .serv { animation: deslizar .4s ease both; }
+.cita:nth-child(n),   .factura:nth-child(n),
+.sig:nth-child(n),    .serv:nth-child(n)    { animation-delay: 0ms }
+.cita:nth-child(2),   .factura:nth-child(2), .sig:nth-child(2), .serv:nth-child(2)  { animation-delay: 60ms }
+.cita:nth-child(3),   .factura:nth-child(3), .sig:nth-child(3), .serv:nth-child(3)  { animation-delay: 120ms }
+.cita:nth-child(4),   .factura:nth-child(4), .sig:nth-child(4), .serv:nth-child(4)  { animation-delay: 180ms }
+.cita:nth-child(5),   .factura:nth-child(5), .sig:nth-child(5), .serv:nth-child(5)  { animation-delay: 240ms }
+.cita:nth-child(6),   .factura:nth-child(6), .sig:nth-child(6), .serv:nth-child(6)  { animation-delay: 300ms }
+.cita:nth-child(7),   .factura:nth-child(7), .sig:nth-child(7), .serv:nth-child(7)  { animation-delay: 360ms }
+.cita:nth-child(8),   .factura:nth-child(8), .sig:nth-child(8), .serv:nth-child(8)  { animation-delay: 420ms }
+.cita:nth-child(9),   .factura:nth-child(9), .sig:nth-child(9), .serv:nth-child(9)  { animation-delay: 480ms }
+.cita:nth-child(10),  .factura:nth-child(10), .sig:nth-child(10), .serv:nth-child(10) { animation-delay: 540ms }
+.cita:nth-child(11),  .factura:nth-child(11), .sig:nth-child(11), .serv:nth-child(11) { animation-delay: 600ms }
+.cita:nth-child(n+12), .factura:nth-child(n+12),
+.sig:nth-child(n+12), .serv:nth-child(n+12) { animation-delay: 660ms }
+.aviso { animation: deslizar .4s ease both; }
+
+.barrita > div { transform-origin: left; animation: crecer 1s ease both; }
+
+/* Esqueletos mientras carga el día: dan la forma de lo que viene en vez de
+   dejar la pantalla en blanco. */
+.esqueleto {
+  background: linear-gradient(90deg, var(--linea2) 0, rgba(13,13,13,.11) 40px, var(--linea2) 80px);
+  background-size: 260px 100%;
+  animation: brillo 1.5s linear infinite;
+  border-radius: 2px; min-height: 54px; margin: 1px 3px;
+}
+
+.girando {
+  display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: girar .7s linear infinite;
+}
+
 /* ---------------------------------------------------------
    Entrada
    --------------------------------------------------------- */
@@ -291,28 +346,73 @@
     margin: 1px 3px; padding: 5px 8px; border: 0; border-radius: 2px;
     overflow: hidden; text-align: left; cursor: pointer;
     display: flex; flex-direction: column; gap: 2px;
-    background: var(--wine); color: var(--cream);   /* 5.8:1 */
     font: 300 11px/1.25 var(--sans);
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .bloque:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(13, 13, 13, .14); }
   .bloque__top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .bloque__quien { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+  .bloque__quien strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bloque strong { font: 400 12.5px/1.2 var(--sans); }
   .bloque em { font-style: normal; opacity: .85; font-size: 10.5px; }
   .bloque[draggable="true"] { cursor: grab; }
   .bloque.arrastrando { opacity: .4; }
 
-  .bloque--cumplida, .bloque--cobrada { background: var(--verde); }
-  .bloque--porcobrar { background: var(--ambar); color: var(--ink); }
-  .bloque--no_asistio { background: rgba(13, 13, 13, .42); }
-  .bloque--cancelada {
-    background: repeating-linear-gradient(45deg, rgba(13,13,13,.14) 0 6px, rgba(13,13,13,.07) 6px 12px);
-    color: var(--tenue);
+
+  /* Cada estado se distingue por más de un rasgo: borde, fondo y textura. Con
+     solo color, quien no distingue verde de ámbar —uno de cada doce hombres—
+     ve la misma rejilla en gris. */
+  .bloque {
+    border-left: 3px solid var(--wine);
+    background: var(--blanco); color: var(--ink);
   }
+  .bloque strong { color: var(--ink); }
+  .bloque em { opacity: 1; color: var(--tenue); }
+
+  .bloque--confirmada { border-left-color: var(--wine);  background: var(--blanco); }
+  .bloque--cobrada    { border-left-color: var(--verde); background: rgba(47, 107, 74, .10); }
+  .bloque--porcobrar  { border-left-color: var(--ambar); background: rgba(185, 151, 63, .17); }
+  .bloque--no_asistio {
+    border-left-color: rgba(13, 13, 13, .45);
+    background: var(--blanco);
+    border-top: 1px dotted rgba(13,13,13,.45);
+    border-right: 1px dotted rgba(13,13,13,.45);
+    border-bottom: 1px dotted rgba(13,13,13,.45);
+  }
+  .bloque--no_asistio strong, .bloque--no_asistio em { text-decoration: line-through; color: var(--tenue); }
+  .bloque--cancelada {
+    border-left-color: var(--linea);
+    background: repeating-linear-gradient(45deg, rgba(13,13,13,.07) 0 6px, transparent 6px 12px);
+  }
+  .bloque--cancelada strong, .bloque--cancelada em { text-decoration: line-through; color: var(--tenue); }
   .bloque--bloqueo {
-    background: repeating-linear-gradient(45deg, rgba(13,13,13,.10) 0 7px, rgba(13,13,13,.04) 7px 14px);
+    border-left-color: rgba(13, 13, 13, .3);
+    background: repeating-linear-gradient(45deg, rgba(13,13,13,.11) 0 7px, rgba(13,13,13,.03) 7px 14px);
     color: rgba(13, 13, 13, .62); cursor: default;
   }
+
+  /* Lo que ya pasó se apaga para que la vista caiga sola en lo que viene.
+     Lo pendiente de cobro NO se apaga: es justo lo que no hay que olvidar. */
+  .bloque--pasada:not(.bloque--porcobrar) { opacity: .82; }
+
+  /* Bloque de una sola fila: media hora no da para tres líneas, así que queda
+     el cliente y el valor. El resto está en la ficha. */
+  .bloque--compacto { flex-direction: row; align-items: center; padding: 3px 8px; gap: 8px; }
+  .bloque--compacto .bloque__top { flex: 1; }
+  .bloque--compacto em, .bloque--compacto .bloque__pie { display: none; }
+
+  .punto-cobrar {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ambar);
+    display: inline-block; flex: none;
+  }
+
+  /* Franja del pasado: un gris del 3% que separa lo hecho de lo que falta sin
+     competir con ningún bloque. */
+  .pasado {
+    grid-column: 2 / -1; background: rgba(13, 13, 13, .03);
+    pointer-events: none; z-index: 0;
+  }
+
 
   /* Hueco libre: invita a agendar sin ensuciar la rejilla. Solo aparece al
      pasar por encima; si estuviera siempre visible, treinta rectángulos
@@ -657,6 +757,88 @@
   padding: 12px 20px; font: 300 12.5px/1.4 var(--sans);
   box-shadow: 0 8px 26px rgba(13, 13, 13, .28);
 }
+
+/* --- Contexto compartido: periodo, día y equipo --- */
+.contexto { padding: 14px 16px 0; max-width: 1440px; margin-inline: auto; }
+.periodos { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.periodo {
+  background: none; border: 1px solid var(--linea); cursor: pointer;
+  min-height: 32px; padding: 0 12px;
+  font: 300 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--tenue);
+}
+.periodo.is-on { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+
+/* Ocupación de cada profesional, bajo su nombre en la cabecera. */
+.rej__ocup { margin-top: 6px; height: 3px; background: var(--linea2); overflow: hidden; }
+.rej__ocup > div { height: 100%; background: var(--wine); transform-origin: left; animation: crecer 1s ease both; }
+
+/* --- Comprobante --- */
+.comprobante { border: 1px solid var(--linea); padding: 12px 14px; margin-bottom: 12px; }
+.comprobante__rot {
+  display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+  font: 300 9.5px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--tenue); margin-bottom: 9px;
+}
+.comprobante__soltar {
+  display: grid; place-items: center; min-height: 62px; cursor: pointer;
+  border: 1px dashed rgba(155, 48, 64, .45); background: rgba(155, 48, 64, .05);
+  color: var(--wine); text-align: center; padding: 10px;
+  font: 300 11.5px/1.4 var(--sans); letter-spacing: .04em; text-transform: none;
+  margin: 0;
+}
+.comprobante__soltar:hover { background: rgba(155, 48, 64, .1); }
+.comprobante__hecho { display: flex; align-items: center; gap: 11px; }
+.comprobante__hecho img {
+  width: 54px; height: 54px; object-fit: cover; flex: none; border: 1px solid var(--linea);
+}
+.comprobante__nom { flex: 1; font: 300 11.5px/1.4 var(--sans); color: var(--tenue); word-break: break-all; }
+
+.factura__comp {
+  width: 38px; height: 38px; object-fit: cover; border: 1px solid var(--linea); display: block;
+}
+
+/* --- Sugerencias de búsqueda --- */
+.buscador__n {
+  font: 300 10px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--tenue); white-space: nowrap;
+}
+.sugerencias { display: flex; gap: 7px; flex-wrap: wrap; margin: -6px 0 14px; }
+.sugerencia {
+  display: flex; align-items: baseline; gap: 8px; cursor: pointer;
+  background: none; border: 1px solid var(--linea); padding: 7px 12px; min-height: 40px;
+  font: 300 12.5px/1 var(--sans); text-align: left;
+}
+.sugerencia:hover { border-color: var(--wine); }
+.sugerencia strong { font-weight: 400; color: var(--ink); }
+.sugerencia span { color: var(--tenue); font-size: 11.5px; }
+
+/* --- Conmutador de rol del dueño --- */
+.conmutador { display: flex; border: 1px solid rgba(237, 230, 214, .28); }
+.conmutador__b {
+  background: none; border: 0; cursor: pointer; min-height: 32px; padding: 0 12px;
+  color: rgba(237, 230, 214, .6);
+  font: 300 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+}
+.conmutador__b.is-on { background: var(--cream); color: var(--ink); }
+
+/* Aviso con deshacer */
+.aviso { display: flex; align-items: center; gap: 14px; }
+.aviso button {
+  background: none; border: 1px solid rgba(237, 230, 214, .45); color: var(--cream);
+  cursor: pointer; min-height: 32px; padding: 0 11px;
+  font: 300 10px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+}
+.aviso button:hover { background: var(--cream); color: var(--ink); }
+
+/* En modo revisión el dueño mira, no toca. */
+.solo-lectura .actual__btns, .solo-lectura #mi-crear, .solo-lectura #mi-bloquear { display: none; }
+.revision {
+  background: rgba(185, 151, 63, .16); border-left: 3px solid var(--gold-on-light);
+  padding: 9px 13px; margin-bottom: 12px;
+  font: 300 11.5px/1.5 var(--sans); color: var(--ink);
+}
+.revision select { width: auto; min-height: 34px; margin-left: 8px; font-size: 13px; }
 
 /* Franja de modo demostración. Vino pleno y fija arriba: tiene que ser
    imposible mirar esta pantalla y creer que son citas reales. */

@@ -19,10 +19,22 @@
   const DIAS3 = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const MESES3 = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const SEGMENTOS = { cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
-                      cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas' };
+                      cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas',
+                      adicionales: 'Adicionales' };
+  /* Duraciones que se ofrecen al crear un servicio. Los adicionales suelen ser
+     remates de un cuarto de hora, y sin estas opciones cortas habría que
+     escribir el número a mano cada vez. */
+  const DURACIONES = [5, 10, 15, 20, 30, 45, 60, 90, 120, 150, 180];
+  const PERIODOS = [['dia', 'Día'], ['semana', 'Semana'], ['quincena', 'Quincena'],
+                    ['mes', 'Mes'], ['ano', 'Año']];
   const MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', otro: 'Otro' };
 
-  const PASO = 15;            // minutos por fila; el mismo con el que la API ofrece cupos
+  /* PASO son los minutos con los que la API ofrece cupos y con los que se
+     coloca todo. FILA es lo que mide una fila de la rejilla: al doblarla a 30
+     minutos la jornada entera cabe en una pantalla sin desplazarse, que es
+     como se mira una agenda de verdad. */
+  const PASO = 15;
+  const FILA = 30;
   const META_LOCAL = 300000;  // meta diaria; se edita aquí hasta que el local la fije
 
   /* Quién entró. Manda el servidor: el panel solo lo usa para no enseñar
@@ -31,6 +43,8 @@
   let dia = new Date();
   let vista = 'agenda';
   let profFiltro = 'todos';
+  let periodo = 'dia';
+  let revisando = null;    // el dueño mirando «Mi día» de alguien, en solo lectura
   let datos = { citas: [], bloqueos: [], profesionales: [],
                 horario: { abre: '09:00', cierra: '20:00', abierto: true },
                 resumen: { total: 0, cuantas: 0 }, comision: null };
@@ -66,7 +80,8 @@
         { id: 3, codigo: 'EF4N9R', inicio: t(9, 30),  fin: t(10, 15), estado: 'cumplida',   total: 35000, cobrado: 35000, metodo_pago: 'efectivo',      cliente: 'Camilo Ospina',  telefono: '+573007778899', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Corte Sencillo' },
         { id: 4, codigo: 'GH5P1S', inicio: t(11, 0),  fin: t(11, 30), estado: 'no_asistio', total: 26000, cliente: 'Diego Franco',   telefono: '+573001234567', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Ritual de Barba' },
         { id: 5, codigo: 'IJ6Q3T', inicio: t(14, 0),  fin: t(16, 0),  estado: 'confirmada', total: 0,     cliente: 'Laura Restrepo', telefono: '+573009998877', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manos y pies' },
-        { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'cumplida',   total: 65000, cobrado: 65000, metodo_pago: 'transferencia', cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber' }
+        { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'cumplida',   total: 65000, cobrado: 65000, metodo_pago: 'transferencia', cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber',
+          comprobante: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="%23E4DFD5"/><text x="60" y="58" font-size="13" text-anchor="middle" fill="%239B3040" font-family="sans-serif">Comprobante</text><text x="60" y="76" font-size="11" text-anchor="middle" fill="%230D0D0D" font-family="sans-serif">$65.000</text></svg>'.replace(/%23/g, '#')) }
       ],
       bloqueos: [{ id: 1, profesional_id: null, inicio: t(13, 0), fin: t(14, 0), motivo: 'Almuerzo' }],
       horario: { abre: '09:00', cierra: '20:00', abierto: true },
@@ -76,7 +91,8 @@
         { id: 'ritual-barba',   nombre: 'Ritual de Barba', segmento: 'cortes', precio: 26000, minutos: 30, activo: true, profesionales: [1, 2] },
         { id: 'cejas-hilo',     nombre: 'Cejas con hilo', segmento: 'cejas', precio: 20000, minutos: 20, activo: true, profesionales: [1, 2] },
         { id: 'manos-pies',     nombre: 'Manos y pies',   segmento: 'unas', precio: null, minutos: 120, activo: true, profesionales: [3] },
-        { id: 'rubber',         nombre: 'Manicura con Base Rubber', segmento: 'unas', precio: 65000, minutos: 60, activo: true, profesionales: [1, 2, 3] }
+        { id: 'rubber',         nombre: 'Manicura con Base Rubber', segmento: 'unas', precio: 65000, minutos: 60, activo: true, profesionales: [1, 2, 3], descripcion: 'Base rubber: uñas más fuertes y parejas.' },
+        { id: 'stiker',       nombre: 'Stiker y pedrería', segmento: 'adicionales', precio: 3000, minutos: 15, activo: true, profesionales: [3], descripcion: 'Apliques para rematar el diseño.', solo_adicional: true }
       ],
       equipo: [
         { id: 1, nombre: 'Emanuel Gómez',    comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: true },
@@ -123,7 +139,7 @@
     return { total, porMetodo, porProfesional: Object.values(porProf),
              cobros: cobradas.map(c => ({ id: c.id, cobrado_en: c.fin, cliente: c.cliente,
                telefono: c.telefono, servicios: c.servicios, profesional: c.profesional,
-               metodo_pago: c.metodo_pago, cobrado: c.cobrado })) };
+               metodo_pago: c.metodo_pago, cobrado: c.cobrado, comprobante: c.comprobante || null })) };
   }
 
   function respuestaDemo(ruta) {
@@ -157,11 +173,27 @@
 
   /* ---------- avisos ---------- */
   let tAviso = null;
-  function avisar(texto) {
+  /* `deshacer` es la función que revierte lo hecho. Se ofrece durante unos
+     segundos en vez de preguntar «¿seguro?» antes: confirmar cada acción
+     estorba cincuenta veces al día para evitar un error que pasa una vez, y
+     deshacer arregla ese error sin molestar en los otros cuarenta y nueve. */
+  function avisar(texto, deshacer) {
     const n = $('#aviso');
-    n.textContent = texto; n.hidden = false;
+    n.textContent = '';
+    n.appendChild(document.createTextNode(texto));
+    if (deshacer) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Deshacer';
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        try { await deshacer(); n.hidden = true; }
+        catch (e) { avisar(e.message || 'No se pudo deshacer'); }
+      });
+      n.appendChild(b);
+    }
+    n.hidden = false;
     clearTimeout(tAviso);
-    tAviso = setTimeout(() => { n.hidden = true; }, 4200);
+    tAviso = setTimeout(() => { n.hidden = true; }, deshacer ? 8000 : 4200);
   }
 
   /* =========================================================
@@ -192,6 +224,7 @@
     $('#yo-nombre').textContent = YO.nombre;
     $('#yo-rol').textContent = ROL === 'dueno' ? 'Administrador' : 'Profesional';
     $('#yo-inicial').textContent = inicial(YO.nombre);
+    $('#conmutador').hidden = ROL !== 'dueno';
     pintarNav();
     irA(ROL === 'dueno' ? 'agenda' : 'midia');
   }
@@ -225,10 +258,41 @@
       const n = $('#v-' + v); if (n) n.hidden = v !== cual;
     });
     $$('.barra__tab').forEach(b => b.classList.toggle('is-on', b.dataset.ir === cual));
+    /* El contexto —periodo, día y equipo— se comparte entre agenda y facturas
+       porque hablan del mismo día: duplicarlo obligaba a recordar en cuál de
+       las dos se había cambiado la fecha. */
+    const conContexto = cual === 'agenda' || cual === 'facturas';
+    $('#contexto').hidden = !conContexto;
+    $('#periodos').hidden = cual !== 'facturas';   // la agenda es siempre de un día
+    $('#abrir-crear').hidden = cual !== 'agenda';
+    $('#fichas').hidden = cual !== 'agenda';
     cerrarFicha();
     if (cual === 'agenda' || cual === 'midia') cargarDia();
     if (cual === 'facturas')  cargarFacturas();
     if (cual === 'servicios' || cual === 'dispo') cargarAjustes();
+  }
+
+  /* Rango que cubre el periodo elegido, terminando en el día que se mira. */
+  function rango() {
+    const fin = new Date(dia), ini = new Date(dia);
+    if (periodo === 'semana')        ini.setDate(ini.getDate() - 6);
+    else if (periodo === 'quincena') ini.setDate(ini.getDate() - 14);
+    else if (periodo === 'mes')      ini.setMonth(ini.getMonth() - 1);
+    else if (periodo === 'ano')      ini.setFullYear(ini.getFullYear() - 1);
+    return { desde: ymd(ini), hasta: ymd(fin) };
+  }
+  const NOMBRE_PERIODO = { dia: 'hoy', semana: 'últimos 7 días', quincena: 'últimos 15 días',
+                           mes: 'último mes', ano: 'último año' };
+
+  function pintarPeriodos() {
+    const c = $('#periodos');
+    c.textContent = '';
+    PERIODOS.forEach(([id, nombre]) => {
+      const b = el('button', 'periodo' + (id === periodo ? ' is-on' : ''));
+      b.type = 'button'; b.textContent = nombre;
+      b.addEventListener('click', () => { periodo = id; pintarPeriodos(); cargarFacturas(); });
+      c.appendChild(b);
+    });
   }
 
   /* =========================================================
@@ -287,16 +351,31 @@
     cargarDia();
   });
 
+  function esqueletos() {
+    const g = $('#rejilla');
+    if (!g || !g.children.length) return;
+    g.textContent = '';
+    g.style.setProperty('--cols', 3);
+    for (let f = 0; f < 12; f++) for (let c = 0; c < 3; c++) {
+      const e = el('div', 'esqueleto');
+      e.style.gridRow = String(f + 1); e.style.gridColumn = String(c + 2);
+      g.appendChild(e);
+    }
+  }
+
   async function cargarDia() {
     $('#dia-picker').value = ymd(dia);
     pintarTira('#tira', 9);
     pintarTira('#tira-corta', 5);
+    esqueletos();
     try {
       datos = await api('/panel/agenda?fecha=' + ymd(dia));
       if (datos.rol) ROL = datos.rol;
       if (datos.nombre) { YO.nombre = datos.nombre; $('#yo-nombre').textContent = datos.nombre;
                           $('#yo-inicial').textContent = inicial(datos.nombre); }
-      if (ROL === 'profesional') pintarMiDia(); else pintarAgenda();
+      if (ROL === 'profesional') pintarMiDia();
+      else if (revisando) { avisoRevision(); pintarMiDia(); }
+      else pintarAgenda();
     } catch (e) {
       if (e.estado === 401) { $('#app').hidden = true; $('#login').hidden = false; return; }
       avisar(e.message || 'No se pudo cargar la agenda.');
@@ -362,16 +441,37 @@
     const prox = citas.filter(c => new Date(c.fin) > ahora && c.estado === 'confirmada')
                       .sort((a, b) => new Date(a.inicio) - new Date(b.inicio))[0];
     $('#prox-nombre').textContent = prox ? prox.cliente : 'Nada pendiente';
-    $('#prox-detalle').textContent = prox
-      ? hora(prox.inicio) + ' · ' + (prox.servicios || '—') + ' · ' + prox.profesional
-      : 'No quedan citas por atender hoy.';
+    if (prox) {
+      /* Los minutos que faltan responden la pregunta real —«¿me da tiempo de
+         salir?»— que una hora suelta obliga a calcular de cabeza. */
+      const faltan = Math.round((new Date(prox.inicio) - ahora) / 60000);
+      const cuando = faltan <= 0 ? 'ahora mismo'
+                   : faltan < 60 ? 'en ' + faltan + ' min'
+                   : 'en ' + Math.floor(faltan / 60) + ' h ' + (faltan % 60) + ' min';
+      $('#prox-detalle').textContent = hora(prox.inicio) + ' · ' + cuando + ' · ' +
+                                       (prox.servicios || '—') + ' · ' + prox.profesional;
+    } else {
+      $('#prox-detalle').textContent = 'No quedan citas por atender hoy.';
+    }
 
     const caja = citas.reduce((t, c) => t + (c.cobrado || 0), 0);
     $('#caja-texto').textContent = money(caja);
     $('#caja-barra').style.width = Math.min(100, caja / META_LOCAL * 100) + '%';
-    $('#meta-texto').textContent = caja >= META_LOCAL
-      ? 'Meta cumplida'
-      : 'Faltan ' + money(META_LOCAL - caja) + ' para la meta';
+
+    /* Cuántos huecos de media hora quedan libres hoy. Junto a lo que falta para
+       la meta dice si es alcanzable o si ya no dan las horas. */
+    let huecos = 0;
+    cols.forEach(p => {
+      const suyas = citas.filter(c => c.profesional_id === p.id)
+                         .map(c => [minLocal(c.inicio), minLocal(c.fin)]).sort((a, b) => a[0] - b[0]);
+      let cur = Math.max(abre, minLocal(new Date().toISOString()));
+      if (ymd(new Date()) !== ymd(dia)) cur = abre;
+      suyas.forEach(([a, b]) => { if (a - cur >= 30) huecos += Math.floor((a - cur) / 30); cur = Math.max(cur, b); });
+      if (cierra - cur >= 30) huecos += Math.floor((cierra - cur) / 30);
+    });
+    const sufijo = huecos ? ' · ' + huecos + (huecos === 1 ? ' hueco libre' : ' huecos libres') : ' · sin huecos';
+    $('#meta-texto').textContent = (caja >= META_LOCAL
+      ? 'Meta cumplida' : 'Faltan ' + money(META_LOCAL - caja) + ' para la meta') + sufijo;
   }
 
   let arrastrando = null;
@@ -385,23 +485,38 @@
     const abre = aMin(datos.horario.abre);
     let cierra = aMin(datos.horario.cierra);
     if (cierra <= abre) cierra += 1440;        // cierre pasada la medianoche
-    const filas = Math.ceil((cierra - abre) / PASO);
+    const filas = Math.ceil((cierra - abre) / FILA);
     g.style.setProperty('--cols', profs.length);
+
+    /* La rejilla se coloca en pasos de FILA, pero los bloques pueden empezar en
+       cualquier cuarto de hora. Se convierte a fracción de fila para que una
+       cita de 09:15 no se dibuje pegada a las 09:00. */
+    const aFila = min => (min - abre) / FILA;
 
     g.appendChild(el('div', 'rej__cab rej__cab--esq'));
     profs.forEach(p => {
       const c = el('div', 'rej__cab');
       c.textContent = p.nombre.split(' ')[0];
-      const s = el('small');
-      const n = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada').length;
-      s.textContent = n ? n + (n === 1 ? ' cita' : ' citas') : 'libre';
-      c.appendChild(s);
+      const s2 = el('small');
+      const suyas = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada');
+      const min = suyas.reduce((t, x) => t + (minLocal(x.fin) - minLocal(x.inicio)), 0);
+      const pct = Math.min(100, Math.round(min / Math.max(1, cierra - abre) * 100));
+      s2.textContent = suyas.length
+        ? suyas.length + (suyas.length === 1 ? ' cita · ' : ' citas · ') + pct + '%'
+        : 'libre';
+      c.appendChild(s2);
+      /* Barra de ocupación bajo cada nombre: de un vistazo se ve quién está
+         cargado y quién tiene la mañana muerta. */
+      const barra = el('div', 'rej__ocup'); const dentro = el('div');
+      dentro.style.width = pct + '%';
+      barra.appendChild(dentro);
+      c.appendChild(barra);
       g.appendChild(c);
     });
 
-    const ocupadas = {};   // por columna: filas que ya tienen algo
+    const ocupadas = {};
     for (let f = 0; f < filas; f++) {
-      const min = abre + f * PASO, pt = min % 60 === 0;
+      const min = abre + f * FILA, pt = min % 60 === 0;
       const h = el('div', 'rej__hora' + (pt ? ' rej__hora--pt' : ''));
       h.style.gridRow = String(f + 2);
       const sp = el('span'); sp.textContent = aHHMM(min);
@@ -424,29 +539,59 @@
       });
     }
 
+    /* Franja de lo que ya pasó, por debajo de todo. */
+    const esHoy = ymd(new Date()) === ymd(dia);
+    if (esHoy) {
+      const m = minLocal(new Date().toISOString());
+      if (m > abre) {
+        const p = el('div', 'pasado');
+        p.style.gridRow = '2 / span ' + Math.max(1, Math.round(aFila(Math.min(m, cierra))));
+        g.appendChild(p);
+      }
+    }
+
+    const ahora = new Date();
     (datos.citas || []).forEach(c => {
       const col = profs.findIndex(p => p.id === c.profesional_id);
       if (col === -1) return;
       const ini = minLocal(c.inicio), fin = minLocal(c.fin);
-      const desde = Math.round((ini - abre) / PASO), span = Math.max(1, Math.round((fin - ini) / PASO));
-      (ocupadas[col] = ocupadas[col] || []).push([desde, desde + span]);
+      const desde = Math.round(aFila(ini) * 2) / 2;            // media fila de resolución
+      const span = Math.max(1, Math.round((fin - ini) / FILA));
+      (ocupadas[col] = ocupadas[col] || []).push([Math.floor(desde), Math.floor(desde) + span]);
 
       const ev = estadoVisual(c);
-      const b = el('button', 'bloque bloque--' + ev);
+      const compacto = span <= 1;
+      const b = el('button', 'bloque bloque--' + ev + (compacto ? ' bloque--compacto' : '') +
+                             (new Date(c.fin) < ahora ? ' bloque--pasada' : ''));
       b.type = 'button';
       b.style.gridColumn = String(col + 2);
-      b.style.gridRow = (desde + 2) + ' / span ' + span;
+      b.style.gridRow = (Math.floor(desde) + 2) + ' / span ' + span;
+
       const top = el('div', 'bloque__top');
+      /* El punto va pegado al nombre, no suelto en la fila: con space-between
+         entre tres hijos el nombre acababa flotando en el centro. */
+      const izq = el('span', 'bloque__quien');
+      if (ev === 'porcobrar') izq.appendChild(el('i', 'punto-cobrar'));
       const n = el('strong'); n.textContent = c.cliente;
-      const v = el('span');  v.textContent = money(c.cobrado || c.total);
-      top.append(n, v);
-      const s = el('em'); s.textContent = c.servicios || '—';
-      b.append(top, s);
-      if (span >= 3) { const p = el('span'); p.textContent = ETIQUETA[ev]; p.style.opacity = '.8';
-                       p.style.fontSize = '10px'; b.appendChild(p); }
+      izq.appendChild(n);
+      const v = el('span'); v.textContent = money(c.cobrado || c.total);
+      top.append(izq, v);
+      b.appendChild(top);
+      /* Un bloque de media hora no da para tres líneas: queda el cliente y el
+         valor, y el resto se lee en la ficha al tocarlo. */
+      if (!compacto) {
+        const s2 = el('em'); s2.textContent = c.servicios || '—';
+        b.appendChild(s2);
+        if (span >= 3) {
+          const pie = el('span', 'bloque__pie');
+          pie.textContent = ETIQUETA[ev];
+          pie.style.fontSize = '10px'; pie.style.color = 'var(--tenue)';
+          b.appendChild(pie);
+        }
+      }
+      b.title = hora(c.inicio) + '–' + hora(c.fin) + ' · ' + c.cliente + ' · ' +
+                (c.servicios || '—') + ' · ' + ETIQUETA[ev];
       b.addEventListener('click', () => abrirFicha(c));
-      /* Solo se arrastra lo que sigue en pie: mover una cita cobrada o
-         cancelada no significa nada. */
       if (c.estado === 'confirmada') {
         b.draggable = true;
         b.addEventListener('dragstart', e2 => {
@@ -465,7 +610,7 @@
         ? profs.map((_, i) => i)
         : [profs.findIndex(p => p.id === bq.profesional_id)].filter(i => i !== -1);
       cols.forEach(i => {
-        const desde = Math.round((ini - abre) / PASO), span = Math.max(1, Math.round((fin - ini) / PASO));
+        const desde = Math.floor(aFila(ini)), span = Math.max(1, Math.round((fin - ini) / FILA));
         (ocupadas[i] = ocupadas[i] || []).push([desde, desde + span]);
         const b = el('div', 'bloque bloque--bloqueo');
         b.style.gridColumn = String(i + 2);
@@ -475,29 +620,28 @@
       });
     });
 
-    /* Huecos libres de media hora o más: son los que de verdad se pueden
-       vender. Marcar cada cuarto de hora vacío llenaría la rejilla de ruido. */
+    /* Huecos de media hora o más: son los que de verdad se pueden vender. */
     profs.forEach((p, i) => {
       const rangos = (ocupadas[i] || []).sort((a, b) => a[0] - b[0]);
       let cursor = 0;
       const marcar = (a, b) => {
-        if (b - a < 2) return;
+        if (b - a < 1) return;
         const hueco = el('div', 'hueco');
         hueco.style.gridColumn = String(i + 2);
         hueco.style.gridRow = (a + 2) + ' / span ' + (b - a);
-        hueco.textContent = '＋ ' + aHHMM(abre + a * PASO);
-        hueco.addEventListener('click', () => abrirCrear(p.id, aHHMM(abre + a * PASO)));
+        hueco.textContent = '＋ ' + aHHMM(abre + a * FILA);
+        hueco.addEventListener('click', () => abrirCrear(p.id, aHHMM(abre + a * FILA)));
         g.appendChild(hueco);
       };
       rangos.forEach(([a, b]) => { marcar(cursor, a); cursor = Math.max(cursor, b); });
       marcar(cursor, filas);
     });
 
-    if (ymd(new Date()) === ymd(dia)) {
+    if (esHoy) {
       const m = minLocal(new Date().toISOString());
       if (m >= abre && m <= cierra) {
         const l = el('div', 'ahora');
-        l.style.gridRow = String(Math.round((m - abre) / PASO) + 2);
+        l.style.gridRow = String(Math.round(aFila(m)) + 2);
         g.appendChild(l);
       }
     }
@@ -572,14 +716,12 @@
 
     if (ev === 'confirmada' || ev === 'porcobrar') {
       cont.appendChild(boton('Cobrar', () => abrirCobro(c), true));
-      cont.appendChild(boton('No vino', () => cambiar(c.id, 'no_asistio')));
-      cont.appendChild(boton('Cancelar', () => {
-        if (confirm('¿Cancelar la cita de ' + c.cliente + '? La hora vuelve a quedar libre.')) {
-          cambiar(c.id, 'cancelada');
-        }
-      }));
+      cont.appendChild(boton('No vino', () =>
+        cambiar(c.id, 'no_asistio', c.cliente + ' marcado como que no vino', c.estado)));
+      cont.appendChild(boton('Cancelar', () =>
+        cambiar(c.id, 'cancelada', 'Cita de ' + c.cliente + ' cancelada · la hora queda libre', c.estado)));
     } else {
-      cont.appendChild(boton('Deshacer', () => cambiar(c.id, 'confirmada')));
+      cont.appendChild(boton('Reabrir', () => cambiar(c.id, 'confirmada', 'Cita reabierta', c.estado)));
     }
     return cont;
   }
@@ -600,11 +742,19 @@
     return b;
   }
 
-  async function cambiar(id, estado) {
+  async function cambiar(id, estado, textoAviso, estadoPrevio) {
     try {
       await api('/panel/cita', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                                  body: JSON.stringify({ id, estado }) });
-      cerrarFicha(); avisar('Cita actualizada'); cargarDia();
+      cerrarFicha();
+      /* Se guarda el estado anterior para poder volver con la llamada inversa,
+         que es el mismo endpoint con el valor de antes. */
+      avisar(textoAviso || 'Cita actualizada', estadoPrevio ? async () => {
+        await api('/panel/cita', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ id, estado: estadoPrevio }) });
+        avisar('Deshecho'); cargarDia();
+      } : null);
+      cargarDia();
     } catch (e) { avisar(e.message || 'No se pudo actualizar'); }
   }
 
@@ -635,11 +785,22 @@
      Mi día
      ========================================================= */
   function pintarMiDia() {
+    /* Cuando es el dueño revisando, se filtra aquí lo del profesional elegido.
+       Puede hacerlo porque la API ya le entrega todo el equipo: no se está
+       saltando ningún permiso, solo mirando un subconjunto de lo suyo. */
+    const dePersona = revisando
+      ? (datos.profesionales || []).find(p => p.id === revisando)
+      : null;
     $('#mi-titulo').textContent = 'Mi día · ' + DIAS[dia.getDay()] + ' ' + dia.getDate();
-    $('#mi-nombre').textContent = YO.nombre;
-    $('#mi-comision').textContent = money(datos.comision ? datos.comision.gana : 0);
+    $('#mi-nombre').textContent = dePersona ? dePersona.nombre : YO.nombre;
 
-    const citas = (datos.citas || []).filter(c => c.estado !== 'cancelada');
+    const citas = (datos.citas || [])
+      .filter(c => c.estado !== 'cancelada')
+      .filter(c => !revisando || c.profesional_id === revisando);
+
+    const cobrado = citas.reduce((t, c) => t + (c.cobrado || 0), 0);
+    $('#mi-comision').textContent = money(revisando ? Math.round(cobrado * 0.5)
+      : (datos.comision ? datos.comision.gana : 0));
     $('#mi-atendidas').textContent = citas.filter(c => c.estado === 'cumplida').length;
 
     const abre = aMin(datos.horario.abre);
@@ -698,6 +859,45 @@
   });
   $('#mi-bloquear').addEventListener('click', () => abrirBloqueo());
 
+  /* ---------- el dueño mirando «Mi día» ----------
+     Es una ayuda de revisión: sirve para ver lo que ve un profesional en su
+     celular antes de darle la clave. Va en solo lectura porque las acciones de
+     esa pantalla las rechazaría la API para el dueño de todos modos, y ofrecer
+     botones que van a fallar es peor que no ofrecerlos. */
+  $$('.conmutador__b').forEach(b => b.addEventListener('click', () => {
+    $$('.conmutador__b').forEach(x => x.classList.toggle('is-on', x === b));
+    if (b.dataset.ver === 'dueno') {
+      revisando = null;
+      document.body.classList.remove('solo-lectura');
+      irA('agenda');
+    } else {
+      const primero = (datos.profesionales || [])[0];
+      revisando = primero ? primero.id : null;
+      document.body.classList.add('solo-lectura');
+      irA('midia');
+    }
+  }));
+
+  function avisoRevision() {
+    const midia = $('#v-midia');
+    let n = midia.querySelector('.revision');
+    if (!n) {
+      n = el('div', 'revision');
+      midia.insertBefore(n, midia.firstChild);
+    }
+    n.textContent = 'Estás viendo el panel de ';
+    const sel = document.createElement('select');
+    (datos.profesionales || []).forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.nombre;
+      sel.appendChild(o);
+    });
+    sel.value = String(revisando);
+    sel.addEventListener('change', () => { revisando = Number(sel.value); cargarDia(); });
+    n.appendChild(sel);
+    n.appendChild(document.createTextNode(' · solo lectura'));
+  }
+
   /* =========================================================
      Facturas
      ========================================================= */
@@ -722,10 +922,12 @@
   }
 
   async function cargarFacturas() {
+    pintarPeriodos();
     opciones('#f-filtros', FILTROS, fFiltro, id => { fFiltro = id; cargarFacturas(); });
     opciones('#f-ordenes', ORDENES, fOrden, id => { fOrden = id; cargarFacturas(); });
     try {
-      caja = await api('/panel/caja?fecha=' + ymd(dia));
+      const r = rango();
+      caja = await api('/panel/caja?desde=' + r.desde + '&hasta=' + r.hasta);
       pintarFacturas();
     } catch (e) {
       $('#f-lista').textContent = e.message || 'No se pudo cargar.';
@@ -751,6 +953,38 @@
       ? filas.length + (filas.length === 1 ? ' factura · ' : ' facturas · ') + money(suma)
       : 'Sin resultados';
     $('#f-limpiar').hidden = !fBusca;
+    const cn = $('#f-conteo');
+    cn.hidden = !fBusca;
+    cn.textContent = filas.length + (filas.length === 1 ? ' resultado' : ' resultados');
+
+    /* Sugerencias: los clientes distintos que coinciden. Tocar uno rellena el
+       campo con su teléfono exacto, que es lo que de verdad se buscaba cuando
+       se teclean tres dígitos sueltos. */
+    const sug = $('#f-sugerencias');
+    sug.textContent = '';
+    if (fBusca) {
+      const vistos = {};
+      (caja.cobros || []).forEach(f => {
+        const tel = String(f.telefono || '').replace(/\D/g, '');
+        const q = fBusca.replace(/\D/g, '');
+        const coincide = (q && tel.includes(q)) ||
+                         String(f.cliente || '').toLowerCase().includes(fBusca.toLowerCase());
+        if (coincide && f.telefono && !vistos[f.telefono]) vistos[f.telefono] = f.cliente;
+      });
+      const claves = Object.keys(vistos);
+      sug.hidden = !claves.length;
+      claves.slice(0, 6).forEach(tel => {
+        const b = el('button', 'sugerencia');
+        b.type = 'button';
+        const n = el('strong'); n.textContent = vistos[tel];
+        const t = el('span');   t.textContent = tel;
+        b.append(n, t);
+        b.addEventListener('click', () => {
+          fBusca = tel; $('#f-buscar').value = tel; pintarFacturas();
+        });
+        sug.appendChild(b);
+      });
+    } else { sug.hidden = true; }
 
     const cont = $('#f-lista');
     cont.textContent = '';
@@ -775,15 +1009,31 @@
       const va = el('span', 'factura__val'); va.textContent = money(f.cobrado);
       const me = el('span', 'factura__l'); me.textContent = MEDIOS[f.metodo_pago] || f.metodo_pago;
       der.append(ch, va, me);
+      if (f.comprobante) {
+        const a = document.createElement('a');
+        a.href = f.comprobante; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.title = 'Ver el comprobante';
+        const im = document.createElement('img');
+        im.className = 'factura__comp'; im.src = f.comprobante;
+        im.alt = 'Comprobante de la transferencia de ' + f.cliente;
+        a.appendChild(im);
+        der.appendChild(a);
+      }
 
       n.append(izq, der);
       cont.appendChild(n);
     });
 
+    /* La meta es diaria, así que en periodos largos se multiplica por los días
+       que abarca: comparar un mes contra la meta de un día no dice nada. */
+    const dias = { dia: 1, semana: 7, quincena: 15, mes: 30, ano: 365 }[periodo] || 1;
+    const meta = META_LOCAL * dias;
+    $$('.facturas__rot')[0].textContent = 'Total ventas · ' + NOMBRE_PERIODO[periodo];
     $('#t-caja').textContent = money(caja.total);
-    $('#t-barra').style.width = Math.min(100, caja.total / META_LOCAL * 100) + '%';
-    $('#t-meta').textContent = caja.total >= META_LOCAL
-      ? 'Meta cumplida' : 'Meta ' + money(META_LOCAL);
+    $('#t-barra').style.width = Math.min(100, caja.total / meta * 100) + '%';
+    $('#t-meta').textContent = caja.total >= meta
+      ? 'Meta cumplida · ' + NOMBRE_PERIODO[periodo]
+      : 'Meta ' + money(meta) + ' · ' + NOMBRE_PERIODO[periodo];
     const com = (caja.porProfesional || []).reduce((t, p) => t + (p.pagar || 0), 0);
     $('#t-comisiones').textContent = money(com);
 
@@ -927,6 +1177,27 @@
       const nm = el('span', 'prof-fila__n'); nm.textContent = p.nombre;
       cab.append(ini, nm);
 
+      /* Quitar del equipo es desactivar, no borrar: las citas pasadas siguen
+         apuntando a esa persona y perderlas descuadraría el histórico. */
+      const quitar = el('button', 'bt bt--mini');
+      quitar.type = 'button';
+      quitar.textContent = p.activo ? 'Quitar del equipo' : 'Reactivar';
+      quitar.addEventListener('click', async () => {
+        const antes = p.activo;
+        const enviar = activo => api('/panel/ajustes', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profesional: { id: p.id, comision: p.comision,
+            entra: p.entra, sale: p.sale, activo } })
+        });
+        try {
+          await enviar(!antes);
+          avisar(antes ? p.nombre + ' quitado del equipo' : p.nombre + ' reactivado',
+                 async () => { await enviar(antes); avisar('Deshecho'); cargarAjustes(); });
+          cargarAjustes();
+        } catch (e) { avisar(e.message || 'No se pudo guardar'); }
+      });
+      cab.appendChild(quitar);
+
       const campos = el('div', 'prof-fila__campos');
       const mk = (rot, input) => { const l = el('label'); l.appendChild(document.createTextNode(rot));
                                    l.appendChild(input); campos.appendChild(l); return input; };
@@ -961,9 +1232,22 @@
     servEditando = s || null;
     $('#sv-titulo').textContent = s ? 'Editar servicio' : 'Nuevo servicio';
     $('#sv-nombre').value = s ? s.nombre : '';
-    $('#sv-nombre').disabled = !!s;   // el nombre es la identidad; se cambia en el código
+    /* Al crear, nombre y categoría se editan: son lo que define el servicio.
+       Al editar quedan fijos porque de ellos sale el identificador, y cambiarlo
+       rompería las citas ya guardadas que lo referencian. */
+    $('#sv-nombre').disabled = !!s;
     $('#sv-precio').value = s && s.precio !== null ? s.precio : '';
-    $('#sv-min').value = s ? s.minutos : 45;
+    const selMin = $('#sv-min');
+    selMin.textContent = '';
+    DURACIONES.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m < 60 ? m + ' min'
+                    : (m / 60 % 1 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min'
+                                  : (m / 60) + (m === 60 ? ' hora' : ' horas'));
+      selMin.appendChild(o);
+    });
+    selMin.value = String(s ? s.minutos : 45);
     const cat = $('#sv-cat'); cat.textContent = '';
     Object.keys(SEGMENTOS).forEach(k => {
       const o = document.createElement('option'); o.value = k; o.textContent = SEGMENTOS[k];
@@ -971,6 +1255,7 @@
     });
     if (s) cat.value = s.segmento;
     cat.disabled = !!s;
+    $('#sv-nombre').placeholder = 'ej. Corte y Barba VIP';
     $('#sv-desc').value = s ? (s.descripcion || '') : '';
     $('#sv-error').hidden = true;
     vistaPrevia();
@@ -995,26 +1280,122 @@
     } catch (e) { avisar(e.message || 'No se pudo guardar'); }
   }
 
+  /* Identificador a partir del nombre: minúsculas, sin tildes, con guiones. El
+     servidor lo vuelve a calcular igual; esto es solo para avisar del choque
+     antes de enviar. */
+  function idDesde(nombre) {
+    return String(nombre).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
+
   $('#sv-guardar').addEventListener('click', async () => {
     const err = $('#sv-error');
     err.hidden = true;
-    if (!servEditando) {
-      /* Crear servicios nuevos toca la carta pública y el catálogo de la base a
-         la vez. Se dice en vez de fallar en silencio. */
-      err.textContent = 'Crear servicios nuevos todavía no está conectado. Por ahora se editan los existentes.';
-      err.hidden = false;
+    const btn = $('#sv-guardar');
+    const precio = $('#sv-precio').value;
+
+    if (servEditando) {
+      btn.disabled = true;
+      try {
+        await guardarServicio({ id: servEditando.id, precio: precio === '' ? null : Number(precio),
+          minutos: Number($('#sv-min').value), descripcion: $('#sv-desc').value,
+          activo: true }, 'Servicio actualizado');
+        $('#dlg-servicio').close();
+      } finally { btn.disabled = false; }
       return;
     }
-    const precio = $('#sv-precio').value;
-    await guardarServicio({ id: servEditando.id, precio: precio === '' ? null : Number(precio),
-                            minutos: Number($('#sv-min').value), activo: true }, 'Servicio actualizado');
-    $('#dlg-servicio').close();
+
+    const nombre = $('#sv-nombre').value.trim();
+    if (!nombre) { err.textContent = 'Ponle un nombre al servicio.'; err.hidden = false; return; }
+    const id = idDesde(nombre);
+    if (!id) { err.textContent = 'Ese nombre no deja construir un identificador.'; err.hidden = false; return; }
+    if ((ajustes && ajustes.servicios || []).some(x => x.id === id)) {
+      err.textContent = 'Ya existe un servicio con ese nombre.'; err.hidden = false; return;
+    }
+
+    btn.disabled = true;
+    const antes = btn.textContent;
+    btn.textContent = ''; btn.appendChild(el('span', 'girando'));
+    btn.appendChild(document.createTextNode(' Publicando'));
+    try {
+      await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ servicio: { nombre, segmento: $('#sv-cat').value,
+          precio: precio === '' ? null : Number(precio), minutos: Number($('#sv-min').value),
+          descripcion: $('#sv-desc').value, activo: true } }) });
+      $('#dlg-servicio').close();
+      avisar('Servicio publicado · ' + nombre);
+      CATALOGO = [];
+      cargarAjustes();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo publicar'; err.hidden = false;
+    } finally { btn.disabled = false; btn.textContent = antes; }
   });
 
   /* =========================================================
      Cobro
      ========================================================= */
-  let citaCobrando = null, medioElegido = 'efectivo';
+  let citaCobrando = null, medioElegido = 'efectivo', comprobante = null;
+
+  /* La foto se encoge en el navegador antes de subirla. Una foto de celular
+     pesa tres o cuatro megas y aquí solo hace falta poder leer el monto y la
+     fecha del recibo: a 900 px de ancho se lee perfectamente y baja a unos
+     100 KB, que es lo que hace viable guardarla junto a la cita. */
+  function encoger(archivo) {
+    return new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onerror = () => reject(new Error('No se pudo leer la foto'));
+      lector.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Ese archivo no es una imagen'));
+        img.onload = () => {
+          const max = 900;
+          const escala = Math.min(1, max / Math.max(img.width, img.height));
+          const lienzo = document.createElement('canvas');
+          lienzo.width = Math.round(img.width * escala);
+          lienzo.height = Math.round(img.height * escala);
+          lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+          resolve(lienzo.toDataURL('image/jpeg', 0.72));
+        };
+        img.src = lector.result;
+      };
+      lector.readAsDataURL(archivo);
+    });
+  }
+
+  function sincronizarComprobante() {
+    const pide = medioElegido === 'transferencia';
+    $('#co-comprobante').hidden = !pide;
+    $('#co-hecho').hidden = !comprobante;
+    $('#co-soltar').hidden = !!comprobante;
+    if (comprobante) $('#co-mini').src = comprobante;
+    const falta = pide && !comprobante;
+    const b = $('#co-guardar');
+    b.disabled = falta;
+    b.title = falta ? 'Adjunta la foto del comprobante para registrar una transferencia' : '';
+    const err = $('#co-error');
+    if (falta) {
+      err.textContent = 'Adjunta la foto del comprobante para registrar una transferencia';
+      err.hidden = false;
+    } else if (err.textContent.startsWith('Adjunta la foto')) {
+      err.hidden = true;
+    }
+  }
+
+  $('#co-archivo').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      comprobante = await encoger(f);
+      $('#co-nombre').textContent = f.name;
+      sincronizarComprobante();
+    } catch (err) {
+      $('#co-error').textContent = err.message; $('#co-error').hidden = false;
+    }
+  });
+  $('#co-cambiar').addEventListener('click', () => {
+    comprobante = null; $('#co-archivo').value = '';
+    sincronizarComprobante();
+  });
 
   function abrirCobro(c) {
     citaCobrando = c;
@@ -1023,6 +1404,7 @@
        o un servicio que se alargó hacen que lo cobrado difiera. */
     $('#co-valor').value = c.total || 0;
     medioElegido = 'efectivo';
+    comprobante = null; $('#co-archivo').value = ''; $('#co-nombre').textContent = '';
     const m = $('#co-medios'); m.textContent = '';
     Object.keys(MEDIOS).forEach(k => {
       const b = el('button', 'medio' + (k === medioElegido ? ' is-on' : ''));
@@ -1030,10 +1412,12 @@
       b.addEventListener('click', () => {
         medioElegido = k;
         m.querySelectorAll('.medio').forEach(x => x.classList.toggle('is-on', x === b));
+        sincronizarComprobante();
       });
       m.appendChild(b);
     });
     $('#co-error').hidden = true;
+    sincronizarComprobante();
     $('#dlg-cobro').showModal();
   }
 
@@ -1043,10 +1427,15 @@
     try {
       await api('/panel/cobrar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cita_id: citaCobrando.id, cobrado: Number($('#co-valor').value),
-                               metodo_pago: medioElegido }) });
+                               metodo_pago: medioElegido, comprobante }) });
       $('#dlg-cobro').close();
       cerrarFicha();
-      avisar('Cobro registrado · ' + money($('#co-valor').value));
+      const id = citaCobrando.id, antes = citaCobrando.estado;
+      avisar('Cobro registrado · ' + money($('#co-valor').value), async () => {
+        await api('/panel/cita', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ id, estado: antes }) });
+        avisar('Cobro deshecho'); cargarDia();
+      });
       cargarDia();
     } catch (e) {
       err.textContent = e.message || 'No se pudo registrar';
