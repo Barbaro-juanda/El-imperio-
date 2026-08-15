@@ -128,6 +128,8 @@
   /* Equipo que puede atender lo elegido. Lo llena la API en cuanto cambia la
      selección; vacío mientras no haya respuesta. */
   let PROFS = [];
+  /* Por qué falló la última carga del equipo, o null si fue bien. */
+  let PROFS_ERROR = null;
   const profPorId = id => PROFS.find(p => p.id === id) || null;
 
   /* REVIEWS se eliminó: los tres testimonios eran inventados por el diseño.
@@ -158,11 +160,31 @@
      lo dice en vez de inventar horarios libres. Enseñar disponibilidad falsa
      es peor que no enseñar ninguna: alguien reservaría una hora que no existe. */
   const API = '/api';
+
+  /* Mensaje para cuando la ruta ni siquiera existe. Pasa al abrir el sitio con
+     un servidor de archivos —el de desarrollo entrega HTML y nada más—, y ahí
+     decir «revisa tu conexión» manda a buscar el problema al sitio equivocado:
+     la conexión está perfecta, lo que falta es el servidor. */
+  const SIN_API = 'La reserva necesita el sitio publicado. Este servidor entrega ' +
+                  'archivos pero no ejecuta la API.';
+
   async function pedir(ruta, opciones) {
-    const r = await fetch(API + ruta, opciones);
+    let r;
+    try {
+      r = await fetch(API + ruta, opciones);
+    } catch (e) {
+      /* fetch solo rechaza si no hubo respuesta: sin red, DNS caído o CORS.
+         Ese sí es un problema de conexión de verdad. */
+      throw Object.assign(new Error('Sin conexión.'), { estado: 0 });
+    }
     let cuerpo = null;
     try { cuerpo = await r.json(); } catch (e) { /* respuesta no JSON */ }
-    if (!r.ok) throw Object.assign(new Error((cuerpo && cuerpo.error) || 'Error ' + r.status), { estado: r.status });
+    if (!r.ok) {
+      /* Un 404 sin cuerpo JSON no es «no encontrado»: es que la función no se
+         está ejecutando. Con cuerpo sí es la API contestando de verdad. */
+      const msg = (cuerpo && cuerpo.error) || (r.status === 404 ? SIN_API : 'Error ' + r.status);
+      throw Object.assign(new Error(msg), { estado: r.status });
+    }
     return cuerpo;
   }
 
@@ -556,8 +578,13 @@
     try {
       const r = await pedir('/profesionales?servicios=' + encodeURIComponent(ids.join(',')));
       PROFS = r.profesionales || [];
+      PROFS_ERROR = null;
     } catch (e) {
       PROFS = [];
+      /* Se guarda el motivo en vez de descartarlo: el paso 2 lo enseña tal
+         cual, que es la diferencia entre «arregla tu wifi» y «esto solo
+         funciona publicado». */
+      PROFS_ERROR = e.message || 'No pudimos cargar el equipo.';
     }
     /* Si el elegido ya no puede con la nueva selección, se suelta. */
     if (state.barber !== null && !profPorId(state.barber)) { state.barber = null; state.slot = null; }
@@ -573,9 +600,9 @@
     wrap.textContent = '';
     if (!PROFS.length) {
       const p = el('p', 'step__hint');
-      p.textContent = seleccion().length
-        ? 'No pudimos cargar el equipo. Revisa tu conexión.'
-        : 'Elige primero un servicio.';
+      p.textContent = !seleccion().length ? 'Elige primero un servicio.'
+        : PROFS_ERROR ? PROFS_ERROR
+        : 'Ningún profesional del equipo presta ese servicio ahora mismo.';
       wrap.appendChild(p);
       return;
     }
