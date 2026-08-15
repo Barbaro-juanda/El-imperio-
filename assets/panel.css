@@ -699,7 +699,7 @@
   color: var(--tenue);
 }
 .par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.hoja menu { display: flex; gap: 8px; justify-content: flex-end; margin: 18px 0 0; padding: 0; }
+.hoja menu { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin: 18px 0 0; padding: 0; }
 .hoja menu .bt { min-height: 44px; padding: 0 20px; }
 
 .monto {
@@ -1034,3 +1034,41 @@
   .mov { grid-template-columns: 2.6rem 1fr; grid-template-areas: 'q n' 'q d' 'q c'; }
   .mov__c { text-align: left; }
 }
+
+/* Eliminar: presente pero nunca llamativo. Solo se enciende cuando ya se pulsó
+   una vez y falta la confirmación, que es el único momento en que hace falta
+   que se note. */
+.bt--borrar {
+  border-color: rgba(155, 48, 64, .3);
+  color: var(--vino);
+  background: transparent;
+}
+.bt--borrar:hover { background: rgba(155, 48, 64, .08); border-color: var(--vino); }
+.bt--confirmar {
+  background: var(--vino);
+  border-color: var(--vino);
+  color: #fff;
+  animation: pulso 1.6s ease-in-out infinite;
+}
+.bt--confirmar:hover { background: var(--vino); }
+/* Eliminar va en su propia fila, debajo y a la izquierda, separado por una
+   linea. Los tres botones juntos no caben en el ancho de la hoja, y de todas
+   formas es lo que corresponde: la accion que no se puede deshacer no comparte
+   fila con la que se pulsa por costumbre. */
+.menu__hueco { display: none; }
+.hoja menu .bt--borrar {
+  order: 2;
+  flex: 0 0 auto;
+  margin: 12px auto 0 0;
+  width: 100%;
+  max-width: max-content;
+}
+.hoja menu::after {
+  content: '';
+  order: 1;
+  flex: 0 0 100%;
+  border-top: 1px solid var(--linea);
+  margin-top: 14px;
+}
+/* Sin boton de borrar no hay nada que separar. */
+.hoja menu:not(:has(.bt--borrar:not([hidden])))::after { display: none; }

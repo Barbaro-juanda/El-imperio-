@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=14">
+<link rel="stylesheet" href="assets/panel.css?v=17">
 </head>
 <body class="panel">
 
@@ -430,6 +430,11 @@
       <p class="nota" id="pr-nota-exist">Las existencias solo se cambian registrando entrada de mercancía o corrección de conteo, para que el historial siempre explique el número.</p>
       <p class="acceso__error" id="pr-error" role="alert" hidden></p>
       <menu>
+        <!-- Eliminar va separado de los otros dos y sin relleno: es la única
+             acción de esta hoja que no se puede deshacer, y no debe quedar
+             junto al botón que se pulsa por costumbre. -->
+        <button class="bt bt--borrar" id="pr-borrar" type="button" hidden>Eliminar producto</button>
+        <span class="menu__hueco"></span>
         <button class="bt" value="cancel" type="submit">Cancelar</button>
         <button class="bt bt--vino" id="pr-guardar" type="button">Guardar producto</button>
       </menu>
@@ -475,6 +480,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=16"></script>
+<script src="assets/panel.js?v=18"></script>
 </body>
 </html>

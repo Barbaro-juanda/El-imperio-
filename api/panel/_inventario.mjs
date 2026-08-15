@@ -3,6 +3,7 @@
                                 { producto }  → crea un producto      (dueño)
                                 { entrada }   → registra mercancía    (dueño)
    PATCH /api/panel/inventario  { producto }  → precio, mínimo, activo (dueño)
+   DELETE /api/panel/inventario { id }        → lo borra si nunca se vendió (dueño)
 
    Vender lo puede hacer cualquiera: el barbero le vende la cera al cliente en
    la silla y no tiene sentido que tenga que ir a buscar al administrador. Lo
@@ -201,6 +202,38 @@ export default protegido(async (req, res) => {
          WHERE id = ${p.id} RETURNING id, precio, existencias, activo`;
       if (!r.length) return json(res, 404, { error: 'Ese producto no existe' });
       return json(res, 200, r[0]);
+    }
+
+    /* ---------------- eliminar producto ---------------- */
+    if (req.method === 'DELETE') {
+      const id = b.id || req.query.id;
+      if (!id) return json(res, 400, { error: 'Falta el producto' });
+
+      const hay = await sql`SELECT nombre FROM producto WHERE id = ${id}`;
+      if (!hay.length) return json(res, 404, { error: 'Ese producto no existe' });
+
+      /* Si se vendió alguna vez, no se borra. Esas ventas son dinero que entró
+         un día concreto y ya está sumado en la caja de ese día: quitarlas haría
+         que un cuadre cerrado la semana pasada devolviera otra cifra hoy, sin
+         que nadie tocara nada. Para eso está archivar, que lo saca de la vista
+         y deja el histórico en pie. */
+      const ventas = await sql`
+        SELECT count(*)::int AS n FROM movimiento WHERE producto_id = ${id} AND tipo = 'venta'`;
+      if (ventas[0].n > 0) {
+        return json(res, 409, {
+          error: hay[0].nombre + ' ya se vendió ' + ventas[0].n +
+                 (ventas[0].n === 1 ? ' vez' : ' veces') +
+                 ', así que borrarlo cambiaría cajas ya cerradas. Archívalo.',
+          archivar: true
+        });
+      }
+
+      /* Entradas y correcciones sí se van con él: son el conteo interno de un
+         producto que nunca llegó a vender nada, y sin el producto no explican
+         ya nada de la caja. */
+      await sql`DELETE FROM movimiento WHERE producto_id = ${id}`;
+      await sql`DELETE FROM producto WHERE id = ${id}`;
+      return json(res, 200, { id, nombre: hay[0].nombre });
     }
 
     return json(res, 405, { error: 'Nada que hacer' });

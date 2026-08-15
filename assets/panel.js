@@ -166,7 +166,28 @@
                metodo_pago: c.metodo_pago, cobrado: c.cobrado, comprobante: c.comprobante || null })) };
   }
 
-  function respuestaDemo(ruta) {
+  function respuestaDemo(ruta, opciones) {
+    const metodo = (opciones && opciones.method) || 'GET';
+
+    /* El borrado sí se ejecuta de verdad sobre los datos de muestra —y con la
+       misma regla que el servidor— porque una demostración que dice «eliminado»
+       y deja el producto ahí enseña algo que no es. Se pierde al recargar, que
+       es lo que corresponde: nada de esto sale de este archivo. */
+    if (metodo === 'DELETE' && ruta.startsWith('/panel/inventario')) {
+      const id = decodeURIComponent((ruta.split('id=')[1] || ''));
+      const p2 = MUESTRA.productos.find(x => x.id === id);
+      if (!p2) throw Object.assign(new Error('Ese producto no existe'), { estado: 404 });
+      const n = MUESTRA.movimientos.filter(m => m.producto_id === id && m.tipo === 'venta').length;
+      if (n) {
+        throw Object.assign(new Error(p2.nombre + ' ya se vendió ' + n +
+          (n === 1 ? ' vez' : ' veces') + ', así que borrarlo cambiaría cajas ya cerradas. Archívalo.'),
+          { estado: 409 });
+      }
+      MUESTRA.productos.splice(MUESTRA.productos.indexOf(p2), 1);
+      MUESTRA.movimientos = MUESTRA.movimientos.filter(m => m.producto_id !== id);
+      return { id, nombre: p2.nombre };
+    }
+
     if (ruta.startsWith('/panel/agenda'))    return demoAgenda();
     if (ruta.startsWith('/panel/caja'))      return demoCaja();
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
@@ -183,7 +204,7 @@
   const SIN_API = 'El panel necesita el sitio publicado. En local no se ejecutan las funciones del servidor.';
 
   async function api(ruta, opciones) {
-    if (DEMO) { await new Promise(r => setTimeout(r, 90)); return respuestaDemo(ruta); }
+    if (DEMO) { await new Promise(r => setTimeout(r, 90)); return respuestaDemo(ruta, opciones); }
     let r;
     try { r = await fetch('/api' + ruta, opciones); }
     catch (e) { throw Object.assign(new Error('Sin conexión.'), { estado: 0 }); }
@@ -1687,6 +1708,12 @@
     $('#pr-lexist').hidden = !!p;
     $('#pr-nota-exist').hidden = !p;
     $('#pr-guardar').textContent = p ? 'Guardar cambios' : 'Añadir producto';
+    /* Solo tiene sentido al editar: lo que aún no existe no se borra. */
+    const borrar = $('#pr-borrar');
+    borrar.hidden = !p;
+    borrar.textContent = 'Eliminar producto';
+    borrar.classList.remove('bt--confirmar');
+    confirmandoBorrado = false;
     $('#pr-error').hidden = true;
     verMargen();
     $('#dlg-producto').showModal();
@@ -1706,6 +1733,45 @@
   }
   ['#pr-precio', '#pr-costo'].forEach(s => $(s).addEventListener('input', verMargen));
   $('#abrir-producto').addEventListener('click', () => abrirProducto(null));
+
+  /* Borrar es la única acción del panel que no ofrece deshacer, porque no hay
+     nada que devolver: la fila deja de existir. Por eso aquí sí se confirma
+     antes, y se hace en el mismo botón —que cambia de texto— en vez de con un
+     diálogo encima de otro diálogo, que es donde la gente pulsa «sí» sin leer. */
+  let confirmandoBorrado = false;
+
+  $('#pr-borrar').addEventListener('click', async () => {
+    const b = $('#pr-borrar');
+    const err = $('#pr-error');
+    if (!confirmandoBorrado) {
+      confirmandoBorrado = true;
+      b.textContent = 'Sí, eliminar';
+      b.classList.add('bt--confirmar');
+      /* Si se arrepiente y no hace nada, vuelve solo a su sitio. */
+      setTimeout(() => {
+        if (!confirmandoBorrado) return;
+        confirmandoBorrado = false;
+        b.textContent = 'Eliminar producto';
+        b.classList.remove('bt--confirmar');
+      }, 5000);
+      return;
+    }
+    b.disabled = true;
+    err.hidden = true;
+    try {
+      const r = await api('/panel/inventario?id=' + encodeURIComponent(prodEditando.id),
+                          { method: 'DELETE' });
+      $('#dlg-producto').close();
+      avisar('Producto eliminado · ' + (r.nombre || prodEditando.nombre));
+      cargarInventario();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo eliminar';
+      err.hidden = false;
+      confirmandoBorrado = false;
+      b.textContent = 'Eliminar producto';
+      b.classList.remove('bt--confirmar');
+    } finally { b.disabled = false; }
+  });
 
   async function guardarProducto(datos, texto) {
     try {
