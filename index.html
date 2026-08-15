@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=7">
+<link rel="stylesheet" href="assets/styles.css?v=10">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -622,7 +622,7 @@
 <!-- ============================= GALERÍA ============================= -->
 <section class="section section--paper" id="galeria">
   <div class="section__head section__head--split">
-    <div class="section__title">
+    <div class="section__title" data-rv>
       <span class="eyebrow">01 — Galería</span>
       <h2>Trabajo <em>Reciente</em></h2>
     </div>
@@ -631,16 +631,16 @@
   <!-- Aquí el alt sí describe: son trabajos reales y no hay texto cerca que
        cuente lo que muestra cada imagen. -->
   <div class="gallery">
-    <button class="tile" type="button" data-lightbox="0">
+    <button class="tile" type="button" data-lightbox="0" data-rv>
       <img src="assets/trabajo-1.jpg" alt="Afeitado tradicional: aplicación de aceite sobre barba con toalla y espuma" width="800" height="1100" loading="lazy" decoding="async">
     </button>
-    <button class="tile" type="button" data-lightbox="1">
+    <button class="tile" type="button" data-lightbox="1" data-rv>
       <img src="assets/trabajo-2.jpg" alt="Corte con máquina perfilando un fade sobre la sien" width="800" height="1145" loading="lazy" decoding="async">
     </button>
-    <button class="tile" type="button" data-lightbox="2">
+    <button class="tile" type="button" data-lightbox="2" data-rv>
       <img src="assets/trabajo-3.jpg" alt="Perfilado de barba a navaja, vista de perfil" width="800" height="759" loading="lazy" decoding="async">
     </button>
-    <button class="tile tile--video" type="button" data-lightbox="3" aria-label="Ver el diseño freestyle tallado a máquina sobre el cabello">
+    <button class="tile tile--video" type="button" data-lightbox="3" aria-label="Ver el diseño freestyle tallado a máquina sobre el cabello" data-rv>
       <video src="assets/trabajo-4.mp4" poster="assets/trabajo-4-poster.webp"
              muted loop playsinline preload="none" aria-hidden="true"></video>
     </button>
@@ -650,7 +650,7 @@
 <!-- ============================= SERVICIOS ============================= -->
 <section class="section section--ink" id="servicios">
   <div class="section__head">
-    <div class="section__title">
+    <div class="section__title" data-rv>
       <span class="eyebrow">02 — Servicios</span>
       <h2>El <em class="wine">Ritual</em></h2>
     </div>
@@ -676,7 +676,7 @@
          del flujo de reserva. Algunas filas juntan dos servicios de la carta
          (mascarillas, depilación). Generado desde SERVICES en assets/app.js. -->
     <div class="menu">
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cortes</h3>
       <ul class="menu__list">
         <li class="menu__row">
@@ -723,7 +723,7 @@
         </li>
       </ul>
     </div>
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Color y tratamiento</h3>
       <ul class="menu__list">
         <li class="menu__row">
@@ -746,7 +746,7 @@
         </li>
       </ul>
     </div>
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Depilación facial</h3>
       <ul class="menu__list">
         <li class="menu__row">
@@ -769,7 +769,7 @@
         </li>
       </ul>
     </div>
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cejas</h3>
       <ul class="menu__list">
         <li class="menu__row">
@@ -786,7 +786,7 @@
         </li>
       </ul>
     </div>
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Limpieza facial</h3>
       <ul class="menu__list">
         <li class="menu__row menu__row--destacado">
@@ -821,7 +821,7 @@
         </li>
       </ul>
     </div>
-    <div class="menu__group">
+    <div class="menu__group" data-rv>
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Uñas</h3>
       <ul class="menu__list">
         <li class="menu__row menu__row--destacado">
@@ -928,19 +928,19 @@
 
 <!-- ============================= BARBEROS ============================= -->
 <section class="section section--paper" id="barberos">
-  <div class="section__head section__head--center">
+  <div class="section__head section__head--center" data-rv>
     <span class="eyebrow">03 — Barberos</span>
     <h2>Las <em>Manos</em></h2>
   </div>
   <div class="barbers" id="barbers-list">
-    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Emanuel"><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Emanuel</span><span class="barber__tag">Elegir</span></span></button>
-    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon"><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
+    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Emanuel" data-rv><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Emanuel</span><span class="barber__tag">Elegir</span></span></button>
+    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon" data-rv><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
   </div>
 </section>
 
 <!-- ============================= RESEÑAS ============================= -->
 <section class="section section--ink" id="resenas">
-  <div class="section__head section__head--center">
+  <div class="section__head section__head--center" data-rv>
     <span class="eyebrow">04 — Reseñas</span>
     <h2>Lo que <em class="wine">Dicen</em></h2>
   </div>
@@ -955,7 +955,7 @@
     pero quedan congeladas) o consumirlas con la Places API de Google
     (se actualizan solas, requiere API key con facturación activa).
   -->
-  <div class="gscore">
+  <div class="gscore" data-rv>
     <div class="gscore__figure">
       <span class="gscore__num">5,0</span>
       <span class="gscore__stars" aria-hidden="true">★★★★★</span>
@@ -1194,6 +1194,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=7"></script>
+<script src="assets/app.js?v=11"></script>
 </body>
 </html>

@@ -169,6 +169,9 @@
   const money = n => '$' + n.toLocaleString('es-CO');
   const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
   const $  = sel => document.querySelector(sel);
+  /* Devuelve un arreglo y no la NodeList, para poder usar indexOf y filter
+     sin convertirla en cada sitio. */
+  const $$ = sel => Array.prototype.slice.call(document.querySelectorAll(sel));
   const pad = n => String(n).padStart(2, '0');
   const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 
@@ -1174,6 +1177,155 @@
   }
 
 
+
+  /* ------------------------------------------------------
+     Aparición al hacer scroll
+     ------------------------------------------------------ */
+  function setupRevelado() {
+    const piezas = $$('[data-rv]');
+    if (!piezas.length) return;
+
+    /* Si el navegador no trae el observador, o el visitante pidió no ver
+       movimiento, no se toca nada: el contenido ya está visible en el HTML y
+       esconderlo para luego enseñarlo sería empeorarlo. */
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (quieto || !('IntersectionObserver' in window)) return;
+
+    /* El estado inicial se pone AQUÍ y no en la hoja de estilos a propósito.
+       Un `opacity:0` en CSS deja la página en blanco para siempre si este
+       archivo no llega a ejecutarse —un error de red, un bloqueador, una
+       sintaxis nueva en un navegador viejo—. Puesto desde JavaScript, el
+       riesgo desaparece: si el script no corre, tampoco esconde nada. */
+    piezas.forEach(n => {
+      n.style.opacity = '0';
+      n.style.transform = 'translateY(26px)';
+      n.style.willChange = 'opacity, transform';
+    });
+
+    /* Mostrar un elemento, venga de donde venga la orden. */
+    function revelar(n, d) {
+      if (n.dataset.rvHecho) return;
+      n.dataset.rvHecho = '1';
+      n.style.transition = 'opacity .9s var(--ease) ' + d + 'ms, ' +
+                           'transform .9s var(--ease) ' + d + 'ms';
+      n.style.opacity = '1';
+      n.style.transform = 'none';
+      /* Se suelta el will-change: si se deja puesto, el navegador mantiene una
+         capa reservada en memoria por cada elemento del sitio, para siempre. */
+      setTimeout(() => { n.style.willChange = ''; }, 900 + d);
+    }
+
+    /* Red de seguridad. El observador puede no llegar a dispararse nunca:
+       navegadores que lo implementan a medias, pestañas que el sistema
+       congela por estar en segundo plano, un contenedor con overflow que
+       rompe el cálculo. Cualquiera de esos casos dejaría media página en
+       blanco de forma permanente, que es mucho peor que perderse la
+       animación. Pasados tres segundos se enseña lo que siga escondido. */
+    setTimeout(() => piezas.forEach(n => revelar(n, 0)), 3000);
+
+    const obs = new IntersectionObserver((entradas, o) => {
+      entradas.forEach(e => {
+        if (!e.isIntersecting) return;
+        const n = e.target;
+
+        /* El escalonado se calcula contra los hermanos marcados, no contra
+           todos los elementos de la página: así una fila de cuatro tarjetas
+           entra en cascada, pero un título suelto no hereda el retraso de lo
+           que vino antes. Se topa en seis para que una galería larga no acabe
+           con el último elemento entrando medio segundo tarde. */
+        const hermanos = n.parentElement
+          ? Array.prototype.filter.call(n.parentElement.children, x => x.hasAttribute('data-rv'))
+          : [n];
+        const i = Math.min(6, hermanos.indexOf(n));
+        const d = i * 90;
+
+        revelar(n, d);
+        o.unobserve(n);   // una sola vez: al volver a subir no reaparece
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+
+    piezas.forEach(n => obs.observe(n));
+  }
+
+  /* ------------------------------------------------------
+     Acordeón de la carta
+     ------------------------------------------------------ */
+  function setupAcordeon() {
+    const grupos = $$('.menu__group');
+    if (grupos.length < 2) return;
+
+    /* El acordeón se construye aquí y no viene escrito en el HTML por una
+       razón concreta: sin JavaScript, un acordeón cerrado deja cinco de las
+       seis categorías inalcanzables, y este bloque existe justamente para
+       poder leerse y indexarse sin scripts. Escrito así, quien no ejecuta
+       JavaScript ve la carta entera; quien sí, la ve plegada. */
+    grupos.forEach((g, gi) => {
+      const titulo = g.querySelector('.menu__group-title');
+      const lista  = g.querySelector('.menu__list');
+      if (!titulo || !lista) return;
+
+      const id = 'carta-panel-' + gi;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'menu__group-btn';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-controls', id);
+
+      const mas = document.createElement('span');
+      mas.className = 'menu__plus';
+      mas.setAttribute('aria-hidden', 'true');
+      mas.textContent = '+';
+
+      titulo.parentNode.insertBefore(btn, titulo);
+      btn.appendChild(titulo);
+      btn.appendChild(mas);
+
+      /* El envoltorio es lo que permite animar de 0fr a 1fr: la fila de la
+         rejilla crece, y el hijo con overflow oculto recorta mientras tanto. */
+      const panel = document.createElement('div');
+      panel.className = 'menu__panel';
+      panel.id = id;
+      const caja = document.createElement('div');
+      lista.parentNode.insertBefore(panel, lista);
+      caja.appendChild(lista);
+      panel.appendChild(caja);
+
+      btn.addEventListener('click', () => abrir(g, btn.getAttribute('aria-expanded') !== 'true'));
+    });
+
+    function abrir(grupo, si) {
+      grupos.forEach(g => {
+        const b = g.querySelector('.menu__group-btn');
+        const panel = g.querySelector('.menu__panel');
+        const mas = g.querySelector('.menu__plus');
+        if (!b || !panel) return;
+
+        /* Una sola abierta: con seis categorías abiertas a la vez el acordeón
+           no ahorra nada y la página vuelve a ser la lista larga de antes. */
+        const abierta = g === grupo && si;
+
+        b.setAttribute('aria-expanded', String(abierta));
+        g.classList.toggle('is-open', abierta);
+
+        /* Las tres propiedades que se animan se escriben además en línea. La
+           clase sola debería bastar, pero hay motores que no reevalúan la hoja
+           al cambiarla y dejan el panel pintado como estaba —abierto con la
+           clase ya quitada— aunque el DOM sea correcto. Un estilo en línea no
+           pasa por el emparejado de selectores, así que se aplica siempre. La
+           transición sigue viniendo del CSS: funciona igual sobre un cambio
+           en línea. */
+        panel.style.gridTemplateRows = abierta ? '1fr' : '0fr';
+        panel.style.opacity = abierta ? '1' : '0';
+        if (mas) mas.style.transform = abierta ? 'rotate(135deg)' : 'rotate(0deg)';
+      });
+    }
+
+    /* Cortes abierta de entrada: es la categoría por la que entra casi todo el
+       mundo, y una carta que arranca entera cerrada parece vacía. */
+    abrir(grupos[0], true);
+  }
+
   /* ------------------------------------------------------
      Enlaces externos configurables
      ------------------------------------------------------ */
@@ -1290,6 +1442,8 @@
   setupLightbox();
   setupHeroVideo();
   setupServiceMenu();
+  setupAcordeon();
+  setupRevelado();
   setupReviewsMarquee();
   setupInlineVideos();
   renderBarbers();
