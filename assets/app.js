@@ -34,7 +34,8 @@
      cuando el servicio lo presta una sola persona: nueve de los doce de uñas
      los hace solo Valentina, pero la base rubber, el press-on y su retiro los
      prestan los tres, así que ahí sí hay a quién elegir. */
-  const SEGMENTOS = {
+  /* No es constante: el catálogo del panel la reemplaza al cargar. */
+  let SEGMENTOS = {
     cortes:     'Cortes',
     color:      'Color y tratamiento',
     depilacion: 'Depilación facial',
@@ -49,7 +50,9 @@
      varios: son zonas y tratamientos que se combinan. */
   const UNICO = ['cortes', 'color', 'cejas', 'unas'];
 
-  const SERVICES = [
+  /* Respaldo. Se ve al instante, se indexa y funciona sin API; cuando llega
+     el catálogo de la base se reemplaza entero. */
+  let SERVICES = [
     // — Cortes —
     { id: 'corte-sencillo', group: 'cortes', name: 'Corte Sencillo', price: 35000, desc: 'Lavado de cabello y peinado.', min: 45 },
     { id: 'corte-vip', group: 'cortes', name: 'Corte VIP', price: 45000, desc: 'Bebida de cortesía, limpieza facial y vapor ozono.', destacado: true, min: 60 },
@@ -1353,6 +1356,192 @@
     abrir(grupos[0], true);
   }
 
+
+  /* ------------------------------------------------------
+     El panel manda: carta, horario y vitrina
+     ------------------------------------------------------
+     Todo lo que sigue existe para que el local pueda cambiar la página desde
+     el panel sin tocar código. Lo escrito en el HTML y en SERVICES no es
+     decoración: es el respaldo. Se ve al instante, se indexa, funciona sin
+     JavaScript y sigue funcionando si la base no responde. Cuando el catálogo
+     llega, se pinta encima.
+
+     Ese orden importa. Al revés —página vacía que espera a la API— cualquier
+     tropiezo del servidor deja al visitante mirando un hueco, y el visitante
+     no vuelve. */
+
+  const DIAS_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+  /* La base guarda el segmento; el rótulo que ve el cliente vive aquí. Añadir
+     una categoría nueva en el panel no debería obligar a tocar este archivo,
+     así que un segmento desconocido se rotula con su propio nombre. */
+  const ROTULO_SEG = {
+    cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
+    cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas', adicionales: 'Adicionales'
+  };
+  const rotuloSeg = k => ROTULO_SEG[k] ||
+    String(k).replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+
+  /* Traduce una fila de la base a la forma que ya usa el resto del archivo.
+     Se hace aquí y en un solo sitio para que el cambio de origen no se note en
+     ninguna otra función. */
+  function deLaBase(s) {
+    const respaldo = SERVICES.find(x => x.id === s.id);
+    return {
+      id: s.id,
+      group: s.solo_adicional ? 'adicionales' : s.segmento,
+      name: s.nombre,
+      price: s.precio === null || s.precio === undefined ? null : Number(s.precio),
+      desc: s.descripcion || (respaldo && respaldo.desc) || '',
+      min: Number(s.minutos),
+      /* Precio sin fijar no es un dato que falte: es «según diseño», y así se
+         anuncia en vez de inventar una cifra. */
+      nota: s.precio === null ? 'Consultar' : undefined,
+      /* Con un solo profesional no hay nada que elegir y el paso se salta.
+         Sale de quién presta el servicio hoy, no de una lista escrita a mano
+         que envejece en cuanto alguien entra o sale del equipo. */
+      sinBarbero: (s.profesionales || []).length === 1,
+      /* El destacado es criterio editorial del sitio, no un dato del negocio:
+         la base no lo guarda, así que se conserva el del respaldo. */
+      destacado: !!(respaldo && respaldo.destacado)
+    };
+  }
+
+  async function cargarCatalogo() {
+    let cat;
+    try {
+      cat = await pedir('/catalogo');
+    } catch (e) {
+      /* Sin catálogo la página se queda con lo que trae escrito, que es válido
+         y está a la vista. No se avisa de nada: el visitante no tiene por qué
+         enterarse de que una llamada falló si lo que ve es correcto. */
+      return;
+    }
+
+    if (cat.servicios && cat.servicios.length) {
+      SERVICES = cat.servicios.map(deLaBase);
+      /* Los segmentos salen de lo que hay, y en el orden en que la carta los
+         presenta. Si el local deja de prestar todo un grupo, la pestaña
+         desaparece sola en vez de abrir en un vacío. */
+      const vistos = [];
+      SERVICES.forEach(s => { if (vistos.indexOf(s.group) === -1) vistos.push(s.group); });
+      SEGMENTOS = {};
+      vistos.forEach(k => { SEGMENTOS[k] = rotuloSeg(k); });
+      if (vistos.indexOf(segActivo) === -1) segActivo = vistos[0];
+
+      pintarCarta();
+      setupAcordeon();   // la carta se rehízo entera: hay que volver a plegarla
+      renderSegs();
+      renderPickServices();
+    }
+
+    if (cat.horario && cat.horario.length) pintarHorario(cat.horario);
+    pintarProductos(cat.productos || []);
+  }
+
+  /* ---------- carta de la portada ---------- */
+  function pintarCarta() {
+    const menu = $('.menu');
+    if (!menu) return;
+
+    const porGrupo = {};
+    SERVICES.forEach(s => { (porGrupo[s.group] = porGrupo[s.group] || []).push(s); });
+
+    menu.textContent = '';
+    Object.keys(porGrupo).forEach(g => {
+      const grupo = el('div', 'menu__group');
+      grupo.setAttribute('data-rv', '');
+
+      const h3 = el('h3', 'menu__group-title');
+      const motivo = el('span', 'menu__motif');
+      motivo.setAttribute('aria-hidden', 'true');
+      motivo.textContent = '⚜';
+      h3.append(motivo, document.createTextNode(' ' + rotuloSeg(g)));
+
+      const ul = el('ul', 'menu__list');
+      porGrupo[g].forEach(s => {
+        const li = el('li', 'menu__row' + (s.destacado ? ' menu__row--destacado' : ''));
+
+        const nom = el('span', 'menu__name');
+        nom.appendChild(document.createTextNode(s.name));
+        if (s.destacado) {
+          const m = el('span', 'menu__motif');
+          m.setAttribute('aria-hidden', 'true');
+          m.textContent = ' ⚜';
+          nom.appendChild(m);
+        }
+        const desc = el('span', 'menu__desc'); desc.textContent = s.desc || '';
+        const pre = el('span', 'menu__price');
+        pre.textContent = s.price === null ? (s.nota || 'Consultar') : money(s.price);
+        /* La duración no se enseña en ninguna parte del sitio, pero la celda
+           sostiene la rejilla de cuatro columnas. */
+        const dur = el('span', 'menu__dur'); dur.textContent = '—';
+
+        li.append(nom, desc, pre, dur);
+        ul.appendChild(li);
+      });
+
+      grupo.append(h3, ul);
+      menu.appendChild(grupo);
+    });
+  }
+
+  /* ---------- horario ---------- */
+  function pintarHorario(horario) {
+    const caja = $('#horario-local');
+    if (!caja) return;
+
+    /* Los días con el mismo horario se juntan en un tramo: «Lun – Vie · 9:00 –
+       20:00» se lee de un vistazo y siete líneas no. Se recorre de lunes a
+       domingo, que es como lo lee la gente, y no de domingo a sábado, que es
+       como lo numera la base. */
+    const orden = [1, 2, 3, 4, 5, 6, 0];
+    const dias = orden.map(dow => horario.find(h => h.dow === dow)).filter(Boolean);
+    if (!dias.length) return;
+
+    const clave = d => d.abierto ? d.abre + '-' + d.cierra : 'cerrado';
+    const tramos = [];
+    dias.forEach(d => {
+      const ultimo = tramos[tramos.length - 1];
+      if (ultimo && clave(ultimo.fin) === clave(d)) { ultimo.fin = d; return; }
+      tramos.push({ ini: d, fin: d });
+    });
+
+    const nombre = d => DIAS_LARGO[d.dow].slice(0, 3);
+    caja.textContent = '';
+    tramos.forEach((t, i) => {
+      if (i) caja.appendChild(document.createElement('br'));
+      const rango = t.ini === t.fin ? DIAS_LARGO[t.ini.dow] : nombre(t.ini) + ' – ' + nombre(t.fin);
+      caja.appendChild(document.createTextNode(
+        rango + ' · ' + (t.ini.abierto ? t.ini.abre + ' – ' + t.ini.cierra : 'Cerrado')));
+    });
+  }
+
+  /* ---------- vitrina ---------- */
+  function pintarProductos(productos) {
+    const seccion = $('#productos');
+    const caja = $('#prods-web');
+    if (!seccion || !caja) return;
+
+    /* Sin productos la sección no se enseña vacía ni con un «próximamente»:
+       simplemente no está. Una sección vacía en una página comercial parece un
+       error, no una promesa. */
+    seccion.hidden = !productos.length;
+    caja.textContent = '';
+    if (!productos.length) return;
+
+    productos.forEach(p => {
+      const n = el('article', 'prod-web');
+      const nom = el('h3', 'prod-web__n'); nom.textContent = p.nombre;
+      n.appendChild(nom);
+      if (p.marca) { const m = el('span', 'prod-web__m'); m.textContent = p.marca; n.appendChild(m); }
+      if (p.descripcion) { const d = el('p', 'prod-web__d'); d.textContent = p.descripcion; n.appendChild(d); }
+      const pr = el('span', 'prod-web__p'); pr.textContent = money(Number(p.precio));
+      n.appendChild(pr);
+      caja.appendChild(n);
+    });
+  }
+
   /* ------------------------------------------------------
      Enlaces externos configurables
      ------------------------------------------------------ */
@@ -1471,6 +1660,9 @@
   setupServiceMenu();
   setupAcordeon();
   setupRevelado();
+  /* Va al final y sin await: la página ya está completa y usable con lo que
+     trae escrito. Esto solo la pone al día con lo que diga el panel. */
+  cargarCatalogo();
   setupReviewsMarquee();
   setupInlineVideos();
   renderBarbers();

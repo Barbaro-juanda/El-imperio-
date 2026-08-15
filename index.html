@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=12">
+<link rel="stylesheet" href="assets/styles.css?v=13">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -938,10 +938,23 @@
   </div>
 </section>
 
+<!-- ============================= PRODUCTOS ============================= -->
+<!-- Nace oculta y sin contenido: la llena assets/app.js con lo que haya en el
+     inventario del panel. Escribir aquí una lista de productos la dejaría
+     mintiendo en cuanto se acabara uno, y el stock cambia todos los días. -->
+<section class="section section--paper" id="productos" hidden>
+  <div class="section__head section__head--center" data-rv>
+    <span class="eyebrow">04 — Vitrina</span>
+    <h2>Para <em>Llevar</em></h2>
+  </div>
+  <div class="prods-web" id="prods-web"></div>
+  <p class="prods-web__pie">Se venden en el local. Pregunta por ellos en tu cita.</p>
+</section>
+
 <!-- ============================= RESEÑAS ============================= -->
 <section class="section section--ink" id="resenas">
   <div class="section__head section__head--center" data-rv>
-    <span class="eyebrow">04 — Reseñas</span>
+    <span class="eyebrow">05 — Reseñas</span>
     <h2>Lo que <em class="wine">Dicen</em></h2>
   </div>
   <!--
@@ -997,7 +1010,7 @@
 <!-- ============================= UBICACIÓN ============================= -->
 <section class="location" id="ubicacion">
   <div class="location__info">
-    <span class="eyebrow">05 — Ubicación</span>
+    <span class="eyebrow">06 — Ubicación</span>
     <h2>Dónde <em>Estamos</em></h2>
     <dl class="facts">
       <div class="fact">
@@ -1007,7 +1020,10 @@
       </div>
       <div class="fact">
         <dt>Horario</dt>
-        <dd>Lun – Vie · 9:00 – 20:00<br>Sábado · 9:00 – 18:00<br>Domingo · Cerrado</dd>
+        <!-- El texto que viene escrito es el horario de hoy y es lo que se
+             indexa y lo que se lee sin JavaScript. Si la base dice otra cosa
+             —el local cambió el horario desde el panel— se repinta encima. -->
+        <dd id="horario-local">Lun – Vie · 9:00 – 20:00<br>Sábado · 9:00 – 18:00<br>Domingo · Cerrado</dd>
       </div>
       <div class="fact">
         <dt>Contacto</dt>
@@ -1194,6 +1210,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=12"></script>
+<script src="assets/app.js?v=13"></script>
 </body>
 </html>

@@ -1554,3 +1554,53 @@ body.is-locked { overflow: hidden; }
   .menu__panel { transition: none; }
   .menu__plus { transition: none; }
 }
+
+/* ---------------------------------------------------------
+   Vitrina — productos que el local vende
+   La llena assets/app.js desde el inventario del panel. Si no
+   hay nada en existencias la sección entera va oculta: una
+   sección vacía en una página comercial se lee como un error,
+   no como una promesa.
+   --------------------------------------------------------- */
+.prods-web {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+.prod-web {
+  border: 1px solid var(--line-ink);
+  padding: 24px 22px 26px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: rgba(13, 13, 13, .02);
+  transition: border-color .4s ease, transform .5s var(--ease), background-color .4s ease;
+}
+.prod-web:hover {
+  border-color: var(--wine);
+  transform: translateY(-4px);
+  background: rgba(13, 13, 13, .04);
+}
+.prod-web__n { font: 400 clamp(1.25rem, 1.8vw, 1.5rem)/1.15 var(--serif); color: var(--ink); }
+.prod-web__m {
+  font: 400 10px/1 var(--sans);
+  letter-spacing: .26em; text-transform: uppercase;
+  color: var(--gold-on-light);
+}
+.prod-web__d { margin: 0; font: 300 14px/1.65 var(--sans); color: rgba(13, 13, 13, .68); }
+/* El precio se separa del texto y se ancla abajo, para que en una fila de
+   tarjetas de distinto alto todos queden a la misma altura. */
+.prod-web__p {
+  margin-top: auto; padding-top: 10px;
+  font: 400 18px/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.prods-web__pie {
+  margin: 22px 0 0;
+  font: 300 12px/1.6 var(--sans);
+  letter-spacing: .1em;
+  color: rgba(13, 13, 13, .55);
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .prod-web:hover { transform: none; }
+}
