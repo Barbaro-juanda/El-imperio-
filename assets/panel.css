@@ -712,9 +712,18 @@
   font: 400 2rem/1 var(--serif); color: var(--ink);
 }
 .monto input:focus { border: 0; }
-.medios { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+/* Rejilla y no flex: con flex, «Transferencia» —que es la palabra mas larga y
+   ademas va espaciada— desbordaba su caja y se montaba sobre «Tarjeta». Aqui
+   la columna nunca baja de lo que mide esa palabra, y en el ancho de la hoja
+   caen solas en dos filas de dos, que se lee mejor que tres y uno suelto. */
+.medios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
 .medio {
-  flex: 1; min-width: 84px; min-height: 42px;
+  min-height: 42px; padding: 0 10px;
   background: none; border: 1px solid var(--linea); cursor: pointer;
   font: 300 10px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase;
   color: var(--tenue);
