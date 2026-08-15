@@ -42,7 +42,17 @@
      nombre de host, que el navegador no deja falsear: en cualquier dirección
      publicada queda muerto y el panel exige clave y habla con la base.
      ========================================================= */
-  const DEMO = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
+  const DEMO = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1 ||
+               new URLSearchParams(location.search).has('demo');
+
+  /* El ?demo=1 también funciona en el sitio publicado, y es seguro: en este
+     modo NADA sale de este archivo. No se llama a la API, no se abre sesión y
+     no se toca la base, así que no hay dato real que se pueda filtrar ni cita
+     inventada que ocupe un cupo de verdad.
+
+     Se hace así y no sembrando filas de mentira en producción porque el sitio
+     ya recibe reservas: una cita falsa bloquearía esa hora para un cliente real
+     y ensuciaría la caja y las comisiones. */
 
   const MUESTRA = (() => {
     const h = ymd(new Date());
@@ -1227,7 +1237,7 @@
     /* Aviso permanente en pantalla: nada de lo que se ve aquí es real, y quien
        lo mire tiene que saberlo antes de sacar conclusiones. */
     const aviso = el('div', 'demo-aviso');
-    aviso.textContent = 'Modo demostración · datos inventados · ';
+    aviso.textContent = 'Modo demostración · datos inventados · nada de esto es real · ';
     const cambiar = el('button', 'demo-rol');
     cambiar.type = 'button';
     const pinta = () => { cambiar.textContent = 'viendo como ' +
