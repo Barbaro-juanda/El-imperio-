@@ -10,6 +10,16 @@ export default protegido(async (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return json(res, 400, { error: 'fecha inválida' });
 
   try {
+    /* El profesional solo ve su propia columna y sus propias citas. El filtro
+       va aquí y no en el navegador: ocultar filas en pantalla deja los datos
+       viajando igual, y bastaría abrir la consola para leer los teléfonos de
+       los clientes de los compañeros.
+
+       Va ANTES de la consulta que lo usa. Estaba declarado después, y como
+       `const` no se iza, cada petición moría con un ReferenceError y la agenda
+       devolvía 500 sin enseñar una sola cita. */
+    const soyProf = req.sesion.rol === 'profesional' ? req.sesion.profId : null;
+
     const desde = aUTC(fecha, '00:00');
     const hasta = new Date(desde.getTime() + 36 * 3600 * 1000); // cubre cierres pasada medianoche
 
@@ -33,12 +43,6 @@ export default protegido(async (req, res) => {
       SELECT id, profesional_id, inicio, fin, motivo FROM bloqueo
        WHERE inicio < ${hasta.toISOString()} AND fin > ${desde.toISOString()}
        ORDER BY inicio`;
-
-    /* El profesional solo ve su propia columna y sus propias citas. El filtro
-       va aquí y no en el navegador: ocultar filas en pantalla deja los datos
-       viajando igual, y bastaría abrir la consola para leer los teléfonos de
-       los clientes de los compañeros. */
-    const soyProf = req.sesion.rol === 'profesional' ? req.sesion.profId : null;
 
     const profesionales = soyProf
       ? await sql`SELECT id, nombre FROM profesional WHERE activo AND id = ${soyProf}`
