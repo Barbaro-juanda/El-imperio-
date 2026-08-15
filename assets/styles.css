@@ -1490,7 +1490,31 @@ body.is-locked { overflow: hidden; }
 .barber {
   transition: border-color .4s ease, transform .5s var(--ease), background-color .4s ease;
 }
+.barber__name, .barber__tag, .barber__spec, .barber__photo {
+  transition: color .4s ease, background-color .4s ease;
+}
 .barber:hover { transform: translateY(-8px); background: #171717; }
+
+/* En la sección clara la ficha nace con el texto en tinta. Al pasar el mouse
+   el fondo se va a negro, y el texto tiene que irse al extremo contrario en el
+   mismo movimiento: si se queda en tinta, el nombre desaparece sobre su propio
+   fondo. El color se anima con la misma duración que el fondo, para que los
+   dos lleguen a la vez y no haya un instante ilegible por el camino.
+
+   Las reglas van sin prefijo de contexto a propósito. El fondo negro lo pone
+   el hover en cualquier sitio donde esté la ficha, así que la corrección tiene
+   que valer en cualquier sitio; atarla a .section--paper dejaría el mismo
+   fallo esperando en el próximo fondo claro. Sobre tinta no cambia nada: el
+   texto ya nace en crema. */
+.barber:hover .barber__name  { color: var(--cream); }
+.barber:hover .barber__tag   { color: rgba(237, 230, 214, .72); }  /* 8.0:1 */
+.barber:hover .barber__photo { background: var(--ink-panel); }
+/* La ficha elegida marca el estado con el rótulo en vino, que sobre negro cae
+   a 2.6:1 y deja de leerse —también en la sección oscura, donde ya pasaba—.
+   Al oscurecerse pasa a oro: 6.4:1 sobre #171717 y sigue diciendo «esta es la
+   que está puesta». El borde vino no se toca, que es el que hace de señal y
+   sobre negro sí contrasta. */
+.barber[aria-pressed="true"]:hover .barber__tag { color: var(--gold); }  /* 6.4:1 */
 
 .menu__row { transition: background-color .3s ease; }
 .menu__row:hover { background: rgba(185, 151, 63, .12); }
@@ -1521,6 +1545,8 @@ body.is-locked { overflow: hidden; }
   [data-rv] { opacity: 1 !important; transform: none !important; transition: none !important; }
   .btn:hover, .btn:active { transform: none; letter-spacing: inherit; }
   .barber:hover { transform: none; }
+  /* El cambio de color se queda: no es decoración, es lo que mantiene el
+     texto legible cuando el fondo se oscurece. */
   .tile:hover img, .tile:hover video,
   .tile:focus-visible img, .tile:focus-visible video { transform: none; }
   /* El acordeón sigue abriendo y cerrando, pero de golpe: es un cambio de
