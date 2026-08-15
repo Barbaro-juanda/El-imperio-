@@ -787,15 +787,22 @@
      cliente falló —puede estar en un trancón, puede haberse confundido de
      hora—, y ofrece salida en vez de pedir explicaciones: quien se siente
      regañado no responde, y encima no vuelve. */
-  /* Los mensajes rematan con ☺️💈 y no con la flor de lis de la marca. La flor
-     (U+269C) es un símbolo tipográfico, no un emoji: no está en las fuentes de
-     emoji de Android ni de iOS, así que WhatsApp la pinta como un rombo con
-     interrogante. En la web sí se ve porque la sirve la fuente de la página;
-     en un chat ajeno no hay tal fuente.
+  /* SIN EMOJI, a propósito y después de intentarlo dos veces.
+     Primero iba la flor de lis de la marca (U+269C), que no es un emoji sino
+     un símbolo tipográfico y casi ninguna fuente de teléfono trae. Se cambió
+     por ☺️💈, que son emoji de verdad, y siguieron saliendo como rombo con
+     interrogante en el dispositivo del local.
 
-     El poste de barbero es de las pocas piezas del catálogo emoji que dice
-     «barbería» sin escribirlo, y la carita sostiene el tono sin sonar a
-     publicidad. */
+     Ese rombo es el glifo de «no tengo con qué dibujar esto»: el texto viaja
+     intacto —comprobado, salen los bytes correctos y el enlace se arma con
+     encodeURIComponent— y quien falla es la fuente del aparato que lo pinta.
+     Desde aquí no hay forma de arreglarlo: la fuente la pone el teléfono.
+
+     Un mensaje que le llega al cliente con dos rombos se lee como un mensaje
+     roto, y eso es peor que uno sin adornos. Texto plano no puede fallar en
+     ningún dispositivo, así que el remate se hace con palabras. Si algún día
+     se confirma que los emoji se ven bien en los teléfonos del local, se
+     vuelven a poner aquí y en ningún otro sitio. */
   function mensajes(c) {
     const h = hora(c.inicio);
     const dd = DIAS[new Date(c.inicio).getDay()].toLowerCase();
@@ -808,7 +815,7 @@
 
     lista.push({ id: 'recordar', rotulo: 'Recordar la cita',
       texto: '¡Hola ' + nom + '! Te recordamos tu cita en El Imperio ' + cuando +
-             ' a las ' + h + ' con ' + prof + '. Te esperamos ☺️💈' });
+             ' a las ' + h + ' con ' + prof + '. Aquí te esperamos.' });
 
     lista.push({ id: 'confirmar', rotulo: 'Pedir confirmación',
       texto: '¡Hola ' + nom + '! ¿Nos confirmas tu cita de ' + cuando + ' a las ' + h +
@@ -821,13 +828,13 @@
       lista.push({ id: 'demora', rotulo: '¿Viene en camino?', destacado: true,
         texto: '¡Hola ' + nom + '! Aquí en El Imperio te tenemos el turno de las ' + h +
                ' con ' + prof + '. ¿Vas en camino o prefieres que te lo movamos para más tarde? ' +
-               'Cualquiera de las dos nos sirve, solo para organizarnos ☺️💈' });
+               'Cualquiera de las dos nos sirve, es solo para organizarnos.' });
     }
 
     if (c.estado === 'cumplida') {
       lista.push({ id: 'gracias', rotulo: 'Agradecer la visita',
         texto: '¡Gracias por venir, ' + nom + '! Fue un gusto atenderte. ' +
-               'Si quedaste contento, una reseña en Google nos ayuda muchísimo ☺️💈' });
+               'Si quedaste contento, una reseña en Google nos ayuda muchísimo.' });
     }
 
     lista.push({ id: 'libre', rotulo: 'Abrir el chat en blanco', texto: '' });
