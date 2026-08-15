@@ -71,6 +71,10 @@
   const MUESTRA = (() => {
     const h = ymd(new Date());
     const t = (hh, mm) => new Date(h + 'T' + pad(hh + 5) + ':' + pad(mm) + ':00Z').toISOString();
+    /* Una cita anclada a la hora real: empezo hace veinticinco minutos y sigue
+       sin cobrar. Es la unica forma de que en la demostracion se vea el estado
+       «falta cobrar» y el mensaje de demora a cualquier hora del dia. */
+    const hace = m => new Date(Date.now() - m * 60000).toISOString();
     return {
       profesionales: [{ id: 1, nombre: 'Emanuel Gómez' }, { id: 2, nombre: 'Jeronimo Garcia' },
                       { id: 3, nombre: 'Valentina Romero' }],
@@ -80,6 +84,8 @@
         { id: 3, codigo: 'EF4N9R', inicio: t(9, 30),  fin: t(10, 15), estado: 'cumplida',   total: 35000, cobrado: 35000, metodo_pago: 'efectivo',      cliente: 'Camilo Ospina',  telefono: '+573007778899', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Corte Sencillo' },
         { id: 4, codigo: 'GH5P1S', inicio: t(11, 0),  fin: t(11, 30), estado: 'no_asistio', total: 26000, cliente: 'Diego Franco',   telefono: '+573001234567', profesional_id: 2, profesional: 'Jeronimo Garcia',  servicios: 'Ritual de Barba' },
         { id: 5, codigo: 'IJ6Q3T', inicio: t(14, 0),  fin: t(16, 0),  estado: 'confirmada', total: 0,     cliente: 'Laura Restrepo', telefono: '+573009998877', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manos y pies' },
+        { id: 7, codigo: 'MN9T4V', inicio: hace(25), fin: hace(-20), estado: 'confirmada', total: 48000,
+          cliente: 'Julian Ortega', telefono: '+573015556677', profesional_id: 2, profesional: 'Jeronimo Garcia', servicios: 'Corte y Barba Sencillo' },
         { id: 6, codigo: 'KL7R5U', inicio: t(11, 30), fin: t(12, 30), estado: 'cumplida',   total: 65000, cobrado: 65000, metodo_pago: 'transferencia', cliente: 'Mariana Gil',    telefono: '+573002223344', profesional_id: 3, profesional: 'Valentina Romero', servicios: 'Manicura con Base Rubber',
           comprobante: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="%23E4DFD5"/><text x="60" y="58" font-size="13" text-anchor="middle" fill="%239B3040" font-family="sans-serif">Comprobante</text><text x="60" y="76" font-size="11" text-anchor="middle" fill="%230D0D0D" font-family="sans-serif">$65.000</text></svg>'.replace(/%23/g, '#')) }
       ],
@@ -708,11 +714,7 @@
     const cont = el('div', 'actual__btns');
     const ev = estadoVisual(c);
 
-    const wa = el('a', 'bt');
-    wa.href = 'https://wa.me/' + String(c.telefono || '').replace(/\D/g, '') +
-              '?text=' + encodeURIComponent(mensaje(c));
-    wa.target = '_blank'; wa.rel = 'noopener noreferrer'; wa.textContent = 'WhatsApp';
-    cont.appendChild(wa);
+    cont.appendChild(botonWhatsapp(c));
 
     if (ev === 'confirmada' || ev === 'porcobrar') {
       cont.appendChild(boton('Cobrar', () => abrirCobro(c), true));
@@ -726,10 +728,97 @@
     return cont;
   }
 
-  function mensaje(c) {
-    return '¡Hola ' + c.cliente + '! Te recordamos tu cita en El Imperio el ' +
-           DIAS[new Date(c.inicio).getDay()].toLowerCase() + ' a las ' + hora(c.inicio) +
-           ' con ' + c.profesional + '. Código: ' + c.codigo + '. ¿Nos confirmas?';
+  /* Mensajes listos para enviar. Se redactan aquí y no los escribe cada barbero
+     porque a las siete de la tarde, con el cliente en la silla, nadie compone
+     un texto amable: manda un «?» seco o no manda nada.
+
+     El de la demora es el delicado. Va sin reproche y sin dar por hecho que el
+     cliente falló —puede estar en un trancón, puede haberse confundido de
+     hora—, y ofrece salida en vez de pedir explicaciones: quien se siente
+     regañado no responde, y encima no vuelve. */
+  function mensajes(c) {
+    const h = hora(c.inicio);
+    const dd = DIAS[new Date(c.inicio).getDay()].toLowerCase();
+    const nom = String(c.cliente || '').split(' ')[0];
+    const prof = String(c.profesional || '').split(' ')[0];
+    const esHoy = ymd(new Date(c.inicio)) === ymd(new Date());
+    const cuando = esHoy ? 'hoy' : 'el ' + dd;
+
+    const lista = [];
+
+    lista.push({ id: 'recordar', rotulo: 'Recordar la cita',
+      texto: '¡Hola ' + nom + '! Te recordamos tu cita en El Imperio ' + cuando +
+             ' a las ' + h + ' con ' + prof + '. Te esperamos ⚜' });
+
+    lista.push({ id: 'confirmar', rotulo: 'Pedir confirmación',
+      texto: '¡Hola ' + nom + '! ¿Nos confirmas tu cita de ' + cuando + ' a las ' + h +
+             ' con ' + prof + '? Con un sí nos basta y te guardamos el turno.' });
+
+    /* Solo cuando la hora ya pasó y la cita sigue en pie: ofrecerlo antes sería
+       preguntarle a alguien por qué se demora cuando todavía no se demora. */
+    const empezo = new Date(c.inicio) < new Date();
+    if (empezo && c.estado === 'confirmada') {
+      lista.push({ id: 'demora', rotulo: '¿Viene en camino?', destacado: true,
+        texto: '¡Hola ' + nom + '! Aquí en El Imperio te tenemos el turno de las ' + h +
+               ' con ' + prof + '. ¿Vas en camino o prefieres que te lo movamos para más tarde? ' +
+               'Cualquiera de las dos nos sirve, solo para organizarnos 🙂' });
+    }
+
+    if (c.estado === 'cumplida') {
+      lista.push({ id: 'gracias', rotulo: 'Agradecer la visita',
+        texto: '¡Gracias por venir, ' + nom + '! Fue un gusto atenderte. ' +
+               'Si quedaste contento, una reseña en Google nos ayuda muchísimo ⚜' });
+    }
+
+    lista.push({ id: 'libre', rotulo: 'Abrir el chat en blanco', texto: '' });
+    return lista;
+  }
+
+  function enlaceWa(c, texto) {
+    return 'https://wa.me/' + String(c.telefono || '').replace(/\D/g, '') +
+           (texto ? '?text=' + encodeURIComponent(texto) : '');
+  }
+
+  /* Un botón que despliega los mensajes. Antes era un enlace único con el
+     recordatorio: servía para avisar y para nada más. */
+  function botonWhatsapp(c) {
+    const caja = el('div', 'wa');
+    const b = el('button', 'bt bt--wa');
+    b.type = 'button';
+    b.textContent = 'WhatsApp';
+    const menu = el('div', 'wa__menu');
+    menu.hidden = true;
+
+    mensajes(c).forEach(m => {
+      const a = document.createElement('a');
+      a.className = 'wa__op' + (m.destacado ? ' wa__op--destacado' : '');
+      a.href = enlaceWa(c, m.texto);
+      a.target = '_blank'; a.rel = 'noopener noreferrer';
+      const r = el('strong'); r.textContent = m.rotulo;
+      a.appendChild(r);
+      if (m.texto) {
+        const p = el('span');
+        p.textContent = m.texto.length > 92 ? m.texto.slice(0, 92) + '…' : m.texto;
+        a.appendChild(p);
+      }
+      a.addEventListener('click', () => { menu.hidden = true; });
+      menu.appendChild(a);
+    });
+
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      /* Sin teléfono no hay a quién escribir. Se dice en vez de abrir un chat
+         vacío con un número inventado. */
+      if (!String(c.telefono || '').replace(/\D/g, '')) {
+        avisar('Esta cita no tiene celular guardado.');
+        return;
+      }
+      menu.hidden = !menu.hidden;
+    });
+    document.addEventListener('click', () => { menu.hidden = true; });
+
+    caja.append(b, menu);
+    return caja;
   }
 
   function boton(texto, fn, destacado) {
@@ -774,6 +863,42 @@
     $('#ficha-tel').textContent = c.telefono || 'Sin celular';
     $('#ficha-serv').textContent = c.servicios || '—';
     $('#ficha-total').textContent = money(c.cobrado || c.total);
+
+    /* El pago y su comprobante, si ya se cobró. Antes había que irse a Facturas
+       a comprobar si una transferencia tenía foto; ahora está donde se mira la
+       cita. */
+    const pago = $('#ficha-pago');
+    pago.textContent = '';
+    if (c.metodo_pago) {
+      const fila = el('div', 'ficha__pagof');
+      const r = el('span'); r.textContent = 'Cobrado · ' + (MEDIOS[c.metodo_pago] || c.metodo_pago);
+      fila.appendChild(r);
+      if (c.cobrado != null && c.cobrado !== c.total) {
+        const d = el('em');
+        d.textContent = c.cobrado > c.total ? '+' + money(c.cobrado - c.total)
+                                            : '−' + money(c.total - c.cobrado);
+        fila.appendChild(d);
+      }
+      pago.appendChild(fila);
+      if (c.comprobante) {
+        const a = document.createElement('a');
+        a.href = c.comprobante; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.title = 'Ver el comprobante completo';
+        const im = document.createElement('img');
+        im.className = 'ficha__comp'; im.src = c.comprobante;
+        im.alt = 'Comprobante de la transferencia de ' + c.cliente;
+        a.appendChild(im);
+        pago.appendChild(a);
+      } else if (c.metodo_pago === 'transferencia') {
+        /* Una transferencia sin foto es un cobro que no se puede verificar.
+           Se marca en vez de callarlo. */
+        const f = el('div', 'ficha__falta');
+        f.textContent = 'Sin comprobante adjunto';
+        pago.appendChild(f);
+      }
+      pago.hidden = false;
+    } else { pago.hidden = true; }
+
     const b = $('#ficha-btns'); b.textContent = ''; b.appendChild(acciones(c));
     $('#ficha').hidden = false;
   }

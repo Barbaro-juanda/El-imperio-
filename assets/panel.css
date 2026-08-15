@@ -840,6 +840,56 @@
 }
 .revision select { width: auto; min-height: 34px; margin-left: 8px; font-size: 13px; }
 
+/* --- Menú de mensajes de WhatsApp --- */
+.wa { position: relative; flex: 1; min-width: 96px; display: flex; }
+.wa .bt { width: 100%; }
+.bt--wa { border-color: rgba(47, 107, 74, .5); color: var(--verde); }
+.bt--wa:hover { background: var(--verde); border-color: var(--verde); color: var(--cream); }
+.wa__menu {
+  position: absolute; z-index: 80; bottom: calc(100% + 6px); left: 0;
+  width: min(320px, 78vw);
+  background: var(--blanco); border: 1px solid var(--linea);
+  box-shadow: 0 10px 30px rgba(13, 13, 13, .18);
+  animation: deslizar .18s ease both;
+}
+.wa__op {
+  display: block; padding: 11px 13px; text-decoration: none; cursor: pointer;
+  border-bottom: 1px solid var(--linea2);
+}
+.wa__op:last-child { border-bottom: 0; }
+.wa__op:hover { background: rgba(47, 107, 74, .07); }
+.wa__op strong {
+  display: block; font: 400 12.5px/1.3 var(--sans); color: var(--ink);
+  letter-spacing: 0; text-transform: none;
+}
+.wa__op span {
+  display: block; margin-top: 3px;
+  font: 300 11px/1.45 var(--sans); color: var(--tenue);
+}
+/* El de la demora va marcado: cuando hace falta, es el que se busca. */
+.wa__op--destacado { border-left: 3px solid var(--ambar); background: rgba(185, 151, 63, .08); }
+
+/* --- Pago y comprobante en la ficha --- */
+.ficha__pago {
+  border-top: 1px solid var(--linea2); margin-top: 8px; padding-top: 12px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.ficha__pagof {
+  font: 300 11px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--tenue); display: flex; align-items: baseline; gap: 8px;
+}
+.ficha__pagof em {
+  font-style: normal; letter-spacing: 0; text-transform: none;
+  color: var(--wine); font-size: 12px;
+}
+.ficha__comp {
+  width: 62px; height: 62px; object-fit: cover; border: 1px solid var(--linea); display: block;
+}
+.ficha__falta {
+  font: 300 11px/1.4 var(--sans); color: var(--wine);
+  border-left: 2px solid var(--wine); padding-left: 9px;
+}
+
 /* Franja de modo demostración. Vino pleno y fija arriba: tiene que ser
    imposible mirar esta pantalla y creer que son citas reales. */
 .demo-aviso {

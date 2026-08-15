@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=12">
+<link rel="stylesheet" href="assets/panel.css?v=13">
 </head>
 <body class="panel">
 
@@ -237,6 +237,9 @@
     <p class="ficha__tel" id="ficha-tel"></p>
     <p class="ficha__meta" id="ficha-serv"></p>
     <p class="ficha__total" id="ficha-total"></p>
+    <!-- Cómo se cobró y con qué comprobante. Lo ve tanto el barbero que
+         atendió como el administrador, sin tener que ir a Facturas. -->
+    <div class="ficha__pago" id="ficha-pago" hidden></div>
     <div class="actual__btns" id="ficha-btns"></div>
   </aside>
 
@@ -348,6 +351,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=13"></script>
+<script src="assets/panel.js?v=15"></script>
 </body>
 </html>

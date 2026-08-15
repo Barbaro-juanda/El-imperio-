@@ -15,6 +15,7 @@ export default protegido(async (req, res) => {
 
     const citas = await sql`
       SELECT c.id, c.codigo, c.inicio, c.fin, c.estado, c.total, c.cobrado,
+             c.metodo_pago, c.comprobante,
              cl.nombre AS cliente, cl.telefono,
              p.id AS profesional_id, p.nombre AS profesional,
              COALESCE(string_agg(s.nombre, ', ' ORDER BY s.nombre), '') AS servicios
