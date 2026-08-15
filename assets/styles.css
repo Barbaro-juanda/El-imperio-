@@ -24,7 +24,13 @@
   --line-cream: rgba(237, 230, 214, .12);
 
   --serif: 'Cormorant Garamond', Georgia, serif;
-  --sans:  'Jost', system-ui, -apple-system, sans-serif;
+  /* Las fuentes de emoji van al final del mismo grupo, no en una regla aparte.
+     Jost no tiene un solo emoji, y `sans-serif` en varios sistemas resuelve a
+     una fuente que tampoco: cuando eso pasa, el navegador dibuja el rombo con
+     interrogante en vez del dibujo. Nombrarlas explícitamente es lo único que
+     garantiza que ☺️ o 💈 se vean, aquí y en la vista previa del panel. */
+  --sans:  'Jost', system-ui, -apple-system, sans-serif,
+           'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
 
   /* Una sola curva para todo el movimiento del sitio. Es una salida larga y
      sin rebote: arranca rapido y frena mucho al final, que es lo que hace que
