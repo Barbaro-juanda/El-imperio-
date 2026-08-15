@@ -49,7 +49,20 @@ async function listar() {
 export default protegido(async (req, res) => {
   const esDueno = req.sesion.rol === 'dueno';
   try {
-    if (req.method === 'GET') return json(res, 200, await listar());
+    if (req.method === 'GET') {
+      try {
+        return json(res, 200, await listar());
+      } catch (e) {
+        /* Si las tablas no existen, decirlo. El error crudo de Postgres —
+           «relation "producto" does not exist»— no le dice nada a quien abre
+           el panel, y el mensaje genérico «no se pudo guardar» hace pensar en
+           un fallo pasajero que se arregla recargando. */
+        if (/relation .* does not exist/i.test(e.message || '')) {
+          return json(res, 200, { productos: [], movimientos: [], sinTablas: true });
+        }
+        throw e;
+      }
+    }
 
     const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 

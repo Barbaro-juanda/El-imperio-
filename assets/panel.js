@@ -1707,8 +1707,11 @@
         s.textContent = 'Nada con «' + buscaProd + '»';
         p.textContent = 'Prueba con parte del nombre o con la marca.';
       } else {
-        s.textContent = activos ? 'Sin productos' : 'Nada archivado';
-        p.textContent = activos
+        s.textContent = inv.sinTablas ? 'Inventario sin crear'
+                      : activos ? 'Sin productos' : 'Nada archivado';
+        p.textContent = inv.sinTablas
+          ? 'Las tablas del inventario todavía no están en la base. Hay que correr la migración 05.'
+          : activos
           ? (ROL === 'dueno' ? 'Añade el primero para poder venderlo desde aquí.'
                              : 'El administrador todavía no ha cargado productos.')
           : 'Los productos que archives aparecen aquí.';

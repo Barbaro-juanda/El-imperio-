@@ -40,7 +40,17 @@ export default protegido(async (req, res) => {
        dinero del mismo día, y separarla en otra pantalla obligaría a sumar dos
        cifras a mano cada noche. Se marca de dónde viene para poder distinguir
        servicio de mostrador cuando interese. */
-    const ventas = await ventasDelRango(d1, d2);
+    /* Si el inventario todavía no existe —la migración que lo crea puede no
+       haberse corrido— la consulta lanza. Va en su propio try para que eso no
+       se lleve por delante el cuadre entero: el dinero de los servicios es lo
+       que el local necesita ver todas las noches, y no puede depender de una
+       tabla de productos que quizá no usa. Sin ventas de producto, cero. */
+    let ventas = [];
+    try {
+      ventas = await ventasDelRango(d1, d2);
+    } catch (e) {
+      console.error('caja: sin inventario', e.message);
+    }
     const totalProductos = ventas.reduce((t, v) => t + (v.total || 0), 0);
     const total = cobros.reduce((t, c) => t + (c.cobrado || 0), 0) + totalProductos;
 
