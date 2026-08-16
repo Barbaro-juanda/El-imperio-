@@ -1075,6 +1075,10 @@
      Overlay
      ------------------------------------------------------ */
   function openBooking(step) {
+    /* Sin esperarlo: la reserva abre ya con lo que hay y se repinta sola si
+       llega algo distinto. Bloquear la apertura por una llamada de red haría
+       que el botón principal del sitio pareciera trabado. */
+    refrescarCatalogo(5000);
     lastFocused = document.activeElement;
     const pedido = step || (state.step === PASOS ? 1 : state.step);
     /* Nunca abrir más adelante del primer paso incompleto: quien toca un
@@ -1466,7 +1470,27 @@
     };
   }
 
+  /* Cuándo se pidió el catálogo por última vez. Sirve para no repetir la
+     llamada cada vez que el visitante cambia de pestaña y vuelve. */
+  let catalogoPedido = 0;
+
+  /* Vuelve a leer el catálogo si ya pasó un rato. La página lo pedía UNA vez,
+     al cargar, y con eso bastaba para quien entra y reserva de una sentada.
+     No basta para lo demás: una pestaña que lleva abierta desde la mañana
+     enseña los precios de la mañana, y si el local sube uno a mediodía, el
+     visitante lo ve viejo y —peor— empieza a reservar con él.
+
+     Se refresca al volver a la pestaña y al abrir la reserva. Ese segundo
+     momento es el que importa de verdad: es justo antes de que el cliente
+     elija y vea un total, así que es la última oportunidad de que lo que
+     decide sea el precio de verdad y no el de hace tres horas. */
+  function refrescarCatalogo(minimoMs) {
+    if (Date.now() - catalogoPedido < (minimoMs || 20000)) return;
+    cargarCatalogo();
+  }
+
   async function cargarCatalogo() {
+    catalogoPedido = Date.now();
     let cat;
     try {
       cat = await pedir('/catalogo');
@@ -1734,6 +1758,13 @@
   setupServiceMenu();
   setupAcordeon();
   setupRevelado();
+
+  /* Al volver a la pestaña. `visibilitychange` y no `focus` porque es el que
+     dispara también cuando se vuelve desde otra aplicación en el celular, que
+     es como se navega la mitad de las veces. */
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refrescarCatalogo();
+  });
   /* Va al final y sin await: la página ya está completa y usable con lo que
      trae escrito. Esto solo la pone al día con lo que diga el panel. */
   cargarCatalogo();
