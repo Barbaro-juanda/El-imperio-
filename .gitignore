@@ -20,3 +20,8 @@ node_modules/
 
 # Vercel CLI
 .vercel/
+
+# Respaldos de la base. Llevan nombres y teléfonos de clientes reales y este
+# repositorio es público: un respaldo aquí dentro es una filtración, y Git
+# guarda el historial para siempre, así que no se arregla borrando el archivo.
+respaldos/

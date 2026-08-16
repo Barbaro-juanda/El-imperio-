@@ -1,0 +1,59 @@
+# Respaldo diario de la base.
+#
+# Lo que hay en la base no se puede volver a generar: los clientes con sus
+# teléfonos, el histórico de citas, los cobros con sus comprobantes. El código
+# está en Git y se recupera solo; eso no.
+#
+# ---------------------------------------------------------------------------
+# PARA ACTIVARLO hay que crear un secreto en GitHub:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Nombre:  DATABASE_URL
+#   Valor:   la cadena de conexión (la misma de Vercel)
+#
+# Sin ese secreto el trabajo falla a propósito y GitHub avisa por correo, que
+# es mejor que fingir que hay respaldos cuando no los hay.
+# ---------------------------------------------------------------------------
+#
+# El archivo NO se guarda en el repositorio —es público y lleva datos de
+# clientes reales—: se sube como artefacto privado, visible solo para quien
+# tiene acceso al repositorio.
+name: Respaldo diario
+
+on:
+  schedule:
+    # 08:00 UTC = 03:00 en Bogotá. A esa hora el local está cerrado y la base
+    # quieta, así que la copia sale de un momento sin escrituras a medias.
+    - cron: '0 8 * * *'
+  # También a mano, para poder sacar una copia antes de tocar algo.
+  workflow_dispatch:
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Sacar la copia
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Falta el secreto DATABASE_URL. Mira las instrucciones al principio de este archivo."
+            exit 1
+          fi
+          npm run respaldo
+
+      - name: Guardarlo
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: respaldos/*.json
+          # Tres meses. Más tiempo acumula copias con datos personales sin que
+          # nadie las mire; menos deja sin margen para notar que algo se borró.
+          retention-days: 90

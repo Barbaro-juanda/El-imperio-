@@ -1,0 +1,31 @@
+# Corre las pruebas en cada empujón y en cada propuesta de cambio.
+#
+# Sin esto, las pruebas solo se ejecutan si alguien se acuerda de escribir el
+# comando, y nadie se acuerda. Aquí fallan solas y a la vista antes de que el
+# cambio llegue a producción.
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Instalación exacta a partir del candado, sin resolver versiones nuevas:
+      # la gracia de una prueba automática es que corra contra lo mismo que hay
+      # en producción, no contra lo que salió esta semana.
+      - run: npm ci
+
+      # No necesitan base de datos ni secretos: son funciones puras.
+      # Que no haga falta configurar nada es lo que hace que esto no se rompa
+      # solo dentro de seis meses.
+      - run: npm test
