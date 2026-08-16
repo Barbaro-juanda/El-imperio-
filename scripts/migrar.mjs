@@ -100,21 +100,44 @@ async function main() {
   if (!archivos.length) { console.log('No hay migraciones en api/.'); return; }
 
   /* Las cuatro primeras se corrieron a mano antes de que existiera este
-     registro. Si sus tablas ya están, se dan por hechas en vez de volver a
-     ejecutarlas: son idempotentes y no romperían nada, pero anotarlas evita
-     que el resumen mienta diciendo que se acaban de aplicar. */
+     registro, así que hay que deducir si están. NO basta con mirar si la base
+     tiene tablas: cada una se comprueba por una señal propia —la columna que
+     añade—, y solo se da por hecha la que de verdad esté.
+
+     La primera versión de esto daba las cuatro por aplicadas con solo ver que
+     existía la tabla `cita`, y eso salió caro: en una base que tenía las tablas
+     pero se había quedado en la 02, marcó la 03 como hecha sin estarlo, y la 07
+     reventó a mitad buscando una columna que nadie había creado. Una señal por
+     migración no se puede equivocar así. */
+  const SENALES = {
+    '_migracion-01.sql': ['cita', 'origen'],
+    '_migracion-02.sql': ['cita', 'cobrado'],
+    '_migracion-03.sql': ['servicio', 'descripcion'],
+    '_migracion-04.sql': ['cita', 'comprobante']
+  };
+
   if (!yaHechas.size) {
-    const previas = await sql`
-      SELECT to_regclass('public.cita') IS NOT NULL AS hay_base`;
-    if (previas[0] && previas[0].hay_base) {
-      for (const f of ['_migracion-01.sql', '_migracion-02.sql',
-                       '_migracion-03.sql', '_migracion-04.sql']) {
-        if (archivos.includes(f)) {
-          await sql`INSERT INTO migracion (archivo) VALUES (${f}) ON CONFLICT DO NOTHING`;
-          yaHechas.add(f);
+    const hayBase = await sql`SELECT to_regclass('public.cita') IS NOT NULL AS si`;
+    if (hayBase[0] && hayBase[0].si) {
+      const faltan = [];
+      for (const [archivo, [tabla, columna]] of Object.entries(SENALES)) {
+        if (!archivos.includes(archivo)) continue;
+        const r = await sql`
+          SELECT count(*)::int AS n FROM information_schema.columns
+           WHERE table_name = ${tabla} AND column_name = ${columna}`;
+        if (r[0].n) {
+          await sql`INSERT INTO migracion (archivo) VALUES (${archivo}) ON CONFLICT DO NOTHING`;
+          yaHechas.add(archivo);
+        } else {
+          faltan.push(archivo);
         }
       }
-      console.log('Base ya existente: se dan por aplicadas las migraciones 01–04.\n');
+      console.log('Base ya existente. Aplicadas antes de este registro: ' +
+                  yaHechas.size + ' de ' + Object.keys(SENALES).length + '.');
+      if (faltan.length) {
+        console.log('Faltaban de verdad: ' + faltan.join(', ') + ' — se aplican ahora.');
+      }
+      console.log();
     }
   }
 

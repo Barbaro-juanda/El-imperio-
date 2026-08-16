@@ -25,3 +25,5 @@ node_modules/
 # repositorio es público: un respaldo aquí dentro es una filtración, y Git
 # guarda el historial para siempre, así que no se arregla borrando el archivo.
 respaldos/
+.vercel
+.env*
