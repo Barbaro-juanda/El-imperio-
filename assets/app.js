@@ -1473,6 +1473,46 @@
   /* Cuándo se pidió el catálogo por última vez. Sirve para no repetir la
      llamada cada vez que el visitante cambia de pestaña y vuelve. */
   let catalogoPedido = 0;
+  /* Huella del catálogo que la página tiene pintado ahora mismo. */
+  let catalogoVersion = null;
+  let vigilante = null;
+
+  const VIGILANCIA_MS = 20000;
+
+  /* Mantiene la página al día sin que nadie la toque.
+
+     Es consulta periódica, no aviso del servidor. Lo segundo sería más
+     elegante, pero exige una conexión abierta por cada visitante, y ni el plan
+     donde corre esto la sostiene —las funciones se cortan solas al minuto— ni
+     tiene sentido pagar una conexión permanente por un cambio de precio que
+     ocurre cada varios meses.
+
+     Lo que se pregunta no es el catálogo sino su huella: treinta y dos
+     caracteres. Solo cuando cambia se pide el catálogo entero. Así el coste de
+     estar al día es una llamada minúscula cada veinte segundos, y el trabajo
+     de verdad se hace únicamente el día que el local cambia algo.
+
+     Solo con la pestaña a la vista. Una pestaña de fondo no la está mirando
+     nadie: seguir preguntando ahí gastaría batería del visitante y despertaría
+     la base para nada, y al volver se refresca igual. */
+  async function vigilar() {
+    if (document.hidden) return;
+    try {
+      const r = await pedir('/catalogo?solo=version');
+      if (!r || !r.version) return;
+      if (catalogoVersion === null) { catalogoVersion = r.version; return; }
+      if (r.version !== catalogoVersion) cargarCatalogo();
+    } catch (e) { /* si falla, se reintenta en el siguiente turno */ }
+  }
+
+  function arrancarVigilancia() {
+    if (vigilante) return;
+    vigilante = setInterval(vigilar, VIGILANCIA_MS);
+  }
+  function pararVigilancia() {
+    clearInterval(vigilante);
+    vigilante = null;
+  }
 
   /* Vuelve a leer el catálogo si ya pasó un rato. La página lo pedía UNA vez,
      al cargar, y con eso bastaba para quien entra y reserva de una sentada.
@@ -1517,6 +1557,8 @@
       renderSegs();
       renderPickServices();
     }
+
+    catalogoVersion = cat.version || catalogoVersion;
 
     if (cat.equipo && cat.equipo.length) {
       /* Con esto «Las Manos» deja de ser una lista escrita a mano. Quien entra
@@ -1763,8 +1805,11 @@
      dispara también cuando se vuelve desde otra aplicación en el celular, que
      es como se navega la mitad de las veces. */
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) refrescarCatalogo();
+    if (document.hidden) { pararVigilancia(); return; }
+    refrescarCatalogo();
+    arrancarVigilancia();
   });
+  if (!document.hidden) arrancarVigilancia();
   /* Va al final y sin await: la página ya está completa y usable con lo que
      trae escrito. Esto solo la pone al día con lo que diga el panel. */
   cargarCatalogo();

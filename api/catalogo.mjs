@@ -14,8 +14,67 @@
    comisiones, claves ni existencias exactas. */
 import { sql, json } from './_db.mjs';
 
+/* Huella de todo lo que la página enseña. Si cambia un precio, un horario, un
+   nombre del equipo o un producto, cambia la huella.
+
+   Existe para que la página pueda preguntar «¿ha cambiado algo?» sin traerse
+   el catálogo entero. La respuesta son treinta y dos caracteres contra unos
+   seis kilobytes, y eso es lo que hace viable preguntarlo cada veinte segundos
+   en vez de solo al cargar.
+
+   Se calcula sobre las filas en vez de guardar un contador que se sube en cada
+   escritura. Un contador se olvida: basta que alguien corrija un precio por SQL
+   —o que un camino de escritura nuevo no lo suba— para que la página se quede
+   convencida de que nada cambió. La huella no se puede desincronizar porque no
+   es un dato aparte, es un resumen de los datos. Las tablas son de decenas de
+   filas; recorrerlas cuesta menos que la latencia de la propia llamada. */
+async function huella() {
+  const partes = [];
+
+  const a = await sql`
+    SELECT md5(string_agg(
+             id || ':' || COALESCE(precio::text, '-') || ':' || minutos || ':' ||
+             activo || ':' || nombre || ':' || COALESCE(descripcion, '') || ':' ||
+             segmento || ':' || solo_adicional, ',' ORDER BY id)) AS v
+      FROM servicio`;
+  partes.push(a[0] && a[0].v);
+
+  const b2 = await sql`
+    SELECT md5(string_agg(dow || ':' || abre || ':' || cierra || ':' || abierto,
+                          ',' ORDER BY dow)) AS v FROM horario`;
+  partes.push(b2[0] && b2[0].v);
+
+  const c = await sql`
+    SELECT md5(string_agg(id || ':' || nombre || ':' || COALESCE(foto, '') || ':' || activo,
+                          ',' ORDER BY id)) AS v FROM profesional`;
+  partes.push(c[0] && c[0].v);
+
+  /* Igual que en el listado: que falte el inventario no puede tumbar esto. */
+  try {
+    const d = await sql`
+      SELECT md5(string_agg(id || ':' || nombre || ':' || precio || ':' || existencias || ':' || activo,
+                            ',' ORDER BY id)) AS v FROM producto`;
+    partes.push(d[0] && d[0].v);
+  } catch (e) { partes.push('sin-inventario'); }
+
+  return partes.map(x => x || '-').join('|');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: 'Solo GET' });
+
+  /* Consulta barata: solo la huella. Es lo que la página pregunta en bucle. */
+  if (req.query.solo === 'version') {
+    try {
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.status(200).send(JSON.stringify({ version: await huella() }));
+    } catch (e) {
+      console.error('catalogo version', e);
+      return json(res, 500, { error: 'No se pudo consultar' });
+    }
+    return;
+  }
 
   try {
     /* Los servicios llegan con la lista de quién los presta. La página la usa
@@ -83,7 +142,8 @@ export default async function handler(req, res) {
         abierto: h.abierto
       })),
       productos,
-      equipo
+      equipo,
+      version: await huella()
     }));
   } catch (e) {
     console.error('catalogo', e);
