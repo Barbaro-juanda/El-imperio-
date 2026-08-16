@@ -277,16 +277,68 @@ a:hover { color: var(--gold); }
 .hero__video {
   width: 100%; height: 100%;
   object-fit: cover;
-  /* El material es vertical 9:16 en un hero apaisado: en escritorio solo cabe
-     ~30% del cuadro, así que hay que elegir qué franja se ve.
-     75% baja el encuadre hasta el cliente, que es el sujeto que importa: queda
-     visible su rostro durante casi todo el bucle, y las manos enguantadas del
-     barbero siguen entrando en cuadro. Con `center` (50%) el cliente aparecía
-     cortado por arriba o directamente fuera; por debajo de 60% se pierde, y
-     pasando 80% se le corta la cabeza cuando se lleva la bebida a la boca.
-     En móvil este valor da igual: el video cabe entero y no hay recorte. */
+  /* El material es vertical 9:16. En un hero vertical —el celular— cabe entero
+     y este recorte no llega a aplicarse. Es en apaisado donde se vuelve un
+     problema, y se resuelve más abajo. */
   object-position: center 75%;
   display: block;
+}
+
+/* ---------------------------------------------------------
+   El video en pantallas apaisadas
+   El material es 9:16 y el hero de escritorio es más ancho que
+   alto: recortando a `cover` solo se ve una franja del cuadro
+   —a 1920 px, poco más de un cuarto—, y como el sujeto se mueve
+   durante el bucle, no existe un recorte que funcione todo el
+   rato. Unas veces sale un primerísimo plano de media cara y
+   otras un regazo con la capa. No es cuestión de afinar el
+   valor: cualquier franja de un vertical metida en un apaisado
+   va a fallar en algún momento del clip.
+
+   Así que se deja de recortar. El video se ve completo, a lo
+   alto y centrado, y lo que sobra a los lados se rellena con el
+   mismo fotograma ampliado y desenfocado. El ojo lee el
+   desenfoque como fondo y va al centro; nada del encuadre
+   original se pierde.
+
+   El relleno es el póster, no una segunda copia del video:
+   decodificar el mismo video dos veces dobla el trabajo del
+   procesador y en un portátil eso se oye en el ventilador. Que
+   el fondo esté congelado no se nota, porque está desenfocado.
+   --------------------------------------------------------- */
+@media (min-aspect-ratio: 3/4) {
+  .hero__media::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url('hero-poster.webp') center / cover no-repeat;
+    /* La escala se come los bordes que el desenfoque deja translúcidos. */
+    transform: scale(1.15);
+    filter: blur(46px) brightness(.42) saturate(.7);
+  }
+  .hero__video {
+    /* El elemento se ajusta al cuadro en vez de ocupar todo el hero con
+       `contain`. Con `contain` el video se pinta centrado dentro de una caja
+       del ancho completo, y entonces la máscara de abajo se aplica a la caja
+       —a 1440 px— y el degradado cae en el fondo, lejos de los cantos del
+       video, que siguen viéndose rectos. Dándole al elemento el ancho real del
+       cuadro, la máscara coincide con lo que se ve. */
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    height: 100%;
+    width: auto; max-width: none;
+    /* Los cantos verticales del video se funden con el fondo desenfocado. Sin
+       esto se ve una tira con dos bordes rectos pegada encima de otra imagen, y
+       el truco queda a la vista. Con el degradado no hay línea que delate dónde
+       acaba el video: parece un solo plano que se difumina hacia los lados.
+
+       Solo a los lados. Arriba y abajo el video llega al borde del hero y no
+       hay nada de lo que despegarse. */
+    -webkit-mask-image: linear-gradient(90deg,
+      transparent 0, #000 14%, #000 86%, transparent 100%);
+    mask-image: linear-gradient(90deg,
+      transparent 0, #000 14%, #000 86%, transparent 100%);
+  }
 }
 
 /* Velo sobre el video — sin esto el titular crema cae por debajo del mínimo de
