@@ -49,6 +49,15 @@ async function huella() {
                           ',' ORDER BY id)) AS v FROM profesional`;
   partes.push(c[0] && c[0].v);
 
+  /* Quién presta qué. Entra en la huella porque de ahí sale el oficio con el
+     que se agrupa el equipo en la página: quitarle los cortes a alguien lo
+     mueve de «Barberos» a «Manicurista», y eso es un cambio visible. */
+  const e = await sql`
+    SELECT md5(string_agg(servicio_id || ':' || profesional_id, ',' 
+                          ORDER BY servicio_id, profesional_id)) AS v
+      FROM servicio_profesional`;
+  partes.push(e[0] && e[0].v);
+
   /* Igual que en el listado: que falte el inventario no puede tumbar esto. */
   try {
     const d = await sql`
@@ -99,11 +108,34 @@ export default async function handler(req, res) {
 
     const horario = await sql`SELECT dow, abre, cierra, abierto FROM horario ORDER BY dow`;
 
-    /* El equipo que sale en «Las Manos». Solo los activos y en el orden en que
+    /* El equipo que sale en «El Equipo». Solo los activos y en el orden en que
        entraron, que es el que el local reconoce. No sale la comisión, ni el
-       horario personal, ni si tiene clave: eso es de dentro. */
+       horario personal, ni si tiene clave: eso es de dentro.
+
+       El oficio se DEDUCE de lo que cada quien presta, en vez de guardarse en
+       una columna aparte. Quien corta el pelo es barbero; quien no corta pero
+       hace uñas es manicurista. Una columna habría que acordarse de llenarla al
+       dar de alta a alguien, y el día que se olvide la persona aparece en el
+       grupo equivocado sin que nada avise. Deducirlo no se puede olvidar: sale
+       de los servicios que ya hay que asignarle igualmente para que se le pueda
+       reservar.
+
+       Si algún día alguien hace las dos cosas, sale como barbero. Entonces
+       tocará una columna de verdad, no antes. */
     const equipo = await sql`
-      SELECT id, nombre, foto FROM profesional WHERE activo ORDER BY id`;
+      SELECT p.id, p.nombre, p.foto,
+             CASE
+               WHEN EXISTS (SELECT 1 FROM servicio_profesional sp
+                              JOIN servicio s ON s.id = sp.servicio_id
+                             WHERE sp.profesional_id = p.id AND s.activo
+                               AND s.segmento = 'cortes') THEN 'barbero'
+               WHEN EXISTS (SELECT 1 FROM servicio_profesional sp
+                              JOIN servicio s ON s.id = sp.servicio_id
+                             WHERE sp.profesional_id = p.id AND s.activo
+                               AND s.segmento = 'unas') THEN 'manicurista'
+               ELSE 'equipo'
+             END AS oficio
+        FROM profesional p WHERE p.activo ORDER BY p.id`;
 
     /* Productos: solo los que están a la venta y de los que queda algo. Anunciar
        en la página algo que no está en la vitrina es prometer lo que no se

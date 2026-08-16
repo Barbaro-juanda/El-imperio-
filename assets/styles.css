@@ -1634,3 +1634,31 @@ body.is-locked { overflow: hidden; }
 }
 .section--paper .barber__inicial { background: rgba(13, 13, 13, .08); color: rgba(13, 13, 13, .32); }
 .barber:hover .barber__inicial { background: var(--ink-panel); color: rgba(237, 230, 214, .38); }
+
+/* ---------------------------------------------------------
+   Grupos del equipo — Barberos / Manicurista
+   El rótulo va con una línea a cada lado en vez de alineado
+   a la izquierda: la sección está centrada y un título suelto
+   a un lado rompería el eje. La línea además separa los dos
+   grupos sin necesidad de una regla horizontal aparte.
+   --------------------------------------------------------- */
+.oficio + .oficio { margin-top: clamp(38px, 5vw, 64px); }
+
+.oficio__rot {
+  display: flex; align-items: center; gap: 18px;
+  margin-bottom: clamp(18px, 2.5vw, 28px);
+}
+.oficio__rot::before, .oficio__rot::after {
+  content: ''; flex: 1; height: 1px;
+  background: var(--line-ink);
+}
+.section--ink .oficio__rot::before,
+.section--ink .oficio__rot::after { background: var(--line-cream); }
+
+.oficio__rot span {
+  font: 400 11px/1 var(--sans);
+  letter-spacing: .34em; text-transform: uppercase;
+  color: var(--gold-on-light);
+  white-space: nowrap;
+}
+.section--ink .oficio__rot span { color: var(--gold); }

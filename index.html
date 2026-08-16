@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=16">
+<link rel="stylesheet" href="assets/styles.css?v=17">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -925,11 +925,19 @@
 <section class="section section--paper" id="barberos">
   <div class="section__head section__head--center" data-rv>
     <span class="eyebrow">03 — Barberos</span>
-    <h2>Las <em>Manos</em></h2>
+    <h2>El <em>Equipo</em></h2>
   </div>
-  <div class="barbers" id="barbers-list">
-    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Emanuel" data-rv><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Emanuel</span><span class="barber__tag">Elegir</span></span></button>
-    <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon" data-rv><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
+  <!-- Agrupado por oficio. Lo escrito aquí es el respaldo —se ve sin
+       JavaScript y se indexa—; app.js lo reemplaza con quien esté activo en la
+       base y en el grupo que le corresponda según lo que presta. -->
+  <div id="barbers-list">
+    <div class="oficio">
+      <div class="oficio__rot"><span>Barberos</span></div>
+      <div class="barbers">
+        <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Emanuel" data-rv><img class="barber__photo" src="assets/barbero-ema.jpg" alt="Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería" width="900" height="1222" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Emanuel</span><span class="barber__tag">Elegir</span></span></button>
+        <button type="button" class="barber" aria-pressed="false" aria-label="Elegir a Simon" data-rv><img class="barber__photo" src="assets/barbero-simon.jpg" alt="Simon, barbero de The Imperial Clasic, de brazos cruzados en el local" width="900" height="1229" loading="lazy" decoding="async"><span class="barber__body"><span class="barber__name">Simon</span><span class="barber__tag">Elegir</span></span></button>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1209,6 +1217,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=18"></script>
+<script src="assets/app.js?v=19"></script>
 </body>
 </html>

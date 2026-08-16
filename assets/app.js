@@ -123,13 +123,13 @@
   /* Respaldo del equipo, igual que SERVICES: se ve al instante y sin API, y el
      catálogo lo reemplaza con quien esté activo en la base. */
   let BARBERS = [
-    { id: 1, name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg',
+    { id: 1, name: 'Emanuel', spec: '', photo: 'assets/barbero-ema.jpg', oficio: 'barbero',
       alt: 'Emanuel, barbero de The Imperial Clasic, apoyado en la silla de barbería' },
     /* Sin id: no figura entre los profesionales que reciben citas. Se muestra
        en la portada porque trabaja en el local, pero su tarjeta no preselecciona
        a nadie al abrir la reserva —hacerlo agendaría con quien no existe en la
        agenda—. En cuanto el local confirme quién es, se le pone su id. */
-    { id: null, name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg',
+    { id: null, name: 'Simon', spec: '', photo: 'assets/barbero-simon.jpg', oficio: 'barbero',
       alt: 'Simon, barbero de The Imperial Clasic, de brazos cruzados en el local' }
   ];
 
@@ -314,11 +314,56 @@
     return card;
   }
 
+  /* Rótulo del grupo. En plural o en singular según cuántos haya: «Manicurista»
+     con una sola persona y «Manicuristas» con dos se lee como está escrito por
+     alguien, no como una plantilla. */
+  const ROTULO_OFICIO = {
+    barbero:     ['Barbero', 'Barberos'],
+    manicurista: ['Manicurista', 'Manicuristas'],
+    equipo:      ['Equipo', 'Equipo']
+  };
+
+  /* El orden es el de la carta: primero lo que trae a la mayoría. Un oficio
+     nuevo que no esté aquí va al final, en vez de desaparecer. */
+  const ORDEN_OFICIO = ['barbero', 'manicurista', 'equipo'];
+
   function renderBarbers() {
     const wrap = $('#barbers-list');
     wrap.textContent = ''; // reemplaza el contenido estático (SEO/no-JS) por la versión con handlers
+
+    const porOficio = {};
     BARBERS.forEach((b, i) => {
-      wrap.appendChild(barberCard(b, i, id => {
+      const k = b.oficio || 'equipo';
+      (porOficio[k] = porOficio[k] || []).push({ b, i });
+    });
+
+    const grupos = Object.keys(porOficio).sort((x, y) => {
+      const a2 = ORDEN_OFICIO.indexOf(x), b2 = ORDEN_OFICIO.indexOf(y);
+      return (a2 === -1 ? 99 : a2) - (b2 === -1 ? 99 : b2);
+    });
+
+    /* Con un solo grupo no se pone rótulo: «Barberos» encima de la única fila
+       que hay no separa nada de nada, solo añade ruido. */
+    const conRotulo = grupos.length > 1;
+
+    grupos.forEach(k => {
+      const caja = el('div', 'oficio');
+      if (conRotulo) {
+        const r = el('div', 'oficio__rot');
+        const t = el('span');
+        const par = ROTULO_OFICIO[k] || [k, k];
+        t.textContent = porOficio[k].length === 1 ? par[0] : par[1];
+        r.appendChild(t);
+        caja.appendChild(r);
+      }
+      const rejilla = el('div', 'barbers');
+      porOficio[k].forEach(({ b, i }) => rejilla.appendChild(tarjeta(b, i)));
+      caja.appendChild(rejilla);
+      wrap.appendChild(caja);
+    });
+
+    function tarjeta(b, i) {
+      return barberCard(b, i, id => {
         /* Atajo desde la portada. Solo preselecciona si esa persona existe en la
            agenda; si no, abre la reserva sin barbero elegido en vez de dejar un
            id inválido que reventaría al pedir cupos. */
@@ -327,8 +372,8 @@
         if (id !== null) track('barber_selected', { barber_name: b.name });
         syncBarberCards(wrap);
         openBooking(PASO_BARBERO);
-      }));
-    });
+      });
+    }
   }
 
   function syncBarberCards(scope) {
@@ -1570,6 +1615,7 @@
         name: p.nombre,
         spec: '',
         photo: p.foto || '',
+        oficio: p.oficio || 'equipo',
         alt: p.foto ? p.nombre + ', del equipo de The Imperial Clasic' : ''
       }));
       renderBarbers();
