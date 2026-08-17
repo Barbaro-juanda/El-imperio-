@@ -119,6 +119,11 @@
         { id: 'talco-cuello', nombre: 'Talco para cuello', marca: null, descripcion: 'El que usamos en la silla.', precio: 15000, costo: 8000, existencias: 0, minimo: 2, activo: true },
         { id: 'gel-fijador', nombre: 'Gel fijador', marca: 'Ébano', descripcion: 'Descontinuado por el proveedor.', precio: 22000, costo: 12000, existencias: 0, minimo: 0, activo: false }
       ],
+      galeria: [
+        { id: 1, alt: 'Afeitado tradicional con toalla caliente', orden: 10, activo: true, kb: 180, url: 'assets/trabajo-1.jpg' },
+        { id: 2, alt: 'Corte con máquina perfilando un fade', orden: 20, activo: true, kb: 210, url: 'assets/trabajo-2.jpg' },
+        { id: 3, alt: 'Perfilado de barba a navaja', orden: 30, activo: true, kb: 165, url: 'assets/trabajo-3.jpg' }
+      ],
       movimientos: [
         { id: 5, producto_id: 'cera-mate', producto: 'Cera mate', tipo: 'venta', cantidad: -1, total: 48000, metodo_pago: 'efectivo', profesional: 'Emanuel Gómez', nota: null, creado: hace(95) },
         { id: 4, producto_id: 'aceite-barba', producto: 'Aceite de barba', tipo: 'venta', cantidad: -2, total: 76000, metodo_pago: 'transferencia', profesional: 'Jeronimo Garcia', nota: null, creado: hace(210) },
@@ -195,6 +200,7 @@
     if (ruta.startsWith('/panel/caja'))      return demoCaja();
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
     if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
+    if (ruta.startsWith('/panel/galeria'))   return { fotos: MUESTRA.galeria };
     if (ruta.startsWith('/panel/inventario')) return { productos: MUESTRA.productos,
                                                        movimientos: MUESTRA.movimientos,
                                                        profesionales: MUESTRA.profesionales };
@@ -312,8 +318,8 @@
      Navegación
      ========================================================= */
   const TABS_DUENO = [['agenda', 'Agenda'], ['facturas', 'Facturas'],
-                      ['servicios', 'Servicios'], ['inventario', 'Inventario'],
-                      ['dispo', 'Disponibilidad']];
+                      ['servicios', 'Servicios'], ['galeria', 'Galería'],
+                      ['inventario', 'Inventario'], ['dispo', 'Disponibilidad']];
   /* El barbero también entra al inventario, pero solo para vender: la vitrina
      está junto a la silla y mandarlo a buscar al administrador para cobrar una
      cera es lo que hace que la venta no se registre. */
@@ -332,7 +338,7 @@
 
   function irA(cual) {
     vista = cual;
-    ['agenda', 'midia', 'facturas', 'servicios', 'inventario', 'dispo'].forEach(v => {
+    ['agenda', 'midia', 'facturas', 'servicios', 'galeria', 'inventario', 'dispo'].forEach(v => {
       const n = $('#v-' + v); if (n) n.hidden = v !== cual;
     });
     $$('.barra__tab').forEach(b => b.classList.toggle('is-on', b.dataset.ir === cual));
@@ -349,6 +355,7 @@
     if (cual === 'facturas')  cargarFacturas();
     if (cual === 'servicios' || cual === 'dispo') cargarAjustes();
     if (cual === 'inventario') { $('#abrir-producto').hidden = ROL !== 'dueno'; cargarInventario(); }
+    if (cual === 'galeria') cargarGaleria();
   }
 
   /* Rango que cubre el periodo elegido, terminando en el día que se mira. */
@@ -1684,6 +1691,171 @@
         META_LOCAL = antes; $('#aj-meta').value = antes; avisar('Meta anterior restaurada');
       });
     } catch (e) { avisar(e.message || 'No se pudo guardar'); }
+  });
+
+
+  /* =========================================================
+     Galería
+     ========================================================= */
+  let galeria = [], colaFotos = [];
+
+  async function cargarGaleria() {
+    try {
+      const r = await api('/panel/galeria');
+      galeria = r.fotos || [];
+      pintarGaleria(r.sinTablas);
+    } catch (e) {
+      $('#g-lista').textContent = e.message || 'No se pudo cargar.';
+    }
+  }
+
+  function pintarGaleria(sinTablas) {
+    const c = $('#g-lista');
+    c.textContent = '';
+    $('#g-resumen').textContent = galeria.length
+      ? galeria.length + (galeria.length === 1 ? ' foto' : ' fotos')
+      : '';
+
+    if (!galeria.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong');
+      const p = el('span');
+      if (sinTablas) {
+        s.textContent = 'Galería sin crear';
+        p.textContent = 'Falta correr la migración 10 en la base.';
+      } else {
+        s.textContent = 'Sin fotos';
+        p.textContent = 'Mientras no subas ninguna, la página enseña las cuatro que trae de fábrica.';
+      }
+      v.append(s, p); c.appendChild(v);
+      return;
+    }
+
+    galeria.forEach((f, i) => {
+      const caja = el('figure', 'galfoto');
+
+      const img = document.createElement('img');
+      img.src = f.url; img.alt = f.alt; img.loading = 'lazy';
+      caja.appendChild(img);
+
+      const pie = el('figcaption', 'galfoto__pie');
+      pie.textContent = f.alt;
+      caja.appendChild(pie);
+
+      const bs = el('div', 'galfoto__b');
+      /* Mover con flechas y no arrastrando: esto se va a usar desde el celular
+         del dueño, y arrastrar en una pantalla táctil pelea con el desplazamiento
+         de la página. Dos botones no fallan nunca. */
+      const antes = boton('↑', () => mover(f.id, 'antes'));
+      antes.disabled = i === 0;
+      antes.title = 'Subir en el orden';
+      const desp = boton('↓', () => mover(f.id, 'despues'));
+      desp.disabled = i === galeria.length - 1;
+      desp.title = 'Bajar en el orden';
+      bs.append(antes, desp);
+
+      bs.appendChild(boton('Texto', () => {
+        const nuevo = prompt('¿Qué se ve en la foto?', f.alt);
+        if (nuevo === null) return;
+        api('/panel/galeria', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: f.id, alt: nuevo }) })
+          .then(() => { avisar('Descripción cambiada'); cargarGaleria(); })
+          .catch(e => avisar(e.message));
+      }));
+
+      const quitar = boton('Quitar', () => borrarFoto(f));
+      quitar.classList.add('bt--borrar');
+      bs.appendChild(quitar);
+
+      caja.appendChild(bs);
+      const kb = el('span', 'galfoto__kb');
+      kb.textContent = f.kb + ' KB';
+      caja.appendChild(kb);
+      c.appendChild(caja);
+    });
+  }
+
+  function mover(id, hacia) {
+    api('/panel/galeria', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, mover: hacia }) })
+      .then(() => cargarGaleria())
+      .catch(e => avisar(e.message));
+  }
+
+  async function borrarFoto(f) {
+    try {
+      await api('/panel/galeria?id=' + f.id, { method: 'DELETE' });
+      avisar('Foto quitada de la galería');
+      cargarGaleria();
+    } catch (e) { avisar(e.message || 'No se pudo quitar'); }
+  }
+
+  /* ---------- subir ---------- */
+  /* 1400 px: la galería se amplía a pantalla completa al tocarla, así que hace
+     falta más resolución que en una foto de perfil. Por encima de eso ya no se
+     nota en pantalla y solo se paga en peso y en espera. */
+  $('#g-archivo').addEventListener('change', async e => {
+    const archivos = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = '';
+    if (!archivos.length) return;
+    colaFotos = [];
+    for (const a of archivos) {
+      try {
+        colaFotos.push({ nombre: a.name, dato: await encoger(a, 1400, 0.78) });
+      } catch (err) { avisar(err.message || 'No se pudo leer ' + a.name); }
+    }
+    siguienteFoto();
+  });
+
+  /* Se piden una a una en vez de subir todas de golpe porque cada una necesita
+     su descripción, y una sola caja para cinco fotos acabaría con las cinco
+     descritas igual —o con ninguna—. */
+  function siguienteFoto() {
+    if (!colaFotos.length) { cargarGaleria(); return; }
+    const f = colaFotos[0];
+    const previa = $('#gf-previa');
+    previa.textContent = '';
+    const img = document.createElement('img');
+    img.src = f.dato; img.alt = '';
+    previa.appendChild(img);
+    $('#gf-alt').value = '';
+    $('#gf-error').hidden = true;
+    $('#gf-guardar').textContent = colaFotos.length > 1
+      ? 'Publicar (quedan ' + colaFotos.length + ')' : 'Publicar en la galería';
+    $('#dlg-foto').showModal();
+    setTimeout(() => $('#gf-alt').focus(), 60);
+  }
+
+  $('#dlg-foto').addEventListener('close', () => {
+    /* Cerrar con Cancelar o con Escape descarta la que estaba y sigue con el
+       resto: obliga a decidir foto por foto, que es lo que se quiere. */
+    if (colaFotos.length && $('#dlg-foto').returnValue === 'cancel') {
+      colaFotos.shift();
+      if (colaFotos.length) setTimeout(siguienteFoto, 120); else cargarGaleria();
+    }
+  });
+
+  $('#gf-guardar').addEventListener('click', async () => {
+    const err = $('#gf-error');
+    err.hidden = true;
+    const alt = $('#gf-alt').value.trim();
+    if (!alt) {
+      err.textContent = 'Escribe qué se ve. Sin esto la foto no existe para quien navega sin ver.';
+      err.hidden = false;
+      return;
+    }
+    const btn = $('#gf-guardar');
+    btn.disabled = true;
+    try {
+      await api('/panel/galeria', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto: colaFotos[0].dato, alt }) });
+      colaFotos.shift();
+      $('#dlg-foto').close('ok');
+      avisar('Foto publicada');
+      if (colaFotos.length) setTimeout(siguienteFoto, 150); else cargarGaleria();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo publicar'; err.hidden = false;
+    } finally { btn.disabled = false; }
   });
 
   /* =========================================================

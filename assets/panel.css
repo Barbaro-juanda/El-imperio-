@@ -1113,3 +1113,53 @@
 .fotocampo__bt { cursor: pointer; white-space: nowrap; }
 
 .prof-fila__foto { display: flex; flex-direction: column; gap: .35rem; }
+
+/* ---------------------------------------------------------
+   Galería
+   Las miniaturas se piden por su URL, igual que en la página,
+   en vez de venir dentro del JSON. Así abrir esta sección no
+   descarga la galería entera de golpe y el navegador reutiliza
+   lo que ya tenía.
+   --------------------------------------------------------- */
+.galgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  gap: 14px;
+}
+.galfoto {
+  margin: 0;
+  border: 1px solid var(--linea);
+  display: flex; flex-direction: column;
+  background: rgba(13, 13, 13, .02);
+}
+.galfoto img {
+  width: 100%; aspect-ratio: 3 / 4;
+  object-fit: cover; display: block;
+}
+.galfoto__pie {
+  padding: 10px 12px 4px;
+  font: 300 12px/1.45 var(--sans);
+  color: var(--tenue);
+}
+.galfoto__kb {
+  padding: 0 12px 10px;
+  font: 300 10px/1 var(--sans);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--tenue);
+}
+/* Los botones se pegan abajo para que todas las tarjetas terminen igual aunque
+   las descripciones tengan distinto largo. */
+.galfoto__b {
+  margin-top: auto;
+  padding: 8px 12px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.galfoto__b .bt { padding: 0 10px; min-height: 32px; }
+
+/* Vista previa dentro del diálogo, antes de publicar. */
+.galprev {
+  margin: 12px 0;
+  display: grid; place-items: center;
+  background: rgba(13, 13, 13, .05);
+}
+.galprev img { max-height: 38vh; max-width: 100%; display: block; }

@@ -1586,6 +1586,7 @@
   function refrescarCatalogo(minimoMs) {
     if (Date.now() - catalogoPedido < (minimoMs || 20000)) return;
     cargarCatalogo();
+  cargarGaleria();
   }
 
   async function cargarCatalogo() {
@@ -1718,6 +1719,42 @@
     });
   }
 
+  /* ---------- galería ---------- */
+  /* Va por su cuenta y no dentro del catálogo: las fotos pesan y no cambian,
+     así que se piden aparte y el navegador las guarda. Metidas en el catálogo
+     se descargarían enteras en cada visita y por delante de la reserva. */
+  async function cargarGaleria() {
+    const rejilla = $('.gallery');
+    if (!rejilla) return;
+    let r;
+    try { r = await pedir('/galeria'); } catch (e) { return; }
+    if (!r || !r.fotos || !r.fotos.length) return;   // se quedan las de fábrica
+
+    /* El video de fábrica se conserva y se pone al final: es material del local
+       y la galería del panel es solo de fotos. */
+    const video = rejilla.querySelector('.tile--video');
+    rejilla.textContent = '';
+
+    r.fotos.forEach(f => {
+      const b = el('button', 'tile');
+      b.type = 'button';
+      b.setAttribute('data-rv', '');
+      const img = document.createElement('img');
+      img.src = f.url;
+      img.alt = f.alt;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      b.appendChild(img);
+      rejilla.appendChild(b);
+    });
+    if (video) rejilla.appendChild(video);
+
+    /* Se renumeran y ya está: el lightbox lee la lista al abrirse y los clics
+       van por delegación sobre esta misma rejilla, así que no hay que volver a
+       montar nada. */
+    [...rejilla.querySelectorAll('.tile')].forEach((t, i) => t.setAttribute('data-lightbox', i));
+  }
+
   /* ---------- vitrina ---------- */
   function pintarProductos(productos) {
     const seccion = $('#productos');
@@ -1765,12 +1802,14 @@
     const figura  = $('#lb-figura');
     const texto   = $('#lb-texto');
     const contador= $('#lb-contador');
-    const disparadores = [...document.querySelectorAll('[data-lightbox]')];
-    if (!disparadores.length) return;
+    if (!document.querySelector('[data-lightbox]')) return;
 
-    /* Las piezas se leen del propio marcado: una sola fuente, y si mañana se
-       agrega una foto a la galería el lightbox la toma sin tocar el JS. */
-    const piezas = disparadores.map(btn => {
+    /* Las piezas se leen del marcado CADA VEZ que se abre, no una sola vez al
+       arrancar. La galería se rehace cuando llegan las fotos del panel, y una
+       lista capturada al principio se quedaría enseñando las de fábrica —o
+       peor, mezclándolas—. Leerlas al abrir cuesta nada y no puede quedar
+       desfasada. */
+    const leerPiezas = () => [...document.querySelectorAll('[data-lightbox]')].map(btn => {
       const img = btn.querySelector('img');
       const vid = btn.querySelector('video');
       return img
@@ -1780,6 +1819,7 @@
             texto: (btn.getAttribute('aria-label') || '').replace(/^Ver el /, '') };
     });
 
+    let piezas = leerPiezas();
     let i = 0;
     let ultimoFoco = null;
     const reducido = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -1813,6 +1853,8 @@
     }
 
     function abrir(indice) {
+      piezas = leerPiezas();
+      if (!piezas.length) return;
       ultimoFoco = document.activeElement;
       i = indice;
       caja.hidden = false;
@@ -1829,7 +1871,19 @@
       if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
     }
 
-    disparadores.forEach((btn, n) => btn.addEventListener('click', () => abrir(n)));
+    /* Delegación en la rejilla, no un manejador por baldosa. Las baldosas se
+       reemplazan cuando llegan las fotos del panel, y unos manejadores puestos
+       sobre las viejas se irían con ellas —dejando la galería sin responder al
+       clic justo después de cargar—. La rejilla, en cambio, no se sustituye. */
+    const rejilla = $('.gallery');
+    if (rejilla) {
+      rejilla.addEventListener('click', e => {
+        const baldosa = e.target.closest('[data-lightbox]');
+        if (!baldosa) return;
+        abrir(Number(baldosa.getAttribute('data-lightbox')) || 0);
+      });
+    }
+
     const verTodo = $('#ver-galeria');
     if (verTodo) verTodo.addEventListener('click', () => abrir(0));
 

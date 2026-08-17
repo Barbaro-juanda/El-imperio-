@@ -20,12 +20,13 @@ import clientes  from './_clientes.mjs';
 import cobrar    from './_cobrar.mjs';
 import crear     from './_crear.mjs';
 import entrar    from './_entrar.mjs';
+import galeria   from './_galeria.mjs';
 import inventario from './_inventario.mjs';
 import mover     from './_mover.mjs';
 import servicios from './_servicios.mjs';
 
 const RUTAS = { agenda, ajustes, bloqueo, caja, cita, clientes, cobrar, crear, entrar,
-                inventario, mover, servicios };
+                galeria, inventario, mover, servicios };
 
 export default async function handler(req, res) {
   const fn = Object.prototype.hasOwnProperty.call(RUTAS, req.query.accion) ? RUTAS[req.query.accion] : null;

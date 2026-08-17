@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=23">
+<link rel="stylesheet" href="assets/panel.css?v=25">
 </head>
 <body class="panel">
 
@@ -250,6 +250,36 @@
       <div id="i-movs"></div>
     </div>
   </section>
+
+  <!-- ============================ GALERÍA ============================ -->
+  <section class="vista" id="v-galeria" hidden>
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Galería</span>
+        <span class="resumen__pie" id="g-resumen">—</span>
+        <label class="bt bt--vino" id="g-subir">
+          ＋ Subir foto
+          <input type="file" accept="image/*" id="g-archivo" class="sr-only" multiple>
+        </label>
+      </div>
+      <p class="nota">Es la sección «Trabajo Reciente» de la página. Salen en el orden de aquí abajo; el primero es el que más se ve.</p>
+      <div class="galgrid" id="g-lista"></div>
+    </div>
+  </section>
+
+  <dialog id="dlg-foto" class="hoja">
+    <form method="dialog">
+      <h2>Describe la foto</h2>
+      <p class="nota">Una línea contando qué se ve. La lee quien navega sin poder ver la imagen, y también Google.</p>
+      <div class="galprev" id="gf-previa"></div>
+      <label>Descripción <input id="gf-alt" type="text" placeholder="ej. Perfilado de barba a navaja, vista de perfil"></label>
+      <p class="acceso__error" id="gf-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
+        <button class="bt bt--vino" id="gf-guardar" type="button">Publicar en la galería</button>
+      </menu>
+    </form>
+  </dialog>
 
   <!-- ========================= DISPONIBILIDAD ========================= -->
   <section class="vista dispo" id="v-dispo" hidden>
@@ -542,6 +572,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=25"></script>
+<script src="assets/panel.js?v=26"></script>
 </body>
 </html>
