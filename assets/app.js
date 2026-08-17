@@ -1317,75 +1317,6 @@
 
 
   /* ------------------------------------------------------
-     Aparición al hacer scroll
-     ------------------------------------------------------ */
-  function setupRevelado() {
-    const piezas = $$('[data-rv]');
-    if (!piezas.length) return;
-
-    /* Si el navegador no trae el observador, o el visitante pidió no ver
-       movimiento, no se toca nada: el contenido ya está visible en el HTML y
-       esconderlo para luego enseñarlo sería empeorarlo. */
-    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (quieto || !('IntersectionObserver' in window)) return;
-
-    /* El estado inicial se pone AQUÍ y no en la hoja de estilos a propósito.
-       Un `opacity:0` en CSS deja la página en blanco para siempre si este
-       archivo no llega a ejecutarse —un error de red, un bloqueador, una
-       sintaxis nueva en un navegador viejo—. Puesto desde JavaScript, el
-       riesgo desaparece: si el script no corre, tampoco esconde nada. */
-    piezas.forEach(n => {
-      n.style.opacity = '0';
-      n.style.transform = 'translateY(26px)';
-      n.style.willChange = 'opacity, transform';
-    });
-
-    /* Mostrar un elemento, venga de donde venga la orden. */
-    function revelar(n, d) {
-      if (n.dataset.rvHecho) return;
-      n.dataset.rvHecho = '1';
-      n.style.transition = 'opacity .9s var(--ease) ' + d + 'ms, ' +
-                           'transform .9s var(--ease) ' + d + 'ms';
-      n.style.opacity = '1';
-      n.style.transform = 'none';
-      /* Se suelta el will-change: si se deja puesto, el navegador mantiene una
-         capa reservada en memoria por cada elemento del sitio, para siempre. */
-      setTimeout(() => { n.style.willChange = ''; }, 900 + d);
-    }
-
-    /* Red de seguridad. El observador puede no llegar a dispararse nunca:
-       navegadores que lo implementan a medias, pestañas que el sistema
-       congela por estar en segundo plano, un contenedor con overflow que
-       rompe el cálculo. Cualquiera de esos casos dejaría media página en
-       blanco de forma permanente, que es mucho peor que perderse la
-       animación. Pasados tres segundos se enseña lo que siga escondido. */
-    setTimeout(() => piezas.forEach(n => revelar(n, 0)), 3000);
-
-    const obs = new IntersectionObserver((entradas, o) => {
-      entradas.forEach(e => {
-        if (!e.isIntersecting) return;
-        const n = e.target;
-
-        /* El escalonado se calcula contra los hermanos marcados, no contra
-           todos los elementos de la página: así una fila de cuatro tarjetas
-           entra en cascada, pero un título suelto no hereda el retraso de lo
-           que vino antes. Se topa en seis para que una galería larga no acabe
-           con el último elemento entrando medio segundo tarde. */
-        const hermanos = n.parentElement
-          ? Array.prototype.filter.call(n.parentElement.children, x => x.hasAttribute('data-rv'))
-          : [n];
-        const i = Math.min(6, hermanos.indexOf(n));
-        const d = i * 90;
-
-        revelar(n, d);
-        o.unobserve(n);   // una sola vez: al volver a subir no reaparece
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
-
-    piezas.forEach(n => obs.observe(n));
-  }
-
-  /* ------------------------------------------------------
      Acordeón de la carta
      ------------------------------------------------------ */
   function setupAcordeon() {
@@ -1652,7 +1583,7 @@
     menu.textContent = '';
     Object.keys(porGrupo).sort((a, b) => ordenSeg(a) - ordenSeg(b)).forEach(g => {
       const grupo = el('div', 'menu__group');
-      grupo.setAttribute('data-rv', '');
+      grupo.setAttribute('data-reveal', 'up');
 
       const h3 = el('h3', 'menu__group-title');
       const motivo = el('span', 'menu__motif');
@@ -1738,7 +1669,7 @@
     r.fotos.forEach(f => {
       const b = el('button', 'tile');
       b.type = 'button';
-      b.setAttribute('data-rv', '');
+      b.setAttribute('data-reveal', 'up');
       const img = document.createElement('img');
       img.src = f.url;
       img.alt = f.alt;
@@ -1753,6 +1684,7 @@
        van por delegación sobre esta misma rejilla, así que no hay que volver a
        montar nada. */
     [...rejilla.querySelectorAll('.tile')].forEach((t, i) => t.setAttribute('data-lightbox', i));
+    if (window.__motion) window.__motion.reveal();
   }
 
   /* ---------- vitrina ---------- */
@@ -1914,7 +1846,6 @@
   setupHeroVideo();
   setupServiceMenu();
   setupAcordeon();
-  setupRevelado();
 
   /* Al volver a la pestaña. `visibilitychange` y no `focus` porque es el que
      dispara también cuando se vuelve desde otra aplicación en el celular, que

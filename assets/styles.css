@@ -32,13 +32,6 @@
   --sans:  'Jost', system-ui, -apple-system, sans-serif,
            'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
 
-  /* Una sola curva para todo el movimiento del sitio. Es una salida larga y
-     sin rebote: arranca rapido y frena mucho al final, que es lo que hace que
-     una entrada se lea como algo que se posa y no como algo que se desliza.
-     Compartirla en todas partes es lo que da la sensacion de que el sitio se
-     mueve con un mismo criterio y no con seis animaciones sueltas. */
-  --ease: cubic-bezier(.22, 1, .36, 1);
-
   --gut: clamp(22px, 6vw, 120px);   /* horizontal page gutter */
   --band: clamp(72px, 9vw, 130px);  /* vertical band padding  */
   --max: 1440px;
@@ -64,7 +57,7 @@ em { font-style: italic; }
 .wine { color: var(--wine); }
 .dim  { color: rgba(237, 230, 214, .25); }
 
-a { color: var(--wine); text-decoration: none; transition: color .2s ease; }
+a { color: var(--wine); text-decoration: none; transition: color var(--dur-fast) var(--ease-out-expo); }
 a:hover { color: var(--gold); }
 ::selection { background: var(--wine); color: var(--cream); }
 
@@ -86,10 +79,6 @@ a:hover { color: var(--gold); }
 }
 .skip-link:focus { left: 0; }
 
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
 
 /* ---------------------------------------------------------
    Shared type
@@ -128,7 +117,7 @@ a:hover { color: var(--gold); }
   border: 1px solid transparent;
   border-radius: 1px;
   cursor: pointer;
-  transition: background-color .22s ease, color .22s ease, border-color .22s ease, opacity .22s ease;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo), opacity var(--dur-fast) var(--ease-out-expo);
 }
 .btn--lg { padding: 21px 48px; letter-spacing: .22em; }
 
@@ -661,7 +650,7 @@ a:hover { color: var(--gold); }
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
 }
 .seg:hover { color: var(--cream); border-color: rgba(237, 230, 214, .45); }
 
@@ -699,17 +688,6 @@ a:hover { color: var(--gold); }
 .footer__llave:hover,
 .footer__llave:focus-visible { color: var(--gold); cursor: pointer; }
 
-/* --- Entrada en cascada --- */
-.reveal { opacity: 0; transform: translateY(16px); }
-.reveal.is-in {
-  opacity: 1; transform: none;
-  transition: opacity .6s ease, transform .6s cubic-bezier(.2, .7, .3, 1);
-  transition-delay: var(--d, 0ms);
-}
-@media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; }
-  .reveal.is-in { transition: none; }
-}
 
 /* ---------------------------------------------------------
    Barberos
@@ -735,7 +713,7 @@ a:hover { color: var(--gold); }
   width: 100%;
   color: inherit; font: inherit;
   cursor: pointer;
-  transition: border-color .25s ease;
+  transition: border-color var(--dur-base) var(--ease-out-expo);
 }
 .barber:hover, .barber[aria-pressed="true"] { border-color: var(--wine); }
 
@@ -813,7 +791,7 @@ a:hover { color: var(--gold); }
   cursor: pointer; font: inherit;
 }
 .tile:hover img, .tile:hover video { transform: scale(1.03); }
-.tile img, .tile video { transition: transform .4s cubic-bezier(.2, .7, .3, 1); }
+.tile img, .tile video { transition: transform var(--dur-base) var(--ease-out-expo); }
 @media (prefers-reduced-motion: reduce) {
   .tile img, .tile video { transition: none; }
   .tile:hover img, .tile:hover video { transform: none; }
@@ -851,7 +829,7 @@ a:hover { color: var(--gold); }
   color: rgba(237, 230, 214, .75);
   display: inline-flex; align-items: center; justify-content: center;
   width: 48px; height: 48px; /* mínimo táctil */
-  transition: color .2s ease;
+  transition: color var(--dur-fast) var(--ease-out-expo);
 }
 .lightbox__cerrar:hover, .lightbox__nav:hover { color: var(--cream); }
 .lightbox__cerrar { position: absolute; top: 10px; right: 10px; font-size: 17px; }
@@ -902,7 +880,7 @@ a:hover { color: var(--gold); }
 .gscore__figure {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   color: inherit;
-  transition: opacity .35s ease;
+  transition: opacity var(--dur-base) var(--ease-out-expo);
 }
 .gscore__figure:hover { color: inherit; opacity: .78; }
 .gscore__num {
@@ -1175,7 +1153,7 @@ a:hover { color: var(--gold); }
   background: transparent;
   color: inherit; font: inherit; text-align: left;
   cursor: pointer;
-  transition: background-color .2s ease, border-color .2s ease;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo);
 }
 .pick:hover { background: rgba(155, 48, 64, .05); }
 .pick[aria-pressed="true"] { background: rgba(155, 48, 64, .09); border-left-color: var(--wine); }
@@ -1284,7 +1262,7 @@ a:hover { color: var(--gold); }
   color: var(--cream);
   font: 300 12px/1 var(--sans);
   cursor: pointer;
-  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
 }
 .day:hover:not([disabled]) { border-color: var(--wine); }
 .day[disabled] { color: rgba(237, 230, 214, .2); cursor: not-allowed; border-color: rgba(237, 230, 214, .06); }
@@ -1314,7 +1292,7 @@ a:hover { color: var(--gold); }
   letter-spacing: .08em;
   text-align: center;
   cursor: pointer;
-  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
 }
 .slot:hover:not([disabled]) { border-color: var(--wine); }
 .slot[disabled] {
@@ -1341,7 +1319,7 @@ a:hover { color: var(--gold); }
 .field label {
   font: 400 9px/1 var(--sans);
   letter-spacing: .3em; text-transform: uppercase; color: rgba(237, 230, 214, .62);
-  transition: color .2s ease;
+  transition: color var(--dur-fast) var(--ease-out-expo);
 }
 .field__opt { letter-spacing: .1em; text-transform: none; }
 .field input {
@@ -1352,7 +1330,7 @@ a:hover { color: var(--gold); }
   font: 300 18px/1.3 var(--serif);
   color: var(--cream);
   border-radius: 0;
-  transition: border-color .2s ease;
+  transition: border-color var(--dur-fast) var(--ease-out-expo);
 }
 .field input::placeholder { color: rgba(237, 230, 214, .35); }
 /* :focus-visible en vez de :focus — evita marcar "foco" en clics de mouse
@@ -1473,16 +1451,16 @@ body.is-locked { overflow: hidden; }
    de que arranque el delay; sin eso el texto parpadea visible
    un cuadro y luego salta a su sitio.
    --------------------------------------------------------- */
-.hero__inner > .eyebrow { animation: imRise 1s   var(--ease) both; }
-.hero__title            { animation: imRise 1.2s var(--ease) 120ms both; }
-.hero__sub              { animation: imRise 1.1s var(--ease) 340ms both; }
-.hero__inner > .btn     { animation: imRise 1.1s var(--ease) 500ms both; }
-.hero__trust            { animation: imFade 1.1s var(--ease) 700ms both; }
+.hero__inner > .eyebrow { animation: imRise 1s   var(--ease-out-expo) both; }
+.hero__title            { animation: imRise 1.2s var(--ease-out-expo) 120ms both; }
+.hero__sub              { animation: imRise 1.1s var(--ease-out-expo) 340ms both; }
+.hero__inner > .btn     { animation: imRise 1.1s var(--ease-out-expo) 500ms both; }
+.hero__trust            { animation: imFade 1.1s var(--ease-out-expo) 700ms both; }
 /* La línea se dibuja de dentro hacia fuera en vez de aparecer: acompaña al
    degradado que ya tiene, que se apaga en los dos extremos. */
 .hero__inner > .rule {
   transform-origin: center;
-  animation: imLine 1.1s var(--ease) 500ms both;
+  animation: imLine 1.1s var(--ease-out-expo) 500ms both;
 }
 
 /* ---------------------------------------------------------
@@ -1510,7 +1488,7 @@ body.is-locked { overflow: hidden; }
   color: inherit; font: inherit;
   cursor: pointer;
   border-bottom: 1px solid var(--line-ink);
-  transition: color .35s ease, background-color .35s ease;
+  transition: color var(--dur-base) var(--ease-out-expo), background-color var(--dur-base) var(--ease-out-expo);
 }
 .section--ink .menu__group-btn { border-bottom-color: var(--line-cream); }
 .menu__group-btn > .menu__group-title { flex: 1; margin: 0; }
@@ -1535,7 +1513,7 @@ body.is-locked { overflow: hidden; }
   display: grid; place-items: center;
   font: 300 20px/1 var(--sans);
   color: var(--gold);
-  transition: transform .45s var(--ease);
+  transition: transform var(--dur-slow) var(--ease-out-expo);
 }
 .section--paper .menu__plus { color: var(--gold-on-light); }
 .menu__group.is-open .menu__plus { transform: rotate(135deg); }
@@ -1544,7 +1522,7 @@ body.is-locked { overflow: hidden; }
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
-  transition: grid-template-rows .5s var(--ease), opacity .4s ease;
+  transition: grid-template-rows var(--dur-slow) var(--ease-out-expo), opacity var(--dur-base) var(--ease-out-expo);
 }
 .menu__panel > * { overflow: hidden; }
 .menu__group.is-open > .menu__panel {
@@ -1558,8 +1536,12 @@ body.is-locked { overflow: hidden; }
    lee como un fallo de pintado, no como una respuesta.
    --------------------------------------------------------- */
 .btn {
-  transition: background-color .35s ease, color .35s ease, border-color .35s ease,
-              opacity .35s ease, transform .35s ease, letter-spacing .35s ease;
+  transition: background-color var(--dur-base) var(--ease-out-expo),
+              color var(--dur-base) var(--ease-out-expo),
+              border-color var(--dur-base) var(--ease-out-expo),
+              opacity var(--dur-base) var(--ease-out-expo),
+              transform var(--dur-base) var(--ease-out-expo),
+              letter-spacing var(--dur-base) var(--ease-out-expo);
 }
 /* El espaciado se abre al pasar por encima: el botón parece respirar sin que
    nada a su alrededor se mueva de sitio. */
@@ -1571,10 +1553,12 @@ body.is-locked { overflow: hidden; }
 .btn:active { transform: translateY(-1px); }
 
 .barber {
-  transition: border-color .4s ease, transform .5s var(--ease), background-color .4s ease;
+  transition: border-color var(--dur-slow) var(--ease-out-expo),
+              transform var(--dur-slow) var(--ease-out-expo),
+              background-color var(--dur-slow) var(--ease-out-expo);
 }
 .barber__name, .barber__tag, .barber__spec, .barber__photo {
-  transition: color .4s ease, background-color .4s ease;
+  transition: color var(--dur-slow) var(--ease-out-expo), background-color var(--dur-slow) var(--ease-out-expo);
 }
 .barber:hover { transform: translateY(-8px); background: #171717; }
 
@@ -1599,11 +1583,11 @@ body.is-locked { overflow: hidden; }
    sobre negro sí contrasta. */
 .barber[aria-pressed="true"]:hover .barber__tag { color: var(--gold); }  /* 6.4:1 */
 
-.menu__row { transition: background-color .3s ease; }
+.menu__row { transition: background-color var(--dur-base) var(--ease-out-expo); }
 .menu__row:hover { background: rgba(185, 151, 63, .12); }
 
 .tile img, .tile video {
-  transition: filter .5s ease, transform .6s var(--ease);
+  transition: filter var(--dur-slow) var(--ease-out-expo), transform var(--dur-slow) var(--ease-out-expo);
 }
 .tile:hover img, .tile:hover video,
 .tile:focus-visible img, .tile:focus-visible video {
@@ -1655,7 +1639,9 @@ body.is-locked { overflow: hidden; }
   padding: 24px 22px 26px;
   display: flex; flex-direction: column; gap: 8px;
   background: rgba(13, 13, 13, .02);
-  transition: border-color .4s ease, transform .5s var(--ease), background-color .4s ease;
+  transition: border-color var(--dur-slow) var(--ease-out-expo),
+              transform var(--dur-slow) var(--ease-out-expo),
+              background-color var(--dur-slow) var(--ease-out-expo);
 }
 .prod-web:hover {
   border-color: var(--wine);

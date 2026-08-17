@@ -1,0 +1,205 @@
+/* =========================================================
+   Motion — tokens y comportamiento base
+   =========================================================
+   Va aparte de styles.css a propósito: el movimiento del sitio es un sistema
+   con sus propias reglas, y tenerlo en un archivo permite leerlo entero de una
+   vez y comprobar que no hay una sola curva ni una sola duración fuera de la
+   escala.
+
+   Se carga ANTES de styles.css para que los tokens existan cuando esa hoja los
+   use. ========================================================= */
+
+:root {
+  /* ---------------------------------------------------------
+     Una sola curva. Todo el sitio.
+     Una salida exponencial: arranca muy rápido y frena mucho al final. Es lo
+     que hace que un elemento parezca posarse en su sitio en vez de deslizarse
+     hasta él, y compartirla en absolutamente todo es lo que da la sensación de
+     que el sitio se mueve con un criterio y no con veinte animaciones sueltas.
+     --------------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---------------------------------------------------------
+     Escala de duraciones
+     Cuatro peldaños y nada entre medias. Cuando cada animación elige su número
+     a ojo, el conjunto se siente descoordinado aunque cada pieza por separado
+     esté bien; con una escala corta, dos cosas distintas que tardan lo mismo
+     se leen como parte del mismo gesto.
+     --------------------------------------------------------- */
+  --dur-fast:   200ms;   /* color, opacidad de piezas pequeñas */
+  --dur-base:   300ms;   /* micro-interacciones, hovers */
+  --dur-slow:   600ms;   /* revelados al scroll */
+  --dur-reveal: 900ms;   /* titulares y entradas grandes */
+
+  /* Alto del header. Vive aquí porque lo usan el propio header, el
+     scroll-margin de los anclajes y el cálculo del parallax. */
+  --alto-header: 88px;
+  --alto-header-min: 64px;
+}
+
+@media (max-width: 899px) {
+  :root { --alto-header: 64px; --alto-header-min: 56px; }
+}
+
+/* =========================================================
+   Revelado al scroll
+   =========================================================
+   El estado inicial cuelga de `.js-enabled`, que pone el propio documento en
+   la primera línea de <head>. Si el JavaScript no llega a ejecutarse —red
+   caída, bloqueador, navegador viejo— esa clase no existe, estas reglas no
+   aplican y TODO se ve. Es la diferencia entre una animación que falla y una
+   página en blanco.
+
+   Solo se animan `opacity` y `transform`: son las dos propiedades que el
+   navegador resuelve sin rehacer el layout, así que el elemento ya ocupa su
+   sitio desde el primer momento y el CLS no se mueve de cero. */
+.js-enabled [data-reveal] {
+  opacity: 0;
+  transition:
+    opacity   var(--dur-slow) var(--ease-out-expo) var(--reveal-delay, 0ms),
+    transform var(--dur-slow) var(--ease-out-expo) var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.js-enabled [data-reveal="up"]    { transform: translateY(26px); }
+.js-enabled [data-reveal="scale"] { transform: scale(.96); }
+.js-enabled [data-reveal="fade"]  { transform: none; }
+
+/* Máscara: el contenido sube desde debajo de su propio borde. El envoltorio
+   recorta, y lo que se mueve es el interior — por eso hace falta el <span>
+   que mete el JS, y no se puede hacer con un solo elemento. */
+.js-enabled [data-reveal="mask"] { opacity: 1; overflow: hidden; }
+.js-enabled [data-reveal="mask"] > .mask__i {
+  display: block;
+  transform: translateY(110%);
+  opacity: 0;
+  transition:
+    opacity   var(--dur-reveal) var(--ease-out-expo) var(--reveal-delay, 0ms),
+    transform var(--dur-reveal) var(--ease-out-expo) var(--reveal-delay, 0ms);
+}
+
+.js-enabled [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+.js-enabled [data-reveal="mask"].is-visible > .mask__i {
+  transform: none;
+  opacity: 1;
+}
+
+/* El will-change se suelta al terminar: dejarlo puesto reserva una capa en
+   memoria por cada elemento revelado, para siempre. */
+.js-enabled [data-reveal].is-visible.is-done { will-change: auto; }
+
+/* El kicker («01 — Galería») abre su espaciado al entrar. Es de las pocas
+   animaciones que no son transform ni opacity, y se permite porque ocurre una
+   sola vez, sobre un elemento pequeño y con `will-change` acotado: no hay
+   riesgo de tirones. El ancho reservado evita cualquier salto. */
+.js-enabled [data-reveal-kicker] {
+  letter-spacing: .05em;
+  transition: letter-spacing var(--dur-reveal) var(--ease-out-expo) var(--reveal-delay, 0ms),
+              opacity       var(--dur-slow)   var(--ease-out-expo) var(--reveal-delay, 0ms);
+}
+.js-enabled [data-reveal-kicker].is-visible { letter-spacing: .18em; }
+
+/* =========================================================
+   Header
+   ========================================================= */
+.nav {
+  transition:
+    transform       var(--dur-base) var(--ease-out-expo),
+    background-color var(--dur-base) var(--ease-out-expo),
+    border-color    var(--dur-base) var(--ease-out-expo),
+    padding         var(--dur-base) var(--ease-out-expo);
+  will-change: transform;
+}
+
+/* Sobre el hero: transparente y sin borde, para que el video llegue arriba del
+   todo. El degradado hacia abajo mantiene legible la marca sin pintar una
+   barra. */
+.nav.is-top {
+  background: linear-gradient(180deg, rgba(13, 13, 13, .55), transparent);
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+}
+
+/* Pasado el hero: barra sólida y compacta. El hairline dorado al 15% es lo que
+   la separa del contenido sin dibujar una línea que se note. */
+.nav.is-fijo {
+  background: rgba(13, 13, 13, .88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: rgba(185, 151, 63, .15);
+}
+
+/* Se va al hacer scroll hacia abajo. Devuelve la pantalla completa a quien
+   está leyendo, y vuelve en cuanto sube —que es cuando se busca el menú—. */
+.nav.is-oculto { transform: translateY(-100%); }
+
+/* Subrayado que crece desde el centro. `scaleX` y no `width` porque el ancho
+   obliga a rehacer el layout en cada cuadro. */
+.nav__links a {
+  position: relative;
+  transition: color var(--dur-base) var(--ease-out-expo);
+}
+.nav__links a::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -6px;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+.nav__links a:hover::after,
+.nav__links a:focus-visible::after { transform: scaleX(1); }
+
+/* =========================================================
+   Foco
+   =========================================================
+   Un anillo dorado, visible y con aire. No se quita nunca: quien navega con
+   teclado necesita saber dónde está, y un sitio sin foco visible es
+   inutilizable para esa persona por bonito que sea. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+/* Los anclajes del nav no pueden quedar debajo del header fijo. */
+[id] { scroll-margin-top: calc(var(--alto-header) + 12px); }
+
+/* =========================================================
+   Sin movimiento
+   =========================================================
+   Un solo bloque al final, y no una excepción por regla. Escrito caso por caso
+   se olvida uno, y el que se olvida es justo el que marea.
+
+   Se permiten fundidos cortos: la opacidad no produce sensación de movimiento
+   y es lo que hace falta para que una entrada no sea un parpadeo. Lo que se
+   quita es todo lo que desplaza, escala o gira.
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--dur-fast) !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Nada se desplaza ni se escala: se ve directamente en su sitio. */
+  .js-enabled [data-reveal],
+  .js-enabled [data-reveal="mask"] > .mask__i {
+    transform: none !important;
+  }
+  .js-enabled [data-reveal-kicker] { letter-spacing: .18em !important; }
+
+  /* El header no se esconde ni se mueve: aparece y desaparece sin recorrido. */
+  .nav { transition: background-color var(--dur-fast) linear !important; }
+  .nav.is-oculto { transform: none !important; }
+
+  /* Subrayados, destellos y demás: se muestran, no se dibujan. */
+  .nav__links a::after { transition: none !important; }
+}
