@@ -55,11 +55,15 @@ export default async function handler(req, res) {
     const n = Number(id);
     if (!Number.isInteger(n) || n < 1) return json(res, 400, { error: 'id no válido' });
     try {
-      const r = await sql`SELECT mime, datos FROM galeria WHERE id = ${n} AND activo`;
+      const r = await sql`SELECT mime, datos, mini FROM galeria WHERE id = ${n} AND activo`;
       if (!r.length) return json(res, 404, { error: 'No existe' });
 
-      const cuerpo = Buffer.from(r[0].datos, 'base64');
-      res.setHeader('Content-Type', r[0].mime);
+      /* La rejilla pide la miniatura y el visor la grande. Si no hay miniatura
+         —fotos subidas antes de que existieran— se cae a la grande en vez de
+         devolver un hueco. */
+      const chica = req.query.mini !== undefined && r[0].mini;
+      const cuerpo = Buffer.from(chica ? r[0].mini : r[0].datos, 'base64');
+      res.setHeader('Content-Type', chica ? 'image/jpeg' : r[0].mime);
       res.setHeader('Content-Length', cuerpo.length);
       /* Un año e inmutable. Se puede prometer eso porque la dirección lleva la
          marca de tiempo de la foto: si el local la reemplaza, la dirección deja
@@ -94,7 +98,13 @@ export default async function handler(req, res) {
         /* La dirección se arma aquí y no en el navegador para que el `v` salga
            del mismo sitio que el dato: si se calculara fuera, un despiste
            dejaría a todo el mundo viendo la foto vieja durante un año. */
-        url: '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado)
+        url: '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado),
+        /* La que pide la rejilla. Un video no tiene miniatura: se pide él
+           mismo, con preload en «none» para que no se descargue hasta que
+           alguien lo toque. */
+        mini: String(f.mime || '').indexOf('video/') === 0
+          ? '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado)
+          : '/api/galeria?img=' + f.id + '&mini&v=' + Date.parse(f.actualizado)
       }))
     }));
   } catch (e) {

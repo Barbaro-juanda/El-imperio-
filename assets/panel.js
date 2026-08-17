@@ -2012,7 +2012,7 @@
         caja.appendChild(v);
       } else {
         const img = document.createElement('img');
-        img.src = f.url; img.alt = f.alt; img.loading = 'lazy';
+        img.src = f.mini || f.url; img.alt = f.alt; img.loading = 'lazy';
         caja.appendChild(img);
       }
 
@@ -2091,7 +2091,15 @@
           }
           colaFotos.push({ nombre: a.name, video: true, dato: await comoDataUrl(a) });
         } else {
-          colaFotos.push({ nombre: a.name, video: false, dato: await encoger(a, 1400, 0.78) });
+          /* Dos versiones de la misma foto: la grande para cuando se amplía y
+             una de 600 px para la rejilla, que la enseña a 232. Sin esto, cada
+             visitante se descargaba la grande cuatro veces seguidas para ver
+             unas miniaturas. */
+          colaFotos.push({
+            nombre: a.name, video: false,
+            dato: await encoger(a, 1400, 0.78),
+            mini: await encoger(a, 600, 0.7)
+          });
         }
       } catch (err) { avisar(err.message || 'No se pudo leer ' + a.name); }
     }
@@ -2154,7 +2162,7 @@
     btn.disabled = true;
     try {
       await api('/panel/galeria', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ foto: colaFotos[0].dato, alt }) });
+        body: JSON.stringify({ foto: colaFotos[0].dato, mini: colaFotos[0].mini || null, alt }) });
       colaFotos.shift();
       $('#dlg-foto').close('ok');
       avisar('Foto publicada');
@@ -2665,25 +2673,58 @@
      pesa tres o cuatro megas y aquí solo hace falta poder leer el monto y la
      fecha del recibo: a 900 px de ancho se lee perfectamente y baja a unos
      100 KB, que es lo que hace viable guardarla junto a la cita. */
-  function encoger(archivo, max, calidad) {
-    return new Promise((resolve, reject) => {
-      const lector = new FileReader();
-      lector.onerror = () => reject(new Error('No se pudo leer la foto'));
-      lector.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error('Ese archivo no es una imagen'));
-        img.onload = () => {
-          const tope = max || 900;
-          const escala = Math.min(1, tope / Math.max(img.width, img.height));
-          const lienzo = document.createElement('canvas');
-          lienzo.width = Math.round(img.width * escala);
-          lienzo.height = Math.round(img.height * escala);
-          lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
-          resolve(lienzo.toDataURL('image/jpeg', calidad || 0.72));
-        };
-        img.src = lector.result;
-      };
-      lector.readAsDataURL(archivo);
+  /* Tope de entrada. No es el tamaño final —eso lo decide el encogedor— sino
+     lo que se admite abrir: una foto de 40 MB hay que leerla entera antes de
+     poder encogerla, y en un celular de gama media eso tumba la pestaña antes
+     de llegar a la primera línea útil. */
+  const TOPE_ENTRADA = 25 * 1024 * 1024;
+
+  /* Encoge una foto antes de subirla.
+
+     Reescrito. La versión anterior leía el archivo entero como data: URL, se lo
+     daba a un <img> y de ahí al lienzo. Eso son TRES copias de la misma foto en
+     memoria a la vez —el texto en base64, que ya pesa un tercio más que el
+     archivo; el mapa de bits decodificado; y el lienzo—, y con una foto de
+     celular moderno son cientos de megas para acabar guardando treinta kilos.
+     En un teléfono viejo eso es una pestaña que se cierra sola.
+
+     `createImageBitmap` decodifica desde el archivo sin pasar por texto, y
+     `toBlob` devuelve el resultado sin bloquear la página como hace
+     `toDataURL`. La orientación se pide explícitamente: una foto vertical de
+     celular lleva la rotación en sus metadatos, y dibujada sin más sale
+     tumbada. */
+  async function encoger(archivo, max, calidad) {
+    if (archivo.size > TOPE_ENTRADA) {
+      throw new Error('Esa imagen pesa ' + Math.round(archivo.size / 1024 / 1024) +
+                      ' MB. Es demasiado grande para procesarla en el navegador.');
+    }
+
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' });
+    } catch (e) {
+      throw new Error('Ese archivo no es una imagen que podamos usar');
+    }
+
+    const tope = max || 900;
+    const escala = Math.min(1, tope / Math.max(bitmap.width, bitmap.height));
+    const lienzo = document.createElement('canvas');
+    lienzo.width = Math.round(bitmap.width * escala);
+    lienzo.height = Math.round(bitmap.height * escala);
+    lienzo.getContext('2d').drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
+    /* Se suelta en cuanto se ha dibujado: es el objeto más pesado de los tres y
+       si no se cierra a mano espera al recolector, que en una subida múltiple
+       llega tarde. */
+    bitmap.close();
+
+    const blob = await new Promise(r => lienzo.toBlob(r, 'image/jpeg', calidad || 0.72));
+    if (!blob) throw new Error('No se pudo procesar la foto');
+
+    return await new Promise((res, rej) => {
+      const l = new FileReader();
+      l.onload = () => res(l.result);
+      l.onerror = () => rej(new Error('No se pudo procesar la foto'));
+      l.readAsDataURL(blob);
     });
   }
 

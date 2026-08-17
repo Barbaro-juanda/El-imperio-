@@ -1550,7 +1550,17 @@
   let catalogoVersion = null;
   let vigilante = null;
 
-  const VIGILANCIA_MS = 20000;
+  /* Un minuto, no veinte segundos.
+
+     Cada pregunta despierta la base, y a 20 s una visita de quince minutos
+     genera 47 llamadas. A 60 s son 16: un tercio del consumo, que es lo que
+     separa aguantar 400 visitas diarias de aguantar 1.200 sin pagar nada.
+
+     Lo que se pierde no lo nota nadie: es el tiempo que tarda un cambio de
+     precio en llegar a una pestaña que ya estaba abierta y quieta. Quien entra
+     nuevo lo ve al instante, y quien vuelve a la pestaña también, porque eso se
+     refresca aparte. */
+  const VIGILANCIA_MS = 60000;
 
   /* Mantiene la página al día sin que nadie la toque.
 
@@ -1767,7 +1777,11 @@
         b.appendChild(v);
       } else {
         const img = document.createElement('img');
-        img.src = f.url;
+        /* La baldosa pide la miniatura; la grande solo se descarga si alguien
+           amplía, que es una minoría de las visitas. `data-grande` es de donde
+           la saca el visor. */
+        img.src = f.mini || f.url;
+        img.setAttribute('data-grande', f.url);
         img.alt = f.alt;
         img.loading = 'lazy';
         img.decoding = 'async';
@@ -1842,7 +1856,7 @@
       const img = btn.querySelector('img');
       const vid = btn.querySelector('video');
       return img
-        ? { tipo: 'img', src: img.src, texto: img.alt }
+        ? { tipo: 'img', src: img.getAttribute('data-grande') || img.src, texto: img.alt }
         : { tipo: 'video', src: vid.currentSrc || vid.getAttribute('src'),
             poster: vid.getAttribute('poster'),
             texto: (btn.getAttribute('aria-label') || '').replace(/^Ver el /, '') };

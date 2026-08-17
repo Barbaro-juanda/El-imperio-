@@ -45,7 +45,8 @@ export default protegido(async (req, res) => {
           video: String(f.mime || '').indexOf('video/') === 0,
           /* Aproximado: base64 abulta un tercio sobre los bytes reales. */
           kb: Math.round(Number(f.peso) * 0.75 / 1024),
-          url: '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado)
+          url: '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado),
+          mini: '/api/galeria?img=' + f.id + '&mini&v=' + Date.parse(f.actualizado)
         }))
       });
     }
@@ -83,10 +84,16 @@ export default protegido(async (req, res) => {
 
       /* Al final de la fila, con hueco de sobra para poder colar otra en medio
          más adelante sin renumerar nada. */
+      /* La miniatura la fabrica el navegador al subir. Si no viene —un video, o
+         un panel viejo— la columna queda nula y se sirve la grande, que es lo
+         que se hacía antes: peor, pero nunca roto. */
+      const mini = parte(b.mini);
+
       const ult = await sql`SELECT COALESCE(max(orden), 0) AS n FROM galeria`;
       const r = await sql`
-        INSERT INTO galeria (mime, datos, alt, orden)
-        VALUES (${p.mime}, ${p.datos}, ${alt}, ${Number(ult[0].n) + 10})
+        INSERT INTO galeria (mime, datos, alt, orden, mini)
+        VALUES (${p.mime}, ${p.datos}, ${alt}, ${Number(ult[0].n) + 10},
+                ${mini ? mini.datos : null})
         RETURNING id`;
       return json(res, 201, { id: r[0].id });
     }
