@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tarea programada de macOS: saca el respaldo de la base una vez al día.
+
+  Para activarla, un solo comando:
+
+    cp "scripts/com.imperial.respaldo.plist" ~/Library/LaunchAgents/ && \
+    launchctl load ~/Library/LaunchAgents/com.imperial.respaldo.plist
+
+  Para desactivarla:
+
+    launchctl unload ~/Library/LaunchAgents/com.imperial.respaldo.plist
+
+  A las 14:00 y no de madrugada a propósito: un portátil a las 3 a.m. está
+  dormido o apagado, y la tarea no correría nunca. A media tarde el Mac suele
+  estar encendido. Si aun así estaba apagado, launchd la lanza en cuanto vuelva.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.imperial.respaldo</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/juandavidescobarguiral/Downloads/Personal/The imperial classic /scripts/respaldo-diario.sh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>14</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <!-- No al cargar: no hace falta un respaldo cada vez que se enciende el Mac. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardErrorPath</key>
+  <string>/tmp/imperial-respaldo-errores.txt</string>
+</dict>
+</plist>

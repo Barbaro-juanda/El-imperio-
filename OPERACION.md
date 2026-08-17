@@ -111,11 +111,34 @@ npm run respaldo
 Escribe un JSON en `respaldos/`, que está ignorada por Git — un respaldo con
 teléfonos de clientes no puede acabar en un repositorio público.
 
-Automático: `.github/workflows/respaldo.yml` lo corre **cada día a las 3 de la
-madrugada de Bogotá** y guarda el archivo como artefacto privado durante 90
-días. **Hay que crear el secreto `DATABASE_URL`** en Settings → Secrets and
-variables → Actions; sin él el trabajo falla a propósito y GitHub avisa por
-correo, que es mejor que fingir que hay respaldos.
+### Automático, en este Mac
+
+Hay una tarea programada que lo saca todos los días a las 14:00 y lo guarda en
+**iCloud Drive → «Respaldos El Imperio»**, quedándose con los 30 últimos. Se
+activa una sola vez:
+
+```bash
+cp scripts/com.imperial.respaldo.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.imperial.respaldo.plist
+```
+
+A las 14:00 y no de madrugada a propósito: un portátil a las 3 a.m. está dormido
+y la tarea no correría nunca.
+
+Guarda en iCloud y no en el proyecto porque un respaldo que vive en el mismo
+disco que se puede dañar no es un respaldo. Y la contraseña de la base **no sale
+de esta máquina**: el script la lee de `.env.development.local`.
+
+En `registro.txt`, dentro de esa misma carpeta, queda lo que imprimió cada
+ejecución. Si un día deja de haber archivos nuevos, ahí está el motivo.
+
+### Automático, en GitHub (alternativa, sin activar)
+
+`.github/workflows/respaldo.yml` hace lo mismo desde los servidores de GitHub,
+con la ventaja de que corre aunque el Mac esté apagado. Necesita crear el
+secreto `DATABASE_URL` en Settings → Secrets and variables → Actions. Mientras
+no exista, el trabajo falla a propósito y GitHub avisa por correo, que es mejor
+que fingir que hay respaldos.
 
 El JSON trae `orden_de_restauracion`: hay que insertar en ese orden o las claves
 foráneas lo rechazan.
@@ -248,7 +271,9 @@ Cosas que solo puede hacer el dueño, porque exigen sus accesos o su criterio:
 - **Repartir las claves del equipo** y borrar `claves-equipo.txt`. Están
   generadas y puestas; el archivo está ignorado por Git y solo lo puede leer el
   dueño. Se cambian desde Disponibilidad → Profesionales.
-- **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.
+- **Activar la tarea de respaldo** con los dos comandos de arriba (una vez).
+- Opcional: el secreto `DATABASE_URL` en GitHub, si se quiere que el respaldo
+  corra también con el Mac apagado.
 - **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.
 - **Fotos** de quien no la tenga. Sin foto se enseña su inicial, que funciona,
   pero no es lo mismo.
