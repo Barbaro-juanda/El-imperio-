@@ -110,71 +110,20 @@
   }
 
   /* ------------------------------------------------------
-     header — compacto, oculto al bajar, visible al subir
+     header
+     ------------------------------------------------------
+     No hay módulo de header, y es a propósito.
+
+     Hubo uno que volvía la barra transparente sobre el hero, la encogía al
+     bajar y la retiraba al hacer scroll hacia abajo. Se quitó entero —lógica,
+     clases y escucha de scroll— porque al local no le gustó: una barra que
+     aparece y desaparece obliga a fijarse en ella cada vez que vuelve, y la
+     que lleva el botón de reservar es justo la que no debe pedir atención.
+
+     La barra es estática y su aspecto lo define `.nav` en styles.css. Al no
+     haber módulo, tampoco hay un escucha de scroll corriendo por él, que es
+     trabajo que se ahorra en cada cuadro de toda la página.
      ------------------------------------------------------ */
-  const APARECE = 80;   // hasta aquí, transparente sobre el hero
-  const UMBRAL  = 10;   // movimiento mínimo para reaccionar
-
-  /* La decisión, separada del DOM y sin efectos: dado dónde estás y dónde
-     estabas, qué debe hacer la barra. Aparte por dos razones. Se puede
-     comprobar sin navegador —que es donde vive el único fallo que importa
-     aquí, la barra temblando— y se lee de un vistazo, que con la lógica
-     mezclada entre classList.toggle no pasaba.
-
-     `oculto` puede venir null: significa «no cambies lo que había», que no es
-     lo mismo que «muéstrala». */
-  function estadoHeader(y, ultimo) {
-    const arriba = y < APARECE;
-    const salto = y - ultimo;
-
-    /* Por debajo del umbral no se decide nada. Sin esto, el rebote de un
-       trackpad o el ajuste de una imagen al cargar haría entrar y salir la
-       barra varias veces por segundo. */
-    if (Math.abs(salto) <= UMBRAL) {
-      return { top: arriba, fijo: !arriba, oculto: null, ultimo: ultimo };
-    }
-
-    /* Nunca se esconde dentro del hero: ahí está el botón de reservar, y
-       quitarlo de la vista mientras alguien decide es lo peor que puede hacer
-       una animación. La conversión manda sobre el efecto. */
-    return {
-      top: arriba,
-      fijo: !arriba,
-      oculto: salto > 0 && y > APARECE * 3,
-      ultimo: y
-    };
-  }
-
-  function header() {
-    const barra = document.getElementById('nav');
-    if (!barra) return;
-
-    let ultimo = window.scrollY;
-    let pedido = false;
-
-    function aplicar() {
-      pedido = false;
-      const e = estadoHeader(window.scrollY, ultimo);
-      barra.classList.toggle('is-top', e.top);
-      barra.classList.toggle('is-fijo', e.fijo);
-      if (e.oculto !== null) barra.classList.toggle('is-oculto', e.oculto);
-      ultimo = e.ultimo;
-    }
-
-    /* Todo el scroll pasa por rAF: el navegador puede disparar el evento
-       decenas de veces por cuadro, y leer scrollY en cada uno obliga a
-       recalcular el layout otras tantas. Con rAF se lee una vez por cuadro,
-       justo antes de pintar. `passive` le dice al navegador que este manejador
-       nunca va a cancelar el scroll, y así no tiene que esperarnos. */
-    window.addEventListener('scroll', () => {
-      if (pedido) return;
-      pedido = true;
-      requestAnimationFrame(aplicar);
-    }, { passive: true });
-
-    aplicar();
-  }
-
 
   /* ------------------------------------------------------
      hero — entrada por líneas, parallax e indicador
@@ -443,7 +392,6 @@
 
   function arrancar() {
     reveal();
-    header();
     hero();
     counters();
     estrellas();
@@ -460,5 +408,5 @@
 
   /* Lo usa app.js cuando rehace la galería o la carta: los elementos nuevos
      llegan sin observar. */
-  window.__motion = { reveal, estadoHeader, APARECE, UMBRAL };
+  window.__motion = { reveal };
 })();

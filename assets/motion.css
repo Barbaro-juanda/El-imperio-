@@ -104,37 +104,19 @@
 
 /* =========================================================
    Header
-   ========================================================= */
-.nav {
-  transition:
-    transform       var(--dur-base) var(--ease-out-expo),
-    background-color var(--dur-base) var(--ease-out-expo),
-    border-color    var(--dur-base) var(--ease-out-expo),
-    padding         var(--dur-base) var(--ease-out-expo);
-  will-change: transform;
-}
+   =========================================================
+   LA BARRA ES ESTÁTICA. No cambia de fondo al bajar, no se encoge y no se
+   esconde: se queda siempre igual, pegada arriba, tal como estaba antes.
 
-/* Sobre el hero: transparente y sin borde, para que el video llegue arriba del
-   todo. El degradado hacia abajo mantiene legible la marca sin pintar una
-   barra. */
-.nav.is-top {
-  background: linear-gradient(180deg, rgba(13, 13, 13, .55), transparent);
-  border-bottom-color: transparent;
-  backdrop-filter: none;
-}
+   Hubo una versión que se volvía transparente sobre el hero y se retiraba al
+   hacer scroll hacia abajo. Se quitó porque al local no le gustó, y con razón:
+   una barra que aparece y desaparece obliga a fijarse en ella cada vez que
+   vuelve, y la que lleva el botón de reservar es justo la que no debe pedir
+   atención. Aquí no se declara ningún fondo ni ninguna altura — de eso se
+   encarga `.nav` en styles.css, que es donde vivía desde el principio.
 
-/* Pasado el hero: barra sólida y compacta. El hairline dorado al 15% es lo que
-   la separa del contenido sin dibujar una línea que se note. */
-.nav.is-fijo {
-  background: rgba(13, 13, 13, .88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom-color: rgba(185, 151, 63, .15);
-}
-
-/* Se va al hacer scroll hacia abajo. Devuelve la pantalla completa a quien
-   está leyendo, y vuelve en cuanto sube —que es cuando se busca el menú—. */
-.nav.is-oculto { transform: translateY(-100%); }
+   Lo único que se conserva es el subrayado de los enlaces, que es un detalle
+   del enlace y no un comportamiento de la barra. */
 
 /* Subrayado que crece desde el centro. `scaleX` y no `width` porque el ancho
    obliga a rehacer el layout en cada cuadro. */
@@ -195,10 +177,6 @@
     transform: none !important;
   }
   .js-enabled [data-reveal-kicker] { letter-spacing: .18em !important; }
-
-  /* El header no se esconde ni se mueve: aparece y desaparece sin recorrido. */
-  .nav { transition: background-color var(--dur-fast) linear !important; }
-  .nav.is-oculto { transform: none !important; }
 
   /* Subrayados, destellos y demás: se muestran, no se dibujan. */
   .nav__links a::after { transition: none !important; }
@@ -262,17 +240,22 @@
    FASE 3 — Galería
    ========================================================= */
 .tile { position: relative; overflow: hidden; }
+/* LAS FOTOS VAN A COLOR, SIEMPRE.
+
+   Hubo una versión que las enseñaba en blanco y negro y les devolvía el color
+   al pasar por encima. Se quitó porque al local no le gustó, y el argumento es
+   suyo y es bueno: estas fotos son el trabajo que vende la barbería —el
+   degradado de un fade, el tono de un tinte, la piel después de un ritual—, y
+   en gris no se ve nada de eso. Un efecto que esconde el producto no es un
+   efecto, es un estorbo.
+
+   Se queda solo el acercamiento al pasar por encima, que no tapa nada. */
 .tile img, .tile video {
-  transition: transform 700ms var(--ease-out-expo),
-              filter    700ms var(--ease-out-expo);
+  transition: transform 700ms var(--ease-out-expo);
 }
 @media (hover: hover) and (pointer: fine) {
-  .tile img, .tile video { filter: grayscale(1) brightness(.75); }
   .tile:hover img, .tile:hover video,
-  .tile:focus-visible img, .tile:focus-visible video {
-    filter: grayscale(0) brightness(1);
-    transform: scale(1.08);
-  }
+  .tile:focus-visible img, .tile:focus-visible video { transform: scale(1.08); }
 }
 
 /* Pie que sube al pasar por encima. */
@@ -337,10 +320,9 @@
 /* =========================================================
    FASE 5 — Barberos y reseñas
    ========================================================= */
-.barber__photo { transition: filter 700ms var(--ease-out-expo); }
+/* Los retratos, por lo mismo: a color desde el principio. Se conserva el
+   «Elegir» que asoma al pasar por encima, que añade sin quitar. */
 @media (hover: hover) and (pointer: fine) {
-  .barber__photo { filter: grayscale(1); }
-  .barber:hover .barber__photo, .barber:focus-visible .barber__photo { filter: grayscale(0); }
   .barber__tag {
     opacity: 0; transform: translateY(8px);
     transition: opacity var(--dur-base) var(--ease-out-expo),
@@ -476,8 +458,6 @@
   .js-enabled .linea > i { transform: none !important; opacity: 1 !important; }
   .scrollind::after { animation: none !important; }
 
-  .tile img, .tile video,
-  .barber__photo { filter: none !important; }
   .tile:hover img, .tile:hover video { transform: none !important; }
   .tile__pie, .barber__tag { opacity: 1 !important; transform: none !important; }
 
