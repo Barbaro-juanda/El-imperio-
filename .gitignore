@@ -27,3 +27,7 @@ node_modules/
 respaldos/
 .vercel
 .env*
+
+# Claves del equipo en texto plano. Se generan una vez, se reparten y se borra
+# el archivo. Nunca al repositorio.
+claves-equipo.txt

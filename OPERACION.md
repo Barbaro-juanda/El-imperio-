@@ -89,6 +89,12 @@ siguiente y correr el comando. Escribirlas de forma que se puedan repetir sin
 daño (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`) — cuesta lo mismo y evita el
 día malo.
 
+> **Cuidado con `''` y `NULL`.** La migración 07 rellenaba descripciones con
+> `AND descripcion IS NULL` y se saltó las que tenían cadena vacía. En el panel
+> las dos se ven igual —«sin descripción»— pero para Postgres son valores
+> distintos, y el panel escribe `''` cuando el campo se deja en blanco. Al
+> comparar campos de texto que el panel puede dejar vacíos, van los dos casos.
+
 > **El código nuevo no puede dar por hecha una migración recién escrita.**
 > Ha pasado dos veces: una consulta contra una tabla que aún no existía tumbó
 > primero la vista de Facturas entera y luego el inventario. Si una consulta
@@ -143,9 +149,15 @@ error caro: se le aplicaron tres migraciones creyendo que era la buena.
 > producción la tiene, la otra no. Y el nombre del proyecto NO sirve como
 > señal: la duplicada tiene el nombre que parece el correcto.
 
-`imperial-db` hay que borrarla desde **Vercel → Storage** (no desde Neon: la
-organización la gestiona Vercel y Neon rechaza el borrado). Antes de borrarla se
-sacó un respaldo, en `respaldos/imperial-db-antes-de-borrar/`.
+`imperial-db` ya se borró. Neon rechazaba el borrado —«organization is managed
+by Vercel»— porque la base es un recurso del Marketplace, y esos se gestionan
+desde Vercel:
+
+```bash
+npx vercel integration-resource remove <nombre>
+```
+
+Quedó un respaldo suyo en `respaldos/imperial-db-antes-de-borrar/`.
 
 ### Cómo se saca la conexión
 
@@ -233,12 +245,10 @@ tropiezo deja al visitante mirando un hueco.
 
 Cosas que solo puede hacer el dueño, porque exigen sus accesos o su criterio:
 
-- **Claves de cada profesional** — Disponibilidad → Profesionales. Sin ellas
-  nadie entra a «Mi día» desde su celular.
-- **Borrar `imperial-db`** desde Vercel → Storage. Ya está respaldada.
-- **Descripción de «Cejas con cuchilla»** — es el único servicio que quedó sin
-  texto, porque existe en la base pero no en la lista escrita del sitio, así que
-  no había de dónde copiarla. Servicios → Editar.
+- **Repartir las claves del equipo** y borrar `claves-equipo.txt`. Están
+  generadas y puestas; el archivo está ignorado por Git y solo lo puede leer el
+  dueño. Se cambian desde Disponibilidad → Profesionales.
+- **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.
 - **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.
 - **Fotos** de quien no la tenga. Sin foto se enseña su inicial, que funciona,
   pero no es lo mismo.
