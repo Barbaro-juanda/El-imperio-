@@ -1135,6 +1135,18 @@
     document.body.classList.add('is-locked');
     render();
     panel.scrollTop = 0;
+
+    /* La clase que dispara la entrada va en el cuadro SIGUIENTE al de quitar
+       `hidden`. Puesta a la vez, el navegador ve un elemento que nace ya en su
+       estado final y no hay transición que animar: aparecería de golpe.
+
+       Y no es solo estética: el estado inicial de esa animación es opacidad
+       cero, así que si esta clase no llegara a ponerse, el modal quedaría
+       invisible con la reserva abierta. Por eso también se pone por
+       `setTimeout` de respaldo. */
+    requestAnimationFrame(() => booking.classList.add('is-abierto'));
+    setTimeout(() => booking.classList.add('is-abierto'), 120);
+
     panel.focus();
   }
 
@@ -1142,9 +1154,18 @@
     if (state.step < 5) {
       track('booking_abandoned', { last_step: state.step, last_step_name: TITLES[state.step - 1].replace(/<[^>]+>/g, '') });
     }
-    booking.hidden = true;
+    /* Cerrar es más rápido que abrir: esperar a que se vaya algo que ya
+       decidiste cerrar se siente lento aunque dure la mitad. */
+    booking.classList.add('is-cerrando');
+    booking.classList.remove('is-abierto');
     document.body.classList.remove('is-locked');
     if (lastFocused && lastFocused.focus) lastFocused.focus();
+
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => {
+      booking.hidden = true;
+      booking.classList.remove('is-cerrando');
+    }, quieto ? 0 : 200);
   }
 
   document.querySelectorAll('[data-book]').forEach(b =>
