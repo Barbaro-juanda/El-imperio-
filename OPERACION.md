@@ -113,24 +113,41 @@ teléfonos de clientes no puede acabar en un repositorio público.
 
 ### Automático, en este Mac
 
-Hay una tarea programada que lo saca todos los días a las 14:00 y lo guarda en
-**iCloud Drive → «Respaldos El Imperio»**, quedándose con los 30 últimos. Se
-activa una sola vez:
+**Ya está activa** (`launchctl list | grep imperial`). Corre todos los días a
+las 14:00 y deja las copias en:
 
-```bash
-cp scripts/com.imperial.respaldo.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.imperial.respaldo.plist
+```
+~/Library/Application Support/ImperialRespaldo/respaldos/
 ```
 
-A las 14:00 y no de madrugada a propósito: un portátil a las 3 a.m. está dormido
-y la tarea no correría nunca.
+Con su `registro.txt` al lado: si un día dejan de aparecer archivos, ahí está el
+motivo.
 
-Guarda en iCloud y no en el proyecto porque un respaldo que vive en el mismo
-disco que se puede dañar no es un respaldo. Y la contraseña de la base **no sale
-de esta máquina**: el script la lee de `.env.development.local`.
+A las 14:00 y no de madrugada porque un portátil a las 3 a.m. está dormido y la
+tarea no correría nunca. Se queda con las 30 últimas.
 
-En `registro.txt`, dentro de esa misma carpeta, queda lo que imprimió cada
-ejecución. Si un día deja de haber archivos nuevos, ahí está el motivo.
+### Dos peleas con los permisos de macOS
+
+Costaron dos intentos y conviene no repetirlas:
+
+1. **No se puede ejecutar desde `~/Downloads`.** Es carpeta protegida y launchd
+   responde «Operation not permitted». Por eso el script vive en
+   `~/Library/Application Support/ImperialRespaldo/` y el del repositorio es
+   solo la copia de referencia — al cambiarlo hay que volver a copiarlo allí.
+   Leer el proyecto sí puede, comprobado, así que el proyecto se queda donde
+   está.
+
+2. **Tampoco puede escribir en iCloud Drive**, por lo mismo. El script lo
+   intenta igual y se calla si falla: mejor un respaldo en el disco que ningún
+   respaldo por empeñarse en dejarlo en la nube.
+
+Para que las copias salgan de esta máquina hay dos caminos: dar permiso de disco
+completo a la tarea en Ajustes del Sistema → Privacidad y seguridad, o activar
+el flujo de GitHub de abajo. Mientras tanto, arrastrar la carpeta a iCloud de vez
+en cuando también sirve.
+
+La contraseña de la base **no sale de esta máquina**: el script la lee de
+`.env.development.local`.
 
 ### Automático, en GitHub (alternativa, sin activar)
 
@@ -271,7 +288,7 @@ Cosas que solo puede hacer el dueño, porque exigen sus accesos o su criterio:
 - **Repartir las claves del equipo** y borrar `claves-equipo.txt`. Están
   generadas y puestas; el archivo está ignorado por Git y solo lo puede leer el
   dueño. Se cambian desde Disponibilidad → Profesionales.
-- **Activar la tarea de respaldo** con los dos comandos de arriba (una vez).
+- **Sacar las copias de esta máquina** — ver arriba. Hoy quedan en el disco.
 - Opcional: el secreto `DATABASE_URL` en GitHub, si se quiere que el respaldo
   corra también con el Mac apagado.
 - **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.

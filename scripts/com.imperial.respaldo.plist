@@ -4,12 +4,19 @@
 
   Para activarla, un solo comando:
 
-    cp "scripts/com.imperial.respaldo.plist" ~/Library/LaunchAgents/ && \
+    mkdir -p ~/Library/Application\ Support/ImperialRespaldo
+    cp scripts/respaldo-diario.sh ~/Library/Application\ Support/ImperialRespaldo/
+    chmod +x ~/Library/Application\ Support/ImperialRespaldo/respaldo-diario.sh
+    cp scripts/com.imperial.respaldo.plist ~/Library/LaunchAgents/
     launchctl load ~/Library/LaunchAgents/com.imperial.respaldo.plist
 
   Para desactivarla:
 
     launchctl unload ~/Library/LaunchAgents/com.imperial.respaldo.plist
+
+  El script se copia a Application Support y no se ejecuta desde el proyecto
+  porque macOS no deja que una tarea de fondo ejecute nada dentro de
+  ~/Downloads. Leer sí puede, así que el proyecto se queda donde está.
 
   A las 14:00 y no de madrugada a propósito: un portátil a las 3 a.m. está
   dormido o apagado, y la tarea no correría nunca. A media tarde el Mac suele
@@ -23,7 +30,7 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/juandavidescobarguiral/Downloads/Personal/The imperial classic /scripts/respaldo-diario.sh</string>
+    <string>/Users/juandavidescobarguiral/Library/Application Support/ImperialRespaldo/respaldo-diario.sh</string>
   </array>
 
   <key>StartCalendarInterval</key>
