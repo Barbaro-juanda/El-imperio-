@@ -161,8 +161,25 @@
     setTimeout(() => seccion.querySelectorAll('.linea').forEach(l => l.classList.add('is-visible')), 1500);
 
     /* --- capas del video: zoom fuera, parallax dentro --- */
+    /* NO se toca el video en pantallas estrechas.
+
+       Envolverlo en las dos capas obliga a sacarlo de su sitio, y mover un
+       <video> lo detiene. En escritorio se vuelve a arrancar sin problema; en
+       un celular, no siempre: iOS solo reproduce solo por el atributo
+       `autoplay` del marcado, y un elemento que se ha movido ya no lo
+       aprovecha. Un play() del guion, fuera de un toque del usuario, lo
+       rechaza.
+
+       Y las capas ahí no hacen falta: el parallax está desactivado por debajo
+       de 900px, así que la única que se usaría es la del acercamiento, y esa se
+       puede poner sobre el contenedor sin mover nada. Menos piezas y el video
+       intacto donde nació. */
     const media = seccion.querySelector('.hero__media');
-    if (media && !media.querySelector('.hero__zoom')) {
+    const apaisado = window.matchMedia('(min-width: 900px)').matches;
+
+    if (media && !apaisado) {
+      media.classList.add('hero__zoom');
+    } else if (media && !media.querySelector('.hero__zoom')) {
       const zoom = document.createElement('div');
       zoom.className = 'hero__zoom';
       const par = document.createElement('div');
@@ -186,6 +203,24 @@
         const p = v.play();
         if (p && p.catch) p.catch(() => {});   // el póster cubre si el navegador dice que no
       });
+    }
+
+    /* Última red: si el navegador se negó a reproducir —modo de bajo consumo en
+       iOS lo desactiva por completo, y ahí no hay atributo que valga— se vuelve
+       a intentar en cuanto el visitante toca o desplaza la página. Eso ya es un
+       gesto suyo, y con un gesto ningún navegador se niega.
+
+       `once` en los tres: si funciona, no hace falta volver; si no, tampoco se
+       gana nada insistiendo en cada scroll. */
+    const video = seccion.querySelector('video');
+    if (video) {
+      const intentar = () => {
+        if (!video.paused) return;
+        const p = video.play();
+        if (p && p.catch) p.catch(() => {});
+      };
+      ['touchstart', 'scroll', 'click'].forEach(ev =>
+        window.addEventListener(ev, intentar, { once: true, passive: true }));
     }
 
     /* --- indicador de scroll --- */

@@ -26,7 +26,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/motion.css?v=3">
+<link rel="stylesheet" href="assets/motion.css?v=4">
 <link rel="stylesheet" href="assets/styles.css?v=27">
 
 <!--
@@ -594,8 +594,18 @@
       El archivo original queda intacto en Recursos/.
   -->
   <div class="hero__media" aria-hidden="true">
+    <!-- `autoplay` como ATRIBUTO y no solo llamando a play() desde el guion:
+         en iOS el camino declarativo es el que el navegador respeta sin pedir
+         permiso. Un play() suelto, fuera de un toque del usuario, lo rechaza.
+
+         `muted` y `playsinline` son las otras dos condiciones que iOS exige
+         para reproducir solo; sin `playsinline` abriría el video a pantalla
+         completa en lugar de dejarlo de fondo.
+
+         `webkit-playsinline` es para iPhones viejos, que no entienden el
+         atributo moderno y siguen por ahí. -->
     <video class="hero__video" id="hero-video"
-           muted loop playsinline preload="metadata"
+           autoplay muted loop playsinline webkit-playsinline preload="metadata"
            poster="assets/hero-poster.webp"
            data-loop-end="14.2">
       <source src="assets/hero.mp4" type="video/mp4">
@@ -1235,7 +1245,7 @@
   </div>
 </div>
 
-<script src="assets/motion.js?v=5" defer></script>
+<script src="assets/motion.js?v=6" defer></script>
 <script src="assets/app.js?v=31"></script>
 </body>
 </html>

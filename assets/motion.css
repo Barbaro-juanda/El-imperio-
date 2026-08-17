@@ -190,6 +190,9 @@
    video ya lleva su propia máscara de bordes y su ancho calculado: encadenar
    otro transform ahí obligaría a recalcular esos valores cada vez que se toque
    uno de los dos. Separados, cada capa hace una sola cosa. */
+/* En apaisado es una capa que se crea alrededor del video; en estrecho la
+   clase se le pone al propio contenedor, que ya está posicionado igual. Los dos
+   casos quedan cubiertos sin duplicar la regla. */
 .hero__zoom {
   position: absolute; inset: 0;
   transform-origin: center;
