@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=27">
+<link rel="stylesheet" href="assets/panel.css?v=29">
 </head>
 <body class="panel">
 
@@ -250,6 +250,82 @@
       <div id="i-movs"></div>
     </div>
   </section>
+
+  <!-- =========================== FINANZAS =========================== -->
+  <section class="vista fin" id="v-finanzas" hidden>
+    <div class="fincifras">
+      <div class="fincifra fincifra--in">
+        <span class="fincifra__rot">Ingresos</span>
+        <strong id="fin-ingresos">—</strong>
+        <span class="fincifra__pie" id="fin-ingresos-det">—</span>
+      </div>
+      <div class="fincifra fincifra--eg">
+        <span class="fincifra__rot">Egresos</span>
+        <strong id="fin-egresos">—</strong>
+        <span class="fincifra__pie" id="fin-egresos-det">—</span>
+      </div>
+      <div class="fincifra fincifra--neto">
+        <span class="fincifra__rot">Queda</span>
+        <strong id="fin-neto">—</strong>
+        <span class="fincifra__pie" id="fin-neto-pie">ingresos menos egresos</span>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">De dónde sale el dinero</span>
+      </div>
+      <div id="fin-desglose"></div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Meta de caja</span>
+      </div>
+      <p class="nota">Contra esto se miden la agenda y las facturas. En periodos largos se multiplica por los días. Cero la apaga.</p>
+      <div class="meta-fila">
+        <label>Meta por día <span class="monto"><span>$</span><input id="fin-meta" type="number" min="0" step="10000"></span></label>
+        <button class="bt bt--vino" type="button" id="fin-meta-guardar">Guardar meta</button>
+      </div>
+      <div class="barrita barrita--alta"><div id="fin-meta-barra"></div></div>
+      <p class="resumen__pie" id="fin-meta-txt">—</p>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta__cab">
+        <span class="tarjeta__tit">Movimientos anotados</span>
+        <span class="resumen__pie" id="fin-mov-resumen">—</span>
+        <button class="bt bt--vino" type="button" id="abrir-mov">＋ Anotar</button>
+      </div>
+      <p class="nota">Lo que no viene de una cita ni de una venta: el arriendo, la cera que se repone, la luz. Los cobros y las ventas ya entran solos.</p>
+      <div id="fin-movs"></div>
+    </div>
+  </section>
+
+  <dialog id="dlg-mov" class="hoja">
+    <form method="dialog">
+      <h2 id="mov-tit">Anotar movimiento</h2>
+      <div class="conmutador conmutador--ancho" id="mov-tipo">
+        <button type="button" class="conmutador__b is-on" data-tipo="egreso">Egreso</button>
+        <button type="button" class="conmutador__b" data-tipo="ingreso">Ingreso</button>
+      </div>
+      <label>Qué fue <input id="mov-concepto" type="text" placeholder="ej. Arriendo del local, caja de guantes"></label>
+      <div class="par">
+        <label>Monto <span class="monto"><span>$</span><input id="mov-monto" type="number" min="0" step="1000"></span></label>
+        <label>Fecha <input id="mov-fecha" type="date"></label>
+      </div>
+      <label>Categoría <input id="mov-categoria" type="text" list="lista-categorias" placeholder="Opcional"></label>
+      <datalist id="lista-categorias">
+        <option value="Arriendo"><option value="Servicios públicos"><option value="Insumos">
+        <option value="Nómina"><option value="Mantenimiento"><option value="Impuestos"><option value="Otro">
+      </datalist>
+      <p class="acceso__error" id="mov-error" role="alert" hidden></p>
+      <menu>
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
+        <button class="bt bt--vino" id="mov-guardar" type="button">Anotar</button>
+      </menu>
+    </form>
+  </dialog>
 
   <!-- ============================ GALERÍA ============================ -->
   <section class="vista" id="v-galeria" hidden>
@@ -588,6 +664,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=27"></script>
+<script src="assets/panel.js?v=28"></script>
 </body>
 </html>

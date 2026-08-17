@@ -152,6 +152,23 @@
 }
 .barra__nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; }
 .barra__nav::-webkit-scrollbar { display: none; }
+
+/* Con siete secciones el menú ya no cabe junto a la marca y al usuario: las dos
+   últimas quedaban fuera de la vista, y como el desbordamiento se desplaza sin
+   barra visible, no había forma de saber que estaban ahí. Por debajo de este
+   ancho la barra se parte y el menú se lleva su propia fila entera.
+
+   Se resuelve así y no encogiendo la letra porque el panel va a seguir
+   creciendo: apretar el tipo aguanta una sección más y vuelve el problema. */
+@media (max-width: 1300px) {
+  .barra { flex-wrap: wrap; row-gap: 0; }
+  .barra__nav {
+    order: 3;
+    flex: 1 0 100%;
+    border-top: 1px solid rgba(237, 230, 214, .08);
+  }
+  .barra__tab { padding: 15px 14px; }
+}
 .barra__tab {
   position: relative;
   background: none; border: 0; cursor: pointer;
@@ -1201,3 +1218,56 @@
 /* El video en la rejilla de galería ocupa igual que una foto. */
 .galfoto video { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
 .galprev video { max-height: 38vh; max-width: 100%; display: block; }
+
+/* ---------------------------------------------------------
+   Finanzas
+   Tres cifras arriba y el detalle debajo. La de la derecha
+   —lo que queda— es la que se busca al entrar, y por eso es
+   la única en vino: las otras dos son el camino hasta ella.
+   --------------------------------------------------------- */
+.fincifras {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  margin-bottom: 18px;
+}
+.fincifra {
+  border: 1px solid var(--linea);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.fincifra__rot {
+  font: 400 9px/1 var(--sans);
+  letter-spacing: .2em; text-transform: uppercase; color: var(--tenue);
+}
+.fincifra strong { font: 300 clamp(1.5rem, 3.4vw, 2.1rem)/1 var(--serif); }
+.fincifra__pie { font: 300 11px/1.4 var(--sans); color: var(--tenue); }
+.fincifra--neto { border-color: rgba(155, 48, 64, .35); background: rgba(155, 48, 64, .03); }
+.fincifra--neto strong { color: var(--vino); }
+
+/* El rojo del negativo no es alarma decorativa: un mes en rojo hay que verlo. */
+.es-rojo { color: #B3261E !important; }
+
+.finfila { display: grid; grid-template-columns: 8.5rem 1fr auto; align-items: center;
+           gap: 12px; padding: 9px 0; }
+.finfila__n { font: 300 13px/1 var(--sans); }
+.finfila__b { height: 6px; background: rgba(13, 13, 13, .07); }
+.finfila__b > div { height: 100%; background: var(--vino); }
+.finfila__b--eg > div { background: #B3261E; }
+.finfila__v { font: 400 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.finfila__tit {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--linea);
+  font: 400 9px/1 var(--sans);
+  letter-spacing: .2em; text-transform: uppercase; color: var(--tenue);
+}
+
+.movfila { display: flex; justify-content: space-between; align-items: center;
+           gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+.movfila:last-child { border-bottom: 0; }
+.movfila__c { font: 400 14px/1.3 var(--sans); }
+.movfila__p { font: 300 11px/1.4 var(--sans); color: var(--tenue); margin-top: 3px; }
+.movfila__d { display: flex; align-items: center; gap: 12px; }
+.movfila__v { font: 400 14px/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.barrita--alta { height: 8px; margin-top: 12px; }
+.conmutador--ancho { display: flex; margin: 4px 0 14px; }
+.conmutador--ancho .conmutador__b { flex: 1; }

@@ -119,6 +119,26 @@
         { id: 'talco-cuello', nombre: 'Talco para cuello', marca: null, descripcion: 'El que usamos en la silla.', precio: 15000, costo: 8000, existencias: 0, minimo: 2, activo: true },
         { id: 'gel-fijador', nombre: 'Gel fijador', marca: 'Ébano', descripcion: 'Descontinuado por el proveedor.', precio: 22000, costo: 12000, existencias: 0, minimo: 0, activo: false }
       ],
+      finanzas: {
+        rango: { desde: '2026-08-01', hasta: '2026-08-17', dias: 17 },
+        ingresos: { total: 4820000, servicios: 4310000, productos: 385000, otros: 125000,
+                    citas: 96, ventas: 14 },
+        egresos: { total: 2140000,
+                   porCategoria: { 'Arriendo': 1200000, 'Insumos': 540000,
+                                   'Servicios públicos': 260000, 'Mantenimiento': 140000 } },
+        neto: 2680000,
+        meta: { diaria: 300000, periodo: 5100000 },
+        movimientos: [
+          { id: 1, tipo: 'egreso', concepto: 'Arriendo del local', monto: 1200000,
+            fecha: '2026-08-01', categoria: 'Arriendo', profesional: null },
+          { id: 2, tipo: 'egreso', concepto: 'Caja de guantes y cuchillas', monto: 340000,
+            fecha: '2026-08-06', categoria: 'Insumos', profesional: 'Emanuel Gómez' },
+          { id: 3, tipo: 'ingreso', concepto: 'Alquiler de silla a barbero invitado', monto: 125000,
+            fecha: '2026-08-09', categoria: null, profesional: null },
+          { id: 4, tipo: 'egreso', concepto: 'Recibo de energía', monto: 260000,
+            fecha: '2026-08-12', categoria: 'Servicios públicos', profesional: null }
+        ]
+      },
       galeria: [
         { id: 1, alt: 'Afeitado tradicional con toalla caliente', orden: 10, activo: true, kb: 180, url: 'assets/trabajo-1.jpg' },
         { id: 2, alt: 'Corte con máquina perfilando un fade', orden: 20, activo: true, kb: 210, url: 'assets/trabajo-2.jpg' },
@@ -200,6 +220,7 @@
     if (ruta.startsWith('/panel/caja'))      return demoCaja();
     if (ruta.startsWith('/panel/servicios')) return { servicios: MUESTRA.servicios };
     if (ruta.startsWith('/panel/clientes'))  return { clientes: MUESTRA.clientes };
+    if (ruta.startsWith('/panel/finanzas'))  return MUESTRA.finanzas;
     if (ruta.startsWith('/panel/galeria'))   return { fotos: MUESTRA.galeria };
     if (ruta.startsWith('/panel/inventario')) return { productos: MUESTRA.productos,
                                                        movimientos: MUESTRA.movimientos,
@@ -318,7 +339,7 @@
      Navegación
      ========================================================= */
   const TABS_DUENO = [['agenda', 'Agenda'], ['facturas', 'Facturas'],
-                      ['servicios', 'Servicios'], ['galeria', 'Galería'],
+                      ['finanzas', 'Finanzas'], ['servicios', 'Servicios'], ['galeria', 'Galería'],
                       ['inventario', 'Inventario'], ['dispo', 'Disponibilidad']];
   /* El barbero también entra al inventario, pero solo para vender: la vitrina
      está junto a la silla y mandarlo a buscar al administrador para cobrar una
@@ -338,7 +359,7 @@
 
   function irA(cual) {
     vista = cual;
-    ['agenda', 'midia', 'facturas', 'servicios', 'galeria', 'inventario', 'dispo'].forEach(v => {
+    ['agenda', 'midia', 'facturas', 'finanzas', 'servicios', 'galeria', 'inventario', 'dispo'].forEach(v => {
       const n = $('#v-' + v); if (n) n.hidden = v !== cual;
     });
     $$('.barra__tab').forEach(b => b.classList.toggle('is-on', b.dataset.ir === cual));
@@ -356,6 +377,7 @@
     if (cual === 'servicios' || cual === 'dispo') cargarAjustes();
     if (cual === 'inventario') { $('#abrir-producto').hidden = ROL !== 'dueno'; cargarInventario(); }
     if (cual === 'galeria') cargarGaleria();
+    if (cual === 'finanzas') cargarFinanzas();
   }
 
   /* Rango que cubre el periodo elegido, terminando en el día que se mira. */
@@ -1724,6 +1746,220 @@
     };
     $('#dlg-comp').showModal();
   }
+
+
+  /* =========================================================
+     Finanzas
+     =========================================================
+     Junta las tres fuentes de dinero que vivían por separado —cobros de citas,
+     ventas de inventario y lo anotado a mano— y las resta. Hasta ahora el panel
+     sabía lo que entra pero no lo que sale, y con media ecuación la caja del
+     día dice cuánto se facturó, no cuánto se ganó. */
+  let finanzas = null;
+
+  async function cargarFinanzas() {
+    const r = rango();
+    try {
+      finanzas = await api('/panel/finanzas?desde=' + r.desde + '&hasta=' + r.hasta);
+      pintarFinanzas();
+    } catch (e) {
+      $('#fin-desglose').textContent = e.message || 'No se pudo cargar.';
+    }
+  }
+
+  function pintarFinanzas() {
+    if (!finanzas) return;
+    const f = finanzas;
+
+    if (f.sinTablas) {
+      $('#fin-desglose').textContent = 'Falta correr la migración 13 en la base.';
+      return;
+    }
+
+    $('#fin-ingresos').textContent = money(f.ingresos.total);
+    $('#fin-ingresos-det').textContent =
+      f.ingresos.citas + (f.ingresos.citas === 1 ? ' cita' : ' citas') +
+      (f.ingresos.ventas ? ' · ' + f.ingresos.ventas + ' ventas' : '');
+    $('#fin-egresos').textContent = money(f.egresos.total);
+    const cuantosEg = f.movimientos.filter(m => m.tipo === 'egreso').length;
+    $('#fin-egresos-det').textContent = cuantosEg
+      ? cuantosEg + (cuantosEg === 1 ? ' movimiento' : ' movimientos')
+      : 'nada anotado';
+
+    /* El neto puede ser negativo y hay que verlo: esconder un mes en rojo
+       detrás de un cero no ayuda a nadie a decidir nada. */
+    const neto = $('#fin-neto');
+    neto.textContent = money(f.neto);
+    neto.classList.toggle('es-rojo', f.neto < 0);
+    $('#fin-neto-pie').textContent = f.neto < 0
+      ? 'se gastó más de lo que entró'
+      : 'ingresos menos egresos';
+
+    /* --- de dónde sale --- */
+    const d = $('#fin-desglose');
+    d.textContent = '';
+    const fuentes = [
+      ['Servicios', f.ingresos.servicios],
+      ['Productos', f.ingresos.productos],
+      ['Otros ingresos', f.ingresos.otros]
+    ].filter(x => x[1] > 0);
+
+    if (!fuentes.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = 'Sin ingresos en el periodo';
+      const p = el('span'); p.textContent = 'Cambia el rango arriba para ver otro.';
+      v.append(s, p); d.appendChild(v);
+    } else {
+      fuentes.forEach(([nombre, valor]) => {
+        const fila = el('div', 'finfila');
+        const n = el('span', 'finfila__n'); n.textContent = nombre;
+        const b = el('div', 'finfila__b');
+        const dentro = el('div');
+        dentro.style.width = Math.round(valor / f.ingresos.total * 100) + '%';
+        b.appendChild(dentro);
+        const v2 = el('span', 'finfila__v'); v2.textContent = money(valor);
+        fila.append(n, b, v2);
+        d.appendChild(fila);
+      });
+    }
+
+    /* --- en qué se va --- */
+    const cats = Object.keys(f.egresos.porCategoria);
+    if (cats.length) {
+      const t = el('div', 'finfila__tit'); t.textContent = 'En qué se va';
+      d.appendChild(t);
+      cats.sort((a, b) => f.egresos.porCategoria[b] - f.egresos.porCategoria[a])
+        .forEach(k => {
+          const fila = el('div', 'finfila');
+          const n = el('span', 'finfila__n'); n.textContent = k;
+          const b = el('div', 'finfila__b finfila__b--eg');
+          const dentro = el('div');
+          dentro.style.width = Math.round(f.egresos.porCategoria[k] / f.egresos.total * 100) + '%';
+          b.appendChild(dentro);
+          const v2 = el('span', 'finfila__v'); v2.textContent = money(f.egresos.porCategoria[k]);
+          fila.append(n, b, v2);
+          d.appendChild(fila);
+        });
+    }
+
+    /* --- meta --- */
+    $('#fin-meta').value = f.meta.diaria;
+    const objetivo = f.meta.periodo;
+    const pct = objetivo > 0 ? Math.min(100, f.ingresos.total / objetivo * 100) : 0;
+    $('#fin-meta-barra').style.width = pct + '%';
+    $('#fin-meta-txt').textContent = objetivo === 0
+      ? 'Sin meta fijada. Pon una cifra para medir contra ella.'
+      : f.ingresos.total >= objetivo
+        ? 'Meta cumplida · ' + money(objetivo) + ' en ' + f.rango.dias +
+          (f.rango.dias === 1 ? ' día' : ' días')
+        : 'Faltan ' + money(objetivo - f.ingresos.total) + ' para la meta de ' + money(objetivo);
+
+    /* --- lo anotado --- */
+    const c = $('#fin-movs');
+    c.textContent = '';
+    $('#fin-mov-resumen').textContent = f.movimientos.length
+      ? f.movimientos.length + (f.movimientos.length === 1 ? ' movimiento' : ' movimientos')
+      : '';
+
+    if (!f.movimientos.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = 'Nada anotado';
+      const p = el('span');
+      p.textContent = 'Anota aquí el arriendo, los insumos y lo que no entra por una cita.';
+      v.append(s, p); c.appendChild(v);
+      return;
+    }
+
+    f.movimientos.forEach(m => {
+      const fila = el('div', 'movfila');
+      const izq = el('div');
+      const con = el('div', 'movfila__c'); con.textContent = m.concepto;
+      const pie = el('div', 'movfila__p');
+      pie.textContent = [fechaCorta(m.fecha), m.categoria, m.profesional].filter(Boolean).join(' · ');
+      izq.append(con, pie);
+
+      const der = el('div', 'movfila__d');
+      const v = el('span', 'movfila__v' + (m.tipo === 'egreso' ? ' es-rojo' : ''));
+      v.textContent = (m.tipo === 'egreso' ? '−' : '+') + money(m.monto).slice(1);
+      der.appendChild(v);
+      const q = boton('Quitar', () => borrarMovimiento(m));
+      q.classList.add('bt--borrar');
+      der.appendChild(q);
+
+      fila.append(izq, der);
+      c.appendChild(fila);
+    });
+  }
+
+  const fechaCorta = f => {
+    const d = new Date(String(f).slice(0, 10) + 'T12:00:00Z');
+    return d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
+  };
+
+  async function borrarMovimiento(m) {
+    try {
+      await api('/panel/finanzas?id=' + m.id, { method: 'DELETE' });
+      avisar('Movimiento quitado');
+      cargarFinanzas();
+    } catch (e) { avisar(e.message || 'No se pudo quitar'); }
+  }
+
+  /* ---------- anotar ---------- */
+  let movTipo = 'egreso';
+
+  $('#abrir-mov').addEventListener('click', () => {
+    movTipo = 'egreso';
+    $$('#mov-tipo .conmutador__b').forEach(b =>
+      b.classList.toggle('is-on', b.dataset.tipo === 'egreso'));
+    ['#mov-concepto', '#mov-monto', '#mov-categoria'].forEach(x => { $(x).value = ''; });
+    $('#mov-fecha').value = ymd(new Date());
+    $('#mov-error').hidden = true;
+    $('#dlg-mov').showModal();
+  });
+
+  $$('#mov-tipo .conmutador__b').forEach(b => b.addEventListener('click', () => {
+    movTipo = b.dataset.tipo;
+    $$('#mov-tipo .conmutador__b').forEach(x => x.classList.toggle('is-on', x === b));
+    $('#mov-tit').textContent = movTipo === 'egreso' ? 'Anotar egreso' : 'Anotar ingreso';
+  }));
+
+  $('#mov-guardar').addEventListener('click', async () => {
+    const err = $('#mov-error');
+    err.hidden = true;
+    const concepto = $('#mov-concepto').value.trim();
+    if (!concepto) {
+      err.textContent = 'Escribe qué fue. Una cifra sin nombre no dice nada dentro de tres meses.';
+      err.hidden = false; return;
+    }
+    const monto = Number($('#mov-monto').value);
+    if (!Number.isFinite(monto) || monto <= 0) {
+      err.textContent = 'Pon el monto.'; err.hidden = false; return;
+    }
+    const btn = $('#mov-guardar');
+    btn.disabled = true;
+    try {
+      await api('/panel/finanzas', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ movimiento: { tipo: movTipo, concepto, monto,
+          fecha: $('#mov-fecha').value, categoria: $('#mov-categoria').value.trim() || null } }) });
+      $('#dlg-mov').close();
+      avisar(movTipo === 'egreso' ? 'Egreso anotado' : 'Ingreso anotado');
+      cargarFinanzas();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo anotar'; err.hidden = false;
+    } finally { btn.disabled = false; }
+  });
+
+  $('#fin-meta-guardar').addEventListener('click', async () => {
+    const v = Number($('#fin-meta').value);
+    if (!Number.isFinite(v) || v < 0) { avisar('Esa meta no es válida'); return; }
+    try {
+      await api('/panel/ajustes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ meta: v }) });
+      META_LOCAL = v;
+      avisar('Meta guardada · ' + money(v));
+      cargarFinanzas();
+    } catch (e) { avisar(e.message || 'No se pudo guardar'); }
+  });
 
   /* =========================================================
      Galería
