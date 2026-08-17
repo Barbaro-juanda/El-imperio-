@@ -15,6 +15,39 @@ import { sql, json } from './_db.mjs';
 export default async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { error: 'Solo GET' });
 
+  /* ---------- el retrato de alguien del equipo ----------
+     Vive aquí y no en su propia ruta porque hace exactamente lo mismo que una
+     foto de galería —sacar bytes de la base y servirlos cacheados— y cada
+     archivo bajo /api cuenta contra el tope de doce funciones.
+
+     Existe porque la foto se guardaba incrustada en el catálogo: 44 KB de
+     base64 que TODO visitante descargaba, sin poder cachearse, por delante del
+     flujo de reserva. Con cuatro retratos habrían sido 180 KB en la ruta que
+     más importa. Servida aparte se descarga una vez y el navegador no la vuelve
+     a pedir. */
+  if (req.query.prof !== undefined) {
+    const n = Number(req.query.prof);
+    if (!Number.isInteger(n) || n < 1) return json(res, 400, { error: 'id no válido' });
+    try {
+      const r = await sql`SELECT foto FROM profesional WHERE id = ${n} AND activo`;
+      const foto = r.length ? String(r[0].foto || '') : '';
+      const m = /^data:(image\/[\w.+-]+);base64,(.+)$/.exec(foto);
+      if (!m) return json(res, 404, { error: 'Sin foto' });
+
+      const cuerpo = Buffer.from(m[2], 'base64');
+      res.setHeader('Content-Type', m[1]);
+      res.setHeader('Content-Length', cuerpo.length);
+      /* La dirección lleva un resumen de la propia foto: si la cambian desde el
+         panel cambia la dirección, así que se puede prometer un año. */
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.status(200).send(cuerpo);
+    } catch (e) {
+      console.error('galeria prof', e);
+      return json(res, 500, { error: 'No se pudo cargar la foto' });
+    }
+    return;
+  }
+
   const id = req.query.img;
 
   /* ---------- una imagen ---------- */

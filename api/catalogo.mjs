@@ -135,7 +135,16 @@ export default async function handler(req, res) {
        Si algún día alguien hace las dos cosas, sale como barbero. Entonces
        tocará una columna de verdad, no antes. */
     const equipo = await sql`
-      SELECT p.id, p.nombre, p.foto,
+      SELECT p.id, p.nombre,
+             /* Si la foto se subió desde el panel viene incrustada, y así
+                viajaría entera en cada catálogo. Se cambia por una dirección
+                que la sirve aparte y cacheada; el resumen del contenido va en
+                la URL, así que cambiarla desde el panel cambia la dirección y
+                nadie se queda con la vieja. Las rutas de archivo que ya venían
+                en el repositorio pasan tal cual. */
+             CASE WHEN p.foto LIKE 'data:%'
+                  THEN '/api/galeria?prof=' || p.id || '&v=' || substr(md5(p.foto), 1, 8)
+                  ELSE p.foto END AS foto,
              CASE
                WHEN EXISTS (SELECT 1 FROM servicio_profesional sp
                               JOIN servicio s ON s.id = sp.servicio_id
