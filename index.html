@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=28">
+<link rel="stylesheet" href="assets/styles.css?v=30">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1178,6 +1178,14 @@
       </section>
 
       <section class="step" data-step="1" hidden>
+        <!-- Lo primero del primer paso. Estaba al final, después de la lista de
+             treinta y dos servicios: había que desplazar la pantalla entera para
+             encontrarlo, así que no lo veía nadie. Quien viene a cambiar su cita
+             lo busca al abrir, no al fondo. -->
+        <div class="yatengo" id="yatengo">
+          <span>¿Ya tienes una cita con nosotros?</span>
+          <button class="link-underline" type="button" id="ir-modificar">Modifícala aquí <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
+        </div>
         <div class="segs" id="segs" role="group" aria-label="Segmentos de servicio"></div>
         <p class="step__hint" id="segs-hint">Elige uno o varios. Puedes combinar segmentos.</p>
         <ul class="pick-list" id="pick-services" aria-live="polite"></ul>
@@ -1274,12 +1282,6 @@
       <button class="link-underline cotiza__otro" type="button" id="cotiza-quitar">Quitar y reservar lo demás <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
     </div>
 
-    <!-- Entrada al modo de cambio. Va aquí abajo y no arriba: quien llega a
-         reservar no debe tropezarse con ella, y quien viene a cambiar la busca. -->
-    <div class="yatengo" id="yatengo">
-      <button class="link-underline" type="button" id="ir-modificar">¿Ya tienes una cita? Modifícala <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
-    </div>
-
     <footer class="step__foot" id="step-foot">
       <button class="btn btn--ghost" type="button" id="back">← Atrás</button>
       <button class="btn btn--wine" type="button" id="next">Continuar</button>
@@ -1288,6 +1290,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=32"></script>
+<script src="assets/app.js?v=34"></script>
 </body>
 </html>

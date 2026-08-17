@@ -540,17 +540,30 @@
     progress.setAttribute('aria-valuemax', String(pasos.length));
     progress.setAttribute('aria-valuenow', String(pos));
 
-    /* El paso 0 —buscar la cita— tiene sus propios botones dentro y no usa el
-       pie: «Continuar» ahí no significaría nada hasta que se haya encontrado
-       algo. */
-    stepFoot.hidden = step === PASOS || step === 0;
-    backBtn.hidden = step === 1 || step === 0;
+    /* El pie se queda en el paso 0 también. Quitarlo dejaba esa pantalla sin
+       «Atrás» y sin salida visible: quien entraba por error solo tenía la ✕ de
+       la esquina, y no todo el mundo la busca ahí. */
+    stepFoot.hidden = step === PASOS;
+    backBtn.hidden = step === 1;
 
     /* La entrada al modo de cambio solo se ofrece al empezar de cero. A mitad
        de una reserva estorba, y dentro del propio modo de cambio no tiene
        sentido. */
     const yaTengo = $('#yatengo');
     if (yaTengo) yaTengo.hidden = step !== 1 || !!cambiando;
+
+    if (step === 0) {
+      backBtn.textContent = '← Salir';
+      /* «Continuar» no se activa hasta haber encontrado la cita: antes de eso
+         no hay nada que continuar. Encontrada, lleva al paso 1 para revisarlo
+         todo desde el principio; los tres botones de arriba son el atajo para
+         ir directo a una cosa. */
+      nextBtn.textContent = 'Continuar';
+      nextBtn.className = 'btn btn--wine';
+      nextBtn.disabled = !cambiando;
+    } else {
+      backBtn.textContent = '← Atrás';
+    }
     stepFoot.dataset.single = String(step === 1);
 
     pintarCotizacion(step);
@@ -1124,6 +1137,17 @@
   }
 
   function goNext() {
+    /* Del paso 0 se pasa al 1: revisar la cita entera desde el principio. Los
+       tres botones de «¿qué quieres cambiar?» son el atajo a un paso concreto;
+       esto es el camino largo, para quien quiere mirarlo todo. */
+    if (state.step === 0) {
+      if (!cambiando) return;
+      state.step = 1;
+      render();
+      panel.scrollTop = 0;
+      return;
+    }
+
     if (state.step === PASO_DATOS) {
       if (!validateForm()) {
         const bad = form.querySelector('.field--invalid input');
@@ -1189,8 +1213,27 @@
   }
 
   function goBack() {
+    /* Desde la pantalla de buscar la cita, «Atrás» sale del modo de cambio y
+       devuelve a reservar normal. `pasosActivos()` no incluye el 0, así que sin
+       este caso el índice caía en -1 y se quedaba encallado ahí. */
+    if (state.step === 0) {
+      salirDeModificar();
+      return;
+    }
     const pasos = pasosActivos();
     state.step = pasos[Math.max(0, pasos.indexOf(state.step) - 1)];
+    render();
+    panel.scrollTop = 0;
+  }
+
+  function salirDeModificar() {
+    cambiando = null;
+    state.service = null;
+    state.extras = [];
+    state.barber = null;
+    state.date = null;
+    state.slot = null;
+    state.step = 1;
     render();
     panel.scrollTop = 0;
   }
@@ -1248,8 +1291,22 @@
   }
 
   function closeBooking() {
-    if (state.step < 5) {
-      track('booking_abandoned', { last_step: state.step, last_step_name: TITLES[state.step - 1].replace(/<[^>]+>/g, '') });
+    /* Salir del modal cancela el cambio en curso. Si no, volver a abrirlo más
+       tarde seguiría creyendo que se está modificando una cita y el botón final
+       diría «Confirmar el cambio» en una reserva nueva. */
+    cambiando = null;
+
+    /* El paso 0 no está en TITLES —no es un paso de la reserva, es la pantalla
+       de buscar la cita— así que TITLES[-1] era `undefined` y `.replace`
+       reventaba aquí mismo. La función moría antes de ocultar el modal, y el
+       resultado era una reserva que no se podía cerrar ni con la ✕ ni con
+       Escape. Un cierre no puede depender de que una métrica salga bien. */
+    if (state.step > 0 && state.step < 5) {
+      const titulo = TITLES[state.step - 1] || '';
+      track('booking_abandoned', {
+        last_step: state.step,
+        last_step_name: titulo.replace(/<[^>]+>/g, '')
+      });
     }
     /* Cerrar es más rápido que abrir: esperar a que se vaya algo que ya
        decidiste cerrar se siente lento aunque dure la mitad. */
