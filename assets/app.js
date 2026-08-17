@@ -1290,10 +1290,14 @@
 
     /* Velocidad constante en px/s en vez de duración fija: con 3 reseñas o con
        15, la cinta se mueve igual de rápido. */
-    const PX_PER_SECOND = 45;
+    /* 30 segundos por vuelta completa, no una velocidad fija en píxeles. Con
+       velocidad fija, añadir una reseña alarga la vuelta y el ritmo del bloque
+       cambia solo; con vuelta fija, el ritmo es siempre el mismo tenga tres
+       reseñas o quince. */
+    const VUELTA_S = 30;
     function syncSpeed() {
       const distance = track.scrollWidth / 2; // la mitad = un ciclo completo
-      if (distance > 0) track.style.setProperty('--marquee-duration', (distance / PX_PER_SECOND) + 's');
+      if (distance > 0) track.style.setProperty('--marquee-duration', VUELTA_S + 's');
     }
     syncSpeed();
     window.addEventListener('resize', syncSpeed);

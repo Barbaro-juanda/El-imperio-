@@ -919,7 +919,7 @@ a:hover { color: var(--gold); }
   margin: 0;
   padding: 4px 0;
   width: max-content;
-  animation: marquee var(--marquee-duration, 48s) linear infinite;
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
 }
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -1598,7 +1598,7 @@ body.is-locked { overflow: hidden; }
 /* ---------------------------------------------------------
    Sin movimiento
    La regla global de arriba ya recorta duraciones, pero un
-   desplazamiento de 34px recorrido en 0.01ms sigue siendo un
+   desplazamiento de 34px, por rapido que sea, sigue siendo un
    salto visible. Aquí se quitan los desplazamientos del todo
    y se deja solo la opacidad, que no produce sensación de
    movimiento y no marea a nadie.
@@ -1606,7 +1606,7 @@ body.is-locked { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .hero__inner > .eyebrow, .hero__title, .hero__sub,
   .hero__inner > .btn, .hero__trust {
-    animation: imFade .01ms both;
+    animation: imFade var(--dur-fast) both;
   }
   .hero__inner > .rule { animation: none; transform: none; }
   [data-rv] { opacity: 1 !important; transform: none !important; transition: none !important; }
