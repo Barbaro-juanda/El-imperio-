@@ -1586,7 +1586,6 @@
   function refrescarCatalogo(minimoMs) {
     if (Date.now() - catalogoPedido < (minimoMs || 20000)) return;
     cargarCatalogo();
-  cargarGaleria();
   }
 
   async function cargarCatalogo() {
@@ -1620,6 +1619,7 @@
     }
 
     catalogoVersion = cat.version || catalogoVersion;
+    cargarGaleria();
 
     if (cat.equipo && cat.equipo.length) {
       /* Con esto «Las Manos» deja de ser una lista escrita a mano. Quien entra

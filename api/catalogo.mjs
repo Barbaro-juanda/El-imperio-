@@ -58,6 +58,18 @@ async function huella() {
       FROM servicio_profesional`;
   partes.push(e[0] && e[0].v);
 
+  /* La galería. Entra en la huella para que una foto nueva llegue a la página
+     sin recargar, igual que un precio. No se resume su contenido —serían megas
+     de base64 en cada comprobación— sino qué fotos hay y cuándo se tocaron, que
+     es lo único que puede cambiar. */
+  try {
+    const g = await sql`
+      SELECT md5(string_agg(id || ':' || activo || ':' || alt || ':' || orden || ':' ||
+                            extract(epoch from actualizado), ',' ORDER BY id)) AS v
+        FROM galeria`;
+    partes.push(g[0] && g[0].v);
+  } catch (e) { partes.push('sin-galeria'); }
+
   /* Igual que en el listado: que falte el inventario no puede tumbar esto. */
   try {
     const d = await sql`
