@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=25">
+<link rel="stylesheet" href="assets/panel.css?v=27">
 </head>
 <body class="panel">
 
@@ -258,14 +258,30 @@
         <span class="tarjeta__tit">Galería</span>
         <span class="resumen__pie" id="g-resumen">—</span>
         <label class="bt bt--vino" id="g-subir">
-          ＋ Subir foto
-          <input type="file" accept="image/*" id="g-archivo" class="sr-only" multiple>
+          ＋ Subir foto o video
+          <input type="file" accept="image/*,video/*" id="g-archivo" class="sr-only" multiple>
         </label>
       </div>
       <p class="nota">Es la sección «Trabajo Reciente» de la página. Salen en el orden de aquí abajo; el primero es el que más se ve.</p>
       <div class="galgrid" id="g-lista"></div>
     </div>
   </section>
+
+  <!-- Visor de comprobantes. Existe porque los navegadores BLOQUEAN abrir una
+       `data:` URL en pestaña nueva —es una defensa contra el phishing—, y el
+       comprobante se guarda así. El enlace estaba puesto y no hacía nada al
+       pulsarlo. Enseñándolo aquí dentro sí se ve, y además sin salir del panel,
+       que es lo que se quiere cuando se está cuadrando la caja. -->
+  <dialog id="dlg-comp" class="hoja hoja--visor">
+    <form method="dialog">
+      <h2 id="comp-tit">Comprobante</h2>
+      <div class="visor" id="comp-cuerpo"></div>
+      <menu>
+        <button class="bt" value="cancel" type="submit" formnovalidate>Cerrar</button>
+        <button class="bt bt--vino" type="button" id="comp-descargar">Descargar</button>
+      </menu>
+    </form>
+  </dialog>
 
   <dialog id="dlg-foto" class="hoja">
     <form method="dialog">
@@ -572,6 +588,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=26"></script>
+<script src="assets/panel.js?v=27"></script>
 </body>
 </html>

@@ -14,10 +14,19 @@ import { protegido } from '../_auth.mjs';
    mandarla; esto es la red por si eso falla. */
 const TOPE = 900 * 1024;
 
+/* El video no se puede encoger en el navegador como una foto, así que llega
+   tal cual y hay que ponerle un tope más alto —pero un tope, porque vive en la
+   base y se sirve a cada visitante—. Seis megas dan de sobra para un clip de
+   diez o quince segundos, que es lo que se enseña en una galería; un video de
+   un minuto no cabe, y es correcto que no quepa. */
+const TOPE_VIDEO = 6 * 1024 * 1024;
+
 function parte(dataUrl) {
-  const m = /^data:(image\/(?:png|jpe?g|webp));base64,(.+)$/.exec(String(dataUrl || ''));
+  const m = /^data:((?:image\/(?:png|jpe?g|webp))|(?:video\/(?:mp4|webm|quicktime)));base64,(.+)$/
+    .exec(String(dataUrl || ''));
   if (!m) return null;
-  return { mime: m[1] === 'image/jpg' ? 'image/jpeg' : m[1], datos: m[2] };
+  const mime = m[1] === 'image/jpg' ? 'image/jpeg' : m[1];
+  return { mime, datos: m[2], esVideo: mime.indexOf('video/') === 0 };
 }
 
 export default protegido(async (req, res) => {
@@ -27,12 +36,13 @@ export default protegido(async (req, res) => {
          imagen por su URL, igual que la página. Traerlas todas en el JSON haría
          que abrir la sección descargara la galería entera de golpe. */
       const filas = await sql`
-        SELECT id, alt, orden, activo, actualizado,
+        SELECT id, alt, orden, activo, actualizado, mime,
                length(datos) AS peso
           FROM galeria ORDER BY orden, id`;
       return json(res, 200, {
         fotos: filas.map(f => ({
           id: f.id, alt: f.alt, orden: f.orden, activo: f.activo,
+          video: String(f.mime || '').indexOf('video/') === 0,
           /* Aproximado: base64 abulta un tercio sobre los bytes reales. */
           kb: Math.round(Number(f.peso) * 0.75 / 1024),
           url: '/api/galeria?img=' + f.id + '&v=' + Date.parse(f.actualizado)
@@ -55,9 +65,14 @@ export default protegido(async (req, res) => {
 
     if (req.method === 'POST') {
       const p = parte(b.foto);
-      if (!p) return json(res, 400, { error: 'Eso no es una imagen' });
-      if (p.datos.length > TOPE) {
-        return json(res, 400, { error: 'La foto pesa demasiado, vuelve a elegirla' });
+      if (!p) return json(res, 400, { error: 'Eso no es una imagen ni un video que podamos usar' });
+      const tope = p.esVideo ? TOPE_VIDEO : TOPE;
+      if (p.datos.length > tope) {
+        return json(res, 400, {
+          error: p.esVideo
+            ? 'El video pesa demasiado. Recórtalo a diez o quince segundos y vuelve a subirlo.'
+            : 'La foto pesa demasiado, vuelve a elegirla'
+        });
       }
       const alt = String(b.alt || '').trim();
       if (!alt) {

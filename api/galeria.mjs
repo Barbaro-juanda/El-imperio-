@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     /* Sin `datos`: es lo que hace que esta respuesta pese menos de un kilobyte
        aunque la galería tenga veinte fotos de medio mega. */
     const filas = await sql`
-      SELECT id, alt, orden, actualizado
+      SELECT id, alt, orden, actualizado, mime
         FROM galeria WHERE activo ORDER BY orden, id`;
 
     res.setHeader('Cache-Control', 'no-store');
@@ -54,6 +54,10 @@ export default async function handler(req, res) {
       fotos: filas.map(f => ({
         id: f.id,
         alt: f.alt,
+        /* La página necesita saberlo antes de pedir el archivo: una foto va en
+           <img> y un video en <video>, y no se puede decidir mirando los bytes
+           cuando ya han llegado. */
+        video: String(f.mime || '').indexOf('video/') === 0,
         /* La dirección se arma aquí y no en el navegador para que el `v` salga
            del mismo sitio que el dato: si se calculara fuera, un despiste
            dejaría a todo el mundo viendo la foto vieja durante un año. */

@@ -1163,3 +1163,41 @@
   background: rgba(13, 13, 13, .05);
 }
 .galprev img { max-height: 38vh; max-width: 100%; display: block; }
+
+/* ---------------------------------------------------------
+   Visor de comprobante
+   Se ve dentro del panel porque los navegadores bloquean
+   abrir una data: URL en pestaña nueva. Grande, sobre fondo
+   neutro: una transferencia se revisa para leer el número y
+   la fecha, y para eso hay que verla de verdad.
+   --------------------------------------------------------- */
+.hoja--visor { max-width: 720px; }
+.visor {
+  margin: 14px 0 4px;
+  background: rgba(13, 13, 13, .06);
+  display: grid; place-items: center;
+  min-height: 40vh;
+}
+.visor img { max-width: 100%; max-height: 66vh; display: block; }
+
+/* Miniaturas pulsables: dejan claro que hay algo detrás. */
+.factura__vercomp, .ficha__vercomp {
+  position: relative;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  line-height: 0;
+}
+.factura__lupa {
+  position: absolute; inset: auto 0 0 0;
+  background: rgba(13, 13, 13, .72);
+  color: var(--papel);
+  font: 400 8px/1 var(--sans);
+  letter-spacing: .16em; text-transform: uppercase;
+  padding: 4px 0;
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease-out-expo);
+}
+.factura__vercomp:hover .factura__lupa,
+.factura__vercomp:focus-visible .factura__lupa { opacity: 1; }
+
+/* El video en la rejilla de galería ocupa igual que una foto. */
+.galfoto video { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+.galprev video { max-height: 38vh; max-width: 100%; display: block; }

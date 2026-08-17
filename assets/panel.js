@@ -977,14 +977,17 @@
       }
       pago.appendChild(fila);
       if (c.comprobante) {
-        const a = document.createElement('a');
-        a.href = c.comprobante; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.title = 'Ver el comprobante completo';
+        /* Mismo caso que en Facturas: era un <a> a una data: URL, que el
+           navegador no abre. Va por el visor. */
+        const b = el('button', 'ficha__vercomp');
+        b.type = 'button';
+        b.title = 'Ver el comprobante completo';
         const im = document.createElement('img');
         im.className = 'ficha__comp'; im.src = c.comprobante;
         im.alt = 'Comprobante de la transferencia de ' + c.cliente;
-        a.appendChild(im);
-        pago.appendChild(a);
+        b.appendChild(im);
+        b.addEventListener('click', () => verComprobante(c.comprobante, c.cliente));
+        pago.appendChild(b);
       } else if (c.metodo_pago === 'transferencia') {
         /* Una transferencia sin foto es un cobro que no se puede verificar.
            Se marca en vez de callarlo. */
@@ -1231,14 +1234,16 @@
       const me = el('span', 'factura__l'); me.textContent = MEDIOS[f.metodo_pago] || f.metodo_pago;
       der.append(ch, va, me);
       if (f.comprobante) {
-        const a = document.createElement('a');
-        a.href = f.comprobante; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.title = 'Ver el comprobante';
+        const b = el('button', 'factura__vercomp');
+        b.type = 'button';
+        b.title = 'Ver el comprobante';
         const im = document.createElement('img');
         im.className = 'factura__comp'; im.src = f.comprobante;
         im.alt = 'Comprobante de la transferencia de ' + f.cliente;
-        a.appendChild(im);
-        der.appendChild(a);
+        const lupa = el('span', 'factura__lupa'); lupa.textContent = 'Ver';
+        b.append(im, lupa);
+        b.addEventListener('click', () => verComprobante(f.comprobante, f.cliente));
+        der.appendChild(b);
       }
 
       n.append(izq, der);
@@ -1694,6 +1699,32 @@
   });
 
 
+  /* Abre el comprobante dentro del panel.
+
+     No se abre en pestaña nueva porque no se puede: el comprobante es una
+     `data:` URL y los navegadores bloquean navegar a esas en el nivel
+     superior —defensa contra phishing—. El enlace estaba puesto desde hace
+     tiempo y al pulsarlo no ocurría nada.
+
+     La descarga sí funciona con `download`, que es una ruta distinta y no está
+     bloqueada. */
+  function verComprobante(src, quien) {
+    const cuerpo = $('#comp-cuerpo');
+    cuerpo.textContent = '';
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = 'Comprobante de la transferencia' + (quien ? ' de ' + quien : '');
+    cuerpo.appendChild(img);
+    $('#comp-tit').textContent = quien ? 'Comprobante · ' + quien : 'Comprobante';
+    $('#comp-descargar').onclick = () => {
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = 'comprobante-' + (quien || 'transferencia').replace(/\s+/g, '-').toLowerCase() + '.jpg';
+      a.click();
+    };
+    $('#dlg-comp').showModal();
+  }
+
   /* =========================================================
      Galería
      ========================================================= */
@@ -1734,9 +1765,20 @@
     galeria.forEach((f, i) => {
       const caja = el('figure', 'galfoto');
 
-      const img = document.createElement('img');
-      img.src = f.url; img.alt = f.alt; img.loading = 'lazy';
-      caja.appendChild(img);
+      /* Un video se pinta como video también aquí: si se enseñara su primer
+         fotograma en un <img> no se vería nada —un <img> no sabe leer mp4— y la
+         miniatura saldría rota. */
+      if (f.video) {
+        const v = document.createElement('video');
+        v.src = f.url; v.muted = true; v.loop = true; v.playsInline = true;
+        v.preload = 'metadata';
+        v.setAttribute('aria-label', f.alt);
+        caja.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = f.url; img.alt = f.alt; img.loading = 'lazy';
+        caja.appendChild(img);
+      }
 
       const pie = el('figcaption', 'galfoto__pie');
       pie.textContent = f.alt;
@@ -1800,12 +1842,34 @@
     if (!archivos.length) return;
     colaFotos = [];
     for (const a of archivos) {
+      const esVideo = String(a.type || '').indexOf('video/') === 0;
       try {
-        colaFotos.push({ nombre: a.name, dato: await encoger(a, 1400, 0.78) });
+        /* Un video no pasa por `encoger`: eso dibuja un fotograma en un lienzo
+           y devuelve un JPEG, o sea que convertiría el clip en una foto fija.
+           Va tal cual, y por eso el aviso de peso de abajo. */
+        if (esVideo) {
+          if (a.size > 6 * 1024 * 1024) {
+            avisar(a.name + ' pesa ' + Math.round(a.size / 1024 / 1024) +
+                   ' MB. Recórtalo a diez o quince segundos.');
+            continue;
+          }
+          colaFotos.push({ nombre: a.name, video: true, dato: await comoDataUrl(a) });
+        } else {
+          colaFotos.push({ nombre: a.name, video: false, dato: await encoger(a, 1400, 0.78) });
+        }
       } catch (err) { avisar(err.message || 'No se pudo leer ' + a.name); }
     }
     siguienteFoto();
   });
+
+  function comoDataUrl(archivo) {
+    return new Promise((res, rej) => {
+      const l = new FileReader();
+      l.onload = () => res(l.result);
+      l.onerror = () => rej(new Error('No se pudo leer ' + archivo.name));
+      l.readAsDataURL(archivo);
+    });
+  }
 
   /* Se piden una a una en vez de subir todas de golpe porque cada una necesita
      su descripción, y una sola caja para cinco fotos acabaría con las cinco
@@ -1815,9 +1879,15 @@
     const f = colaFotos[0];
     const previa = $('#gf-previa');
     previa.textContent = '';
-    const img = document.createElement('img');
-    img.src = f.dato; img.alt = '';
-    previa.appendChild(img);
+    if (f.video) {
+      const v = document.createElement('video');
+      v.src = f.dato; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
+      previa.appendChild(v);
+    } else {
+      const img = document.createElement('img');
+      img.src = f.dato; img.alt = '';
+      previa.appendChild(img);
+    }
     $('#gf-alt').value = '';
     $('#gf-error').hidden = true;
     $('#gf-guardar').textContent = colaFotos.length > 1

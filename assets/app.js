@@ -55,7 +55,11 @@
 
      Limpieza facial sigue admitiendo varios: ahí sí son tratamientos que se
      suman a un mismo ritual. */
-  const UNICO = ['cortes', 'color', 'cejas', 'depilacion', 'unas'];
+  /* Uñas NO está aquí: se pueden combinar varios. Manicura y pedicura en la
+     misma cita es lo normal, y también añadir decoración o un retiro a lo que
+     ya se eligió. Los demás segmentos sí son de una sola cosa: nadie pide dos
+     cortes ni dos diseños de cejas en la misma silla. */
+  const UNICO = ['cortes', 'color', 'cejas', 'depilacion'];
 
   /* Respaldo. Se ve al instante, se indexa y funciona sin API; cuando llega
      el catálogo de la base se reemplaza entero. */
@@ -1749,12 +1753,26 @@
       const b = el('button', 'tile');
       b.type = 'button';
       b.setAttribute('data-reveal', 'up');
-      const img = document.createElement('img');
-      img.src = f.url;
-      img.alt = f.alt;
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      b.appendChild(img);
+      if (f.video) {
+        /* Mismo tratamiento que el video que ya traía la galería: sin sonido,
+           en bucle y sin controles. Es una pieza de portada, no un reproductor.
+           `preload="none"` para que no se descargue hasta que haga falta: son
+           megas, y la mayoría de visitantes no llega a tocarlo. */
+        b.classList.add('tile--video');
+        const v = document.createElement('video');
+        v.src = f.url;
+        v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+        v.setAttribute('aria-hidden', 'true');
+        b.setAttribute('aria-label', f.alt);
+        b.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = f.url;
+        img.alt = f.alt;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        b.appendChild(img);
+      }
       rejilla.appendChild(b);
     });
     if (video) rejilla.appendChild(video);
