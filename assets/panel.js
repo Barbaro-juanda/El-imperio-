@@ -875,10 +875,13 @@
 
        Solo si la cita sigue en pie y no ha pasado: mandarle a alguien cómo
        cambiar una cita que ya se atendió no ayuda a nadie. */
+    /* La llave es su propio celular, no un código. El código existía y el
+       cliente lo perdía: lo veía una vez en pantalla, cerraba, y cuando quería
+       mover la cita reservaba otra y acababa con dos. */
     const puedeCambiar = c.estado === 'confirmada' && new Date(c.inicio) > new Date();
-    const comoCambiar = puedeCambiar && c.codigo
-      ? ' Si necesitas moverla, entra a ' + SITIO + ' con el código ' + c.codigo +
-        ' y tu celular, y la cambias en un minuto.'
+    const comoCambiar = puedeCambiar
+      ? ' Si necesitas moverla, entra a ' + SITIO + ', toca «Modifícala aquí» y ' +
+        'busca tu cita con este mismo número.'
       : '';
 
     const lista = [];
@@ -907,12 +910,12 @@
                'Si quedaste contento, una reseña en Google nos ayuda muchísimo.' });
     }
 
-    if (puedeCambiar && c.codigo) {
+    if (puedeCambiar) {
       lista.push({ id: 'cambiar', rotulo: 'Pedirle que la cambie él mismo',
         texto: '¡Hola ' + nom + '! Necesitamos mover tu cita de ' + cuando + ' a las ' + h +
-               '. Puedes elegir tú la nueva hora en ' + SITIO + ' con el código ' + c.codigo +
-               ' y tu celular; la anterior se cancela sola al confirmar. Si prefieres, dinos ' +
-               'qué día te sirve y la movemos nosotros.' });
+               '. Puedes elegir tú la nueva hora en ' + SITIO + ': toca «Modifícala aquí» y ' +
+               'busca tu cita con este mismo número. La anterior se cancela sola al ' +
+               'confirmar. Si prefieres, dinos qué día te sirve y la movemos nosotros.' });
     }
 
     lista.push({ id: 'libre', rotulo: 'Abrir el chat en blanco', texto: '' });

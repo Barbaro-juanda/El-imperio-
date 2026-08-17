@@ -1845,3 +1845,11 @@ body.is-locked { overflow: hidden; }
   font: 300 13px/1.4 var(--sans);
   color: rgba(237, 230, 214, .74);
 }
+
+/* La llave para volver a la cita, bajo el recibo. */
+.receipt__llave {
+  margin: 18px 0 0;
+  font: 300 13px/1.6 var(--sans);
+  color: rgba(13, 13, 13, .66);
+  text-align: center;
+}

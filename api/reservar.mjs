@@ -1,21 +1,31 @@
 /* POST /api/reservar
    { fecha, hora, servicios[], profesional, cliente:{nombre,telefono,email} }
-   { buscar: { codigo, telefono } }              → busca una cita para cambiarla
-   { …reserva, reemplaza: { codigo, telefono } } → crea la nueva y cancela la vieja
+   { buscar: { telefono } }              → busca la cita próxima de ese celular
+   { …reserva, reemplaza: { telefono } } → crea la nueva y cancela la vieja
 
    Crea la cita. El precio NO se acepta del cliente: se lee de la base, porque
    lo que llega del navegador lo puede editar cualquiera desde la consola. */
 import { sql, aUTC, json, codigoCita, normalizaTelefono } from './_db.mjs';
 
-/* Para tocar una cita hacen falta LAS DOS cosas: su código y el celular con el
-   que se reservó. Solo con el código, seis caracteres bastarían para que
-   alguien probara combinaciones hasta dar con una cita ajena y moverla. El
-   celular no se puede adivinar junto con el código, y el cliente tiene los dos
-   sin esfuerzo: el código se lo mandamos y el número es el suyo. */
-async function buscarCita(codigo, telefonoCrudo) {
-  const cod = String(codigo || '').trim().toUpperCase();
+/* La llave para tocar una cita es el CELULAR con el que se reservó.
+
+   Antes hacían falta el código y el celular. Sobre el papel era más seguro;
+   en la práctica el cliente perdía el código —lo ve una vez en pantalla y
+   cierra la página— y entonces reservaba otra vez, que es el problema que todo
+   esto viene a resolver. Una llave que se pierde no protege: empuja a la gente
+   al camino malo.
+
+   El precio es real y conviene tenerlo escrito: quien conozca el número de
+   alguien puede ver y mover su cita. Para una barbería el peor caso es que
+   alguien mueva un corte ajeno; frente a eso, el duplicado que se evita es
+   diario y cuesta horas de agenda. Si algún día molesta, el remedio es mandar
+   un código por WhatsApp al pedir el cambio, no volver al que se olvida.
+
+   Se devuelve solo la cita futura más próxima que siga en pie. Las pasadas no
+   se pueden cambiar, y las canceladas tampoco. */
+async function buscarCita(telefonoCrudo) {
   const tel = normalizaTelefono(telefonoCrudo);
-  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(cod) || !tel) return null;
+  if (!tel) return null;
 
   const r = await sql`
     SELECT c.id, c.codigo, c.inicio, c.estado, c.profesional_id, c.total,
@@ -24,8 +34,12 @@ async function buscarCita(codigo, telefonoCrudo) {
       FROM cita c
       JOIN cliente cl ON cl.id = c.cliente_id
       LEFT JOIN cita_servicio cs ON cs.cita_id = c.id
-     WHERE c.codigo = ${cod} AND cl.telefono = ${tel}
-     GROUP BY c.id, cl.nombre, cl.telefono, cl.email`;
+     WHERE cl.telefono = ${tel}
+       AND c.estado = 'confirmada'
+       AND c.inicio > now()
+     GROUP BY c.id, cl.nombre, cl.telefono, cl.email
+     ORDER BY c.inicio
+     LIMIT 1`;
   return r[0] || null;
 }
 
@@ -37,14 +51,11 @@ export default async function handler(req, res) {
   /* ---------- buscar la cita que se quiere cambiar ---------- */
   if (b.buscar) {
     try {
-      const c = await buscarCita(b.buscar.codigo, b.buscar.telefono);
-      /* El mismo mensaje para «no existe» y para «el celular no corresponde».
-         Distinguirlos le diría a quien prueba códigos cuáles existen. */
-      if (!c) return json(res, 404, { error: 'No encontramos esa cita. Revisa el código y el celular.' });
-      if (c.estado === 'cancelada') return json(res, 409, { error: 'Esa cita ya está cancelada.' });
-      if (c.estado === 'cumplida')  return json(res, 409, { error: 'Esa cita ya se atendió.' });
-      if (new Date(c.inicio).getTime() < Date.now()) {
-        return json(res, 409, { error: 'Esa cita ya pasó. Reserva una nueva.' });
+      const c = await buscarCita(b.buscar.telefono);
+      if (!c) {
+        return json(res, 404, {
+          error: 'No encontramos ninguna cita próxima con ese celular. Revisa el número.'
+        });
       }
       return json(res, 200, {
         cita: {
@@ -76,7 +87,7 @@ export default async function handler(req, res) {
        código o el celular no cuadran, se para aquí y la cita vieja ni se toca. */
     let anterior = null;
     if (b.reemplaza) {
-      anterior = await buscarCita(b.reemplaza.codigo, b.reemplaza.telefono);
+      anterior = await buscarCita(b.reemplaza.telefono);
       if (!anterior) {
         return json(res, 404, { error: 'No encontramos la cita que quieres cambiar.' });
       }

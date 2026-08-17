@@ -1017,6 +1017,15 @@
       dl.appendChild(row);
     });
 
+    /* Con qué se vuelve a entrar. Sin esto, el cliente termina la reserva sin
+       saber cómo cambiarla, y quien quiere moverla reserva otra vez y acaba con
+       dos citas — que es justo lo que la pantalla de cambios viene a evitar. */
+    const llave = $('#receipt-llave');
+    if (llave) {
+      llave.textContent = '¿Necesitas cambiarla? Vuelve aquí y busca tu cita con tu celular, ' +
+                          state.customer.phone + '. No hace falta ningún código.';
+    }
+
     const aviso = $('#receipt-note');
     if (aviso) {
       aviso.hidden = !t.variables.length;
@@ -1047,9 +1056,7 @@
         /* Si esto es un cambio, el servidor cancela la anterior — pero solo
            DESPUÉS de que esta haya entrado. Si el cupo nuevo se lo llevó otro
            entre medias, la petición falla y el cliente conserva la que tenía. */
-        reemplaza: cambiando
-          ? { codigo: cambiando.codigo, telefono: state.customer.phone }
-          : undefined
+        reemplaza: cambiando ? { telefono: state.customer.phone } : undefined
       })
     }).then(r => {
       state.codigo = r.codigo;
@@ -1251,9 +1258,26 @@
   });
 
   $('#add-calendar').addEventListener('click', () => { track('add_to_calendar_click', {}); downloadIcs(); });
+  /* Este botón REINICIABA la reserva desde el paso 1, dejando la recién creada
+     en pie: el cliente creía estar cambiándola y terminaba con dos citas. Era
+     la trampa exacta que la pantalla de cambios vino a resolver, puesta en el
+     único sitio donde todo el mundo la pulsa.
+
+     Ahora entra al modo de cambio con la cita que se acaba de hacer ya cargada:
+     no hay que buscar nada, porque los datos están aquí mismo. */
   $('#restart').addEventListener('click', () => {
     track('booking_restarted', {});
-    state.step = 1; render(); panel.scrollTop = 0;
+    cambiando = { codigo: state.codigo, telefono: state.customer.phone };
+    state.step = 0;
+    render();
+    /* Se enseña directamente el «¿qué quieres cambiar?»: buscarla sería pedirle
+       el celular que acaba de escribir dos pantallas atrás. */
+    mostrarHallada({
+      inicio: new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate(),
+                       Number(state.slot.slice(0, 2)), Number(state.slot.slice(3))),
+      servicios: seleccion()
+    });
+    panel.scrollTop = 0;
   });
 
   /* ------------------------------------------------------
@@ -1964,12 +1988,11 @@
     cambiando = null;
     $('#buscar-error').hidden = true;
     $('#hallada').hidden = true;
-    $('#buscar-codigo').value = '';
     $('#buscar-tel').value = '';
     state.step = 0;
     render();
     openBooking(0);
-    setTimeout(() => $('#buscar-codigo').focus(), 80);
+    setTimeout(() => $('#buscar-tel').focus(), 80);
   }
 
   $('#ir-modificar').addEventListener('click', entrarAModificar);
@@ -1977,10 +2000,9 @@
   $('#buscar-ir').addEventListener('click', async () => {
     const err = $('#buscar-error');
     err.hidden = true;
-    const codigo = $('#buscar-codigo').value.trim().toUpperCase();
     const telefono = $('#buscar-tel').value.trim();
-    if (!codigo || !telefono) {
-      err.textContent = 'Necesitamos el código y el celular.';
+    if (!telefono) {
+      err.textContent = 'Escribe tu celular.';
       err.hidden = false; return;
     }
     const b = $('#buscar-ir');
@@ -1989,7 +2011,7 @@
     try {
       const r = await pedir('/reservar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buscar: { codigo, telefono } })
+        body: JSON.stringify({ buscar: { telefono } })
       });
       cambiando = r.cita;
 
@@ -2011,16 +2033,7 @@
         email: r.cita.cliente.email || ''
       };
 
-      const serviciosTxt = r.cita.servicios.map(id => (byId(id) || {}).name)
-        .filter(Boolean).join(' + ');
-      const caja = $('#hallada-cita');
-      caja.textContent = '';
-      const cuando = el('strong');
-      cuando.textContent = shortDate(state.date) + ' · ' + state.slot;
-      const qué = el('span');
-      qué.textContent = serviciosTxt || 'Tu cita';
-      caja.append(cuando, qué);
-      $('#hallada').hidden = false;
+      mostrarHallada({ inicio: new Date(r.cita.inicio), servicios: r.cita.servicios });
     } catch (e) {
       err.textContent = e.message || 'No se pudo buscar';
       err.hidden = false;
@@ -2029,6 +2042,23 @@
       b.textContent = 'Buscar mi cita';
     }
   });
+
+  /* Enseña la cita encontrada y las tres opciones. La usan los dos caminos: el
+     que busca por celular y el botón «Modificar esta reserva» de la pantalla
+     final, que ya tiene los datos y no necesita buscar nada. */
+  function mostrarHallada(cita) {
+    const nombres = (cita.servicios || []).map(id => (byId(id) || {}).name).filter(Boolean);
+    const caja = $('#hallada-cita');
+    caja.textContent = '';
+    const cuando = el('strong');
+    const d = cita.inicio;
+    cuando.textContent = shortDate(d) + ' · ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const qué = el('span');
+    qué.textContent = nombres.join(' + ') || 'Tu cita';
+    caja.append(cuando, qué);
+    $('#hallada').hidden = false;
+    $('#buscar-error').hidden = true;
+  }
 
   /* Cada opción manda al paso que le toca, ya relleno con lo que había. */
   $$('[data-cambiar]').forEach(op => op.addEventListener('click', () => {
