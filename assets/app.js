@@ -1290,29 +1290,12 @@
   /* ------------------------------------------------------
      Carta de servicios de la portada
      ------------------------------------------------------ */
-  function setupServiceMenu() {
-    /* La portada ya no lista servicios uno a uno, así que no hay botones por
-       servicio: el CTA de la carta usa [data-book] como el resto del sitio.
-       Aquí solo queda la aparición en cascada del bloque. */
-    const bloque = $('.carta-wrap'); // incluye el texto y el video de al lado
-    if (!bloque) return;
+  /* La aparición de la carta la hace ahora el módulo `reveal` de motion.js, con
+     el mismo observador que todo lo demás. Esta función se queda vacía a
+     propósito en vez de borrarse: la llama el arranque y su nombre explica
+     dónde vivía esto antes. */
+  function setupServiceMenu() {}
 
-    const piezas = bloque.querySelectorAll('.reveal');
-    if (!('IntersectionObserver' in window)) {
-      piezas.forEach(n => n.classList.add('is-in'));
-      return;
-    }
-    new IntersectionObserver((entries, obs) => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) return;
-        piezas.forEach((n, i) => {
-          n.style.setProperty('--d', i * 110 + 'ms');
-          n.classList.add('is-in');
-        });
-        obs.unobserve(e.target); // una sola vez: no reaparece al volver a subir
-      });
-    }, { threshold: 0.2 }).observe(bloque);
-  }
 
 
 

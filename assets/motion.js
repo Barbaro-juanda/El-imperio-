@@ -175,9 +175,281 @@
     aplicar();
   }
 
+
+  /* ------------------------------------------------------
+     hero — entrada por líneas, parallax e indicador
+     ------------------------------------------------------ */
+  function hero() {
+    const seccion = document.querySelector('.hero');
+    if (!seccion) return;
+
+    /* Cada pieza del hero es una línea con recorte. Se envuelve desde aquí para
+       que el HTML siga siendo legible y para que sin JavaScript no quede un
+       marcado lleno de <i> sin función. El <h1> se parte por su <br>, que es
+       donde el diseño ya decidió que corta. */
+    const orden = ['.eyebrow--wide', '.hero__title', '.hero__sub',
+                   '.hero__inner > .btn', '.hero__trust'];
+    let n = 0;
+    orden.forEach(sel => {
+      const nodo = seccion.querySelector(sel);
+      if (!nodo) return;
+      const trozos = sel === '.hero__title'
+        ? nodo.innerHTML.split(/<br\s*\/?>/i)
+        : [nodo.innerHTML];
+      nodo.innerHTML = trozos
+        .map(t => '<span class="linea"><i>' + t + '</i></span>')
+        .join('');
+      nodo.querySelectorAll('.linea').forEach(l => {
+        l.style.setProperty('--reveal-delay', (n++ * 140) + 'ms');
+        /* Sin observador: el hero está en pantalla desde el primer momento, así
+           que esperar a que «entre» sería esperar a nada. */
+        requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('is-visible')));
+      });
+    });
+
+    /* Red de seguridad, como en el revelado: si rAF no corre —pestaña en
+       segundo plano al abrir— el titular no puede quedarse invisible. */
+    setTimeout(() => seccion.querySelectorAll('.linea').forEach(l => l.classList.add('is-visible')), 1500);
+
+    /* --- capas del video: zoom fuera, parallax dentro --- */
+    const media = seccion.querySelector('.hero__media');
+    if (media && !media.querySelector('.hero__zoom')) {
+      const zoom = document.createElement('div');
+      zoom.className = 'hero__zoom';
+      const par = document.createElement('div');
+      par.className = 'hero__par';
+      while (media.firstChild) par.appendChild(media.firstChild);
+      zoom.appendChild(par);
+      media.appendChild(zoom);
+    }
+
+    /* --- indicador de scroll --- */
+    if (!seccion.querySelector('.scrollind')) {
+      const ind = document.createElement('div');
+      ind.className = 'scrollind';
+      ind.setAttribute('aria-hidden', 'true');
+      seccion.appendChild(ind);
+    }
+    const ind = seccion.querySelector('.scrollind');
+
+    /* --- parallax --- */
+    const par = seccion.querySelector('.hero__par');
+    const anchoOk = () => window.matchMedia('(min-width: 900px)').matches;
+    let pedido = false;
+
+    function alScroll() {
+      pedido = false;
+      const y = window.scrollY;
+
+      if (ind) ind.classList.toggle('is-ido', y > 40);
+
+      /* Al 20% de la velocidad del contenido. translate3d y no `top`: lo
+         primero lo resuelve la tarjeta gráfica sin tocar el layout; lo segundo
+         obliga a rehacer la página en cada cuadro. */
+      if (par && anchoOk() && !quieto.matches) {
+        /* Se corta pasado el hero: seguir calculando para algo que ya no se ve
+           es trabajo tirado en cada cuadro del resto de la página. */
+        if (y < window.innerHeight * 1.2) {
+          par.style.transform = 'translate3d(0,' + (y * 0.2) + 'px,0)';
+        }
+      }
+    }
+
+    window.addEventListener('scroll', () => {
+      if (pedido) return;
+      pedido = true;
+      requestAnimationFrame(alScroll);
+    }, { passive: true });
+
+    alScroll();
+  }
+
+  /* ------------------------------------------------------
+     counters — cifras que suben
+     ------------------------------------------------------ */
+  function counters() {
+    const nodos = document.querySelectorAll('[data-contar]');
+    if (!nodos.length) return;
+
+    const pintar = (n, v) => {
+      const dec = Number(n.getAttribute('data-contar-dec')) || 0;
+      n.textContent = (n.getAttribute('data-contar-pre') || '') +
+        v.toLocaleString('es-CO', { minimumFractionDigits: dec, maximumFractionDigits: dec }) +
+        (n.getAttribute('data-contar-post') || '');
+    };
+
+    if (quieto.matches) {
+      nodos.forEach(n => pintar(n, Number(n.getAttribute('data-contar'))));
+      return;
+    }
+
+    const obs = new IntersectionObserver((entradas, o) => {
+      entradas.forEach(e => {
+        if (!e.isIntersecting) return;
+        const n = e.target;
+        o.unobserve(n);
+        const fin = Number(n.getAttribute('data-contar'));
+        const dur = 1400;
+        const t0 = performance.now();
+        /* easeOutCubic: arranca rápido y se posa. Contar en lineal se ve
+           mecánico, como un marcador de gasolinera. */
+        const paso = ahora => {
+          const p = Math.min(1, (ahora - t0) / dur);
+          pintar(n, fin * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(paso);
+          else pintar(n, fin);   // el valor exacto, sin decimales flotantes
+        };
+        requestAnimationFrame(paso);
+        setTimeout(() => pintar(n, fin), dur + 400);   // red de seguridad
+      });
+    }, { threshold: 0.4 });
+
+    nodos.forEach(n => obs.observe(n));
+  }
+
+  /* ------------------------------------------------------
+     estrellas — se rellenan de izquierda a derecha
+     ------------------------------------------------------ */
+  function estrellas() {
+    const cajas = document.querySelectorAll('[data-estrellas]');
+    if (!cajas.length) return;
+
+    cajas.forEach(caja => {
+      /* Cada estrella en su <span> para poder encenderlas de una en una. El
+         aria-label del contenedor ya dice «5 de 5», así que los span van
+         ocultos al lector: si no, leería «estrella estrella estrella…». */
+      if (!caja.querySelector('span')) {
+        caja.innerHTML = caja.textContent.trim().split('')
+          .map(c => '<span aria-hidden="true">' + c + '</span>').join('');
+      }
+      const spans = caja.querySelectorAll('span');
+      if (quieto.matches) { caja.classList.add('is-visible'); return; }
+
+      new IntersectionObserver((es, o) => {
+        es.forEach(e => {
+          if (!e.isIntersecting) return;
+          o.unobserve(e.target);
+          spans.forEach((s, i) => setTimeout(() => { s.style.opacity = '1'; }, i * 120));
+        });
+      }, { threshold: 0.5 }).observe(caja);
+
+      /* Misma red que en el revelado, y aquí hace más falta: si el observador
+         no llega a disparar, las estrellas se quedan al 18% de opacidad, y eso
+         no es «sin animar», es la nota de Google medio borrada. */
+      setTimeout(() => {
+        caja.classList.add('is-visible');
+        spans.forEach(s => { s.style.opacity = '1'; });
+      }, 3000);
+    });
+  }
+
+  /* ------------------------------------------------------
+     magnetic — solo el CTA principal
+     ------------------------------------------------------
+     Solo uno. Puesto en todos los botones deja de ser un detalle y pasa a ser
+     una página que se mueve sola. */
+  function magnetic() {
+    if (quieto.matches) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const b = document.querySelector('.hero__inner .btn');
+    if (!b) return;
+    b.classList.add('btn--iman');
+
+    const RADIO = 90;   // área de detección algo mayor que el botón
+    let pedido = false, mx = 0, my = 0;
+
+    function aplicar() {
+      pedido = false;
+      const r = b.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = mx - cx, dy = my - cy;
+      const dentro = Math.abs(dx) < r.width / 2 + RADIO &&
+                     Math.abs(dy) < r.height / 2 + RADIO;
+      /* Al salir vuelve solo: el transform a cero y la transición del CSS hacen
+         el resto, sin animar nada a mano. */
+      b.style.transform = dentro
+        ? 'translate(' + (dx * 0.28) + 'px,' + (dy * 0.35) + 'px)'
+        : '';
+      b.style.transitionDuration = dentro ? '0ms' : '';
+    }
+
+    window.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      if (pedido) return;
+      pedido = true;
+      requestAnimationFrame(aplicar);
+    }, { passive: true });
+  }
+
+  /* ------------------------------------------------------
+     grano — textura fija sobre el fondo
+     ------------------------------------------------------ */
+  function grano() {
+    if (quieto.matches) return;
+    if (document.querySelector('.grano')) return;
+
+    /* SVG en línea, sin petición de red y sin canvas corriendo. Estático a
+       propósito: animarlo obliga a repintar la pantalla entera en cada cuadro,
+       y por un efecto al 3% de opacidad no compensa ni un poco. */
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">' +
+      '<filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3"/></filter>' +
+      '<rect width="180" height="180" filter="url(#g)"/></svg>';
+    document.documentElement.style.setProperty(
+      '--grano', 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")');
+
+    const capa = document.createElement('div');
+    capa.className = 'grano';
+    capa.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(capa);
+  }
+
+  /* ------------------------------------------------------
+     cursor — punto que sigue con retraso
+     ------------------------------------------------------ */
+  function cursor() {
+    if (quieto.matches) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const punto = document.createElement('div');
+    punto.className = 'cursor';
+    const anillo = document.createElement('div');
+    anillo.className = 'cursor__anillo';
+    [punto, anillo].forEach(n => { n.setAttribute('aria-hidden', 'true'); document.body.appendChild(n); });
+
+    let x = 0, y = 0, ax = 0, ay = 0, activo = false;
+
+    window.addEventListener('mousemove', e => {
+      x = e.clientX; y = e.clientY;
+      if (!activo) { activo = true; ax = x; ay = y; requestAnimationFrame(latir); }
+      /* El anillo crece sobre lo que se puede pulsar. `closest` y no una lista
+         de clases: así funciona con lo que se añada mañana sin tocar esto. */
+      const sobre = e.target.closest('a, button, [role="button"], input, select, textarea, label');
+      anillo.classList.toggle('is-sobre', !!sobre);
+    }, { passive: true });
+
+    function latir() {
+      /* Interpolación al 0.15: el punto persigue al cursor sin alcanzarlo del
+         todo. Es lo que da la sensación de peso. */
+      ax += (x - ax) * 0.15;
+      ay += (y - ay) * 0.15;
+      punto.style.transform  = 'translate3d(' + x  + 'px,' + y  + 'px,0)';
+      anillo.style.transform = 'translate3d(' + ax + 'px,' + ay + 'px,0)' +
+                               (anillo.classList.contains('is-sobre') ? ' scale(1)' : ' scale(.2)');
+      requestAnimationFrame(latir);
+    }
+  }
+
   function arrancar() {
     reveal();
     header();
+    hero();
+    counters();
+    estrellas();
+    magnetic();
+    grano();
+    cursor();
   }
 
   if (document.readyState === 'loading') {

@@ -26,8 +26,8 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/motion.css?v=1">
-<link rel="stylesheet" href="assets/styles.css?v=23">
+<link rel="stylesheet" href="assets/motion.css?v=2">
+<link rel="stylesheet" href="assets/styles.css?v=24">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -630,16 +630,16 @@
   </div>
   <!-- Aquí el alt sí describe: son trabajos reales y no hay texto cerca que
        cuente lo que muestra cada imagen. -->
-  <div class="gallery">
+  <div class="gallery" data-reveal-stagger="90">
     <button class="tile" type="button" data-lightbox="0" data-reveal="up">
       <img src="assets/trabajo-1.jpg" alt="Afeitado tradicional: aplicación de aceite sobre barba con toalla y espuma" width="800" height="1100" loading="lazy" decoding="async">
-    </button>
+    <span class="tile__pie">Afeitado tradicional: aplicación de aceite sobre barba con toalla y espuma</span></button>
     <button class="tile" type="button" data-lightbox="1" data-reveal="up">
       <img src="assets/trabajo-2.jpg" alt="Corte con máquina perfilando un fade sobre la sien" width="800" height="1145" loading="lazy" decoding="async">
-    </button>
+    <span class="tile__pie">Corte con máquina perfilando un fade sobre la sien</span></button>
     <button class="tile" type="button" data-lightbox="2" data-reveal="up">
       <img src="assets/trabajo-3.jpg" alt="Perfilado de barba a navaja, vista de perfil" width="800" height="759" loading="lazy" decoding="async">
-    </button>
+    <span class="tile__pie">Perfilado de barba a navaja, vista de perfil</span></button>
     <button class="tile tile--video" type="button" data-lightbox="3" aria-label="Ver el diseño freestyle tallado a máquina sobre el cabello" data-reveal="up">
       <video src="assets/trabajo-4.mp4" poster="assets/trabajo-4-poster.webp"
              muted loop playsinline preload="none" aria-hidden="true"></video>
@@ -678,44 +678,44 @@
     <div class="menu">
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cortes</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Corte Sencillo</span>
           <span class="menu__desc">Lavado de cabello y peinado.</span>
           <span class="menu__price">$35.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row menu__row--destacado">
+        <li class="menu__row menu__row--destacado" data-reveal="up">
           <span class="menu__name">Corte VIP <span class="menu__motif" aria-hidden="true">⚜</span></span>
           <span class="menu__desc">Bebida de cortesía, limpieza facial y vapor ozono.</span>
           <span class="menu__price">$45.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Corte y Barba Sencillo</span>
           <span class="menu__desc">Corte y barba, con lavado y peinado.</span>
           <span class="menu__price">$48.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row menu__row--destacado">
+        <li class="menu__row menu__row--destacado" data-reveal="up">
           <span class="menu__name">Corte y Barba VIP <span class="menu__motif" aria-hidden="true">⚜</span></span>
           <span class="menu__desc">Todo el VIP, con la barba incluida.</span>
           <span class="menu__price">$60.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Ritual de Barba</span>
           <span class="menu__desc">Limpieza facial, afeitado con vapor y diseño.</span>
           <span class="menu__price">$26.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Barba Sencilla</span>
           <span class="menu__desc">Diseño de barba y afeitado.</span>
           <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Pigmentación</span>
           <span class="menu__desc">Densifica barba o cuero cabelludo.</span>
           <span class="menu__price">$20.000</span>
@@ -725,14 +725,14 @@
     </div>
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Cejas</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Cejas con hilo</span>
           <span class="menu__desc">Depilación con hilo y diseño de cejas.</span>
           <span class="menu__price">$20.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Cejas con cuchilla</span>
           <span class="menu__desc">Depilación con cuchilla y diseño de cejas.</span>
           <span class="menu__price">$10.000</span>
@@ -742,32 +742,32 @@
     </div>
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Limpieza facial</h3>
-      <ul class="menu__list">
-        <li class="menu__row menu__row--destacado">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row menu__row--destacado" data-reveal="up">
           <span class="menu__name">Ritual Facial <span class="menu__motif" aria-hidden="true">⚜</span></span>
           <span class="menu__desc">Vapor ozono, mascarillas, parches y masaje ocular.</span>
           <span class="menu__price">$56.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Mascarilla de puntos negros</span>
           <span class="menu__desc">Retira impurezas y exceso de grasa.</span>
           <span class="menu__price">$16.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Mascarilla de hialurónico</span>
           <span class="menu__desc">Piel hidratada y de aspecto más joven.</span>
           <span class="menu__price">$20.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Masajeador ocular</span>
           <span class="menu__desc">Reduce líneas de expresión y ojeras.</span>
           <span class="menu__price">$20.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Parches para ojeras</span>
           <span class="menu__desc">Hidrata y mejora el contorno de ojos.</span>
           <span class="menu__price">$10.000</span>
@@ -777,74 +777,74 @@
     </div>
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Uñas</h3>
-      <ul class="menu__list">
-        <li class="menu__row menu__row--destacado">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row menu__row--destacado" data-reveal="up">
           <span class="menu__name">Manos y pies <span class="menu__motif" aria-hidden="true">⚜</span></span>
           <span class="menu__desc">Manicura y pedicura en una sola cita.</span>
           <span class="menu__price">Consultar</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Manos Tradicionales</span>
           <span class="menu__desc">Limado, cutícula y esmalte tradicional.</span>
           <span class="menu__price">$30.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Pies Tradicional</span>
           <span class="menu__desc">Limado, cutícula y esmalte en los pies.</span>
           <span class="menu__price">$35.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Manos Semipermanentes</span>
           <span class="menu__desc">Esmalte semipermanente, con brillo que dura semanas.</span>
           <span class="menu__price">$40.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Pies Semipermanente</span>
           <span class="menu__desc">Semipermanente en pies, de larga duración.</span>
           <span class="menu__price">$45.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row menu__row--destacado">
+        <li class="menu__row menu__row--destacado" data-reveal="up">
           <span class="menu__name">Manicura con Base Rubber <span class="menu__motif" aria-hidden="true">⚜</span></span>
           <span class="menu__desc">Base rubber: uñas más fuertes y parejas.</span>
           <span class="menu__price">$65.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Extensión Press-on</span>
           <span class="menu__desc">Extensiones aplicadas al momento, largo a elección.</span>
           <span class="menu__price">$100.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Decoración y diseño de uñas</span>
           <span class="menu__desc">Diseño a mano, del detalle simple al completo.</span>
           <span class="menu__price">Consultar</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Stiker y pedrería</span>
           <span class="menu__desc">Apliques y pedrería para rematar el diseño.</span>
           <span class="menu__price">$3.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Velo Terapia</span>
           <span class="menu__desc">Refuerzo con velo para uñas quebradizas.</span>
           <span class="menu__price">$6.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Retiro de Press-on</span>
           <span class="menu__desc">Retiro cuidado, sin dañar la uña natural.</span>
           <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Retiro de Semipermanente</span>
           <span class="menu__desc">Retiro del esmalte sin desgastar la uña.</span>
           <span class="menu__price">$5.000</span>
@@ -854,20 +854,20 @@
     </div>
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Color y tratamiento</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Colorimetría</span>
           <span class="menu__desc">Platinados, rayos, plumillas y más.</span>
           <span class="menu__price">Según diseño, color y cabello</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Freestyle</span>
           <span class="menu__desc">Dibujo tallado en el cuero cabelludo.</span>
           <span class="menu__price">Según diseño</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Hidrocauterización capilar</span>
           <span class="menu__desc">Sella la cutícula y controla el frizz.</span>
           <span class="menu__price">Según largo y densidad</span>
@@ -877,20 +877,20 @@
     </div>
     <div class="menu__group" data-reveal="up">
       <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Depilación facial</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
+      <ul class="menu__list" data-reveal-stagger="60" data-reveal-stagger-max="8">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Depilación de nariz y oídos</span>
           <span class="menu__desc">Las dos zonas en una sola sesión.</span>
           <span class="menu__price">Desde $25.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Depilación de fosas nasales</span>
           <span class="menu__desc">Depilación con cera.</span>
           <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
-        <li class="menu__row">
+        <li class="menu__row" data-reveal="up">
           <span class="menu__name">Depilación de oídos</span>
           <span class="menu__desc">Depilación con cera.</span>
           <span class="menu__price">$15.000</span>
@@ -900,13 +900,16 @@
     </div>
     </div>
 
-    <dl class="carta__cifras reveal">
-      <div><dt>Servicios</dt><dd>32</dd></div>
-      <div><dt>Cortes desde</dt><dd>$35.000</dd></div>
-      <div><dt>Complementos desde</dt><dd>$10.000</dd></div>
+    <!-- Las cifras van escritas en el HTML y el contador las sustituye al
+         entrar. Así se leen sin JavaScript y no arrancan en cero, que es lo que
+         deja un hueco raro si el módulo no llega a correr. -->
+    <dl class="carta__cifras" data-reveal="up">
+      <div><dt>Servicios</dt><dd data-contar="32">32</dd></div>
+      <div><dt>Cortes desde</dt><dd data-contar="35000" data-contar-pre="$">$35.000</dd></div>
+      <div><dt>Complementos desde</dt><dd data-contar="10000" data-contar-pre="$">$10.000</dd></div>
     </dl>
 
-    <button class="btn btn--wine reveal" type="button" data-book data-book-location="servicios">Ver servicios y reservar</button>
+    <button class="btn btn--wine" type="button" data-book data-book-location="servicios">Ver servicios y reservar</button>
   </div>
 
   <!--
@@ -915,7 +918,7 @@
     - preload="none": no compite con la carga inicial; se pide al llegar aquí.
     - data-loop-end corta antes de la placa de logo del final (empieza en 18.2s).
   -->
-  <figure class="carta__video reveal" aria-hidden="true">
+  <figure class="carta__video" data-reveal="up" aria-hidden="true">
     <video id="ritual-video"
            muted loop playsinline preload="none"
            poster="assets/ritual-poster.webp"
@@ -982,8 +985,8 @@
          nosotros no lo estamos declarando como recogido aquí. -->
     <a class="gscore__figure" href="https://www.google.com/maps?cid=7884828445267517729"
        target="_blank" rel="noopener noreferrer">
-      <span class="gscore__num">5,0</span>
-      <span class="gscore__stars" aria-hidden="true">★★★★★</span>
+      <span class="gscore__num" data-contar="5" data-contar-dec="1">5,0</span>
+      <span class="gscore__stars" data-estrellas aria-hidden="true">★★★★★</span>
       <span class="gscore__label">454 reseñas en Google</span>
     </a>
   </div>
@@ -1222,7 +1225,7 @@
   </div>
 </div>
 
-<script src="assets/motion.js?v=1" defer></script>
-<script src="assets/app.js?v=23"></script>
+<script src="assets/motion.js?v=3" defer></script>
+<script src="assets/app.js?v=24"></script>
 </body>
 </html>

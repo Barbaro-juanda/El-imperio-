@@ -203,3 +203,301 @@
   /* Subrayados, destellos y demás: se muestran, no se dibujan. */
   .nav__links a::after { transition: none !important; }
 }
+
+/* =========================================================
+   FASE 2 — Hero
+   ========================================================= */
+
+/* El acercamiento de entrada va en un envoltorio y no en el <video>, porque el
+   video ya lleva su propia máscara de bordes y su ancho calculado: encadenar
+   otro transform ahí obligaría a recalcular esos valores cada vez que se toque
+   uno de los dos. Separados, cada capa hace una sola cosa. */
+.hero__zoom {
+  position: absolute; inset: 0;
+  transform-origin: center;
+  will-change: transform;
+}
+.js-enabled .hero__zoom { animation: heroZoom 8s var(--ease-out-expo) both; }
+@keyframes heroZoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+
+/* El parallax lo escribe el JS sobre esta capa, separada del zoom para que los
+   dos transforms no se pisen. */
+.hero__par { position: absolute; inset: 0; will-change: transform; }
+
+/* Titular por líneas. Cada línea es un recorte y lo que sube es su interior. */
+.linea { display: block; overflow: hidden; }
+.js-enabled .linea > i {
+  display: block; font-style: inherit;
+  transform: translateY(110%); opacity: 0;
+  transition: transform var(--dur-reveal) var(--ease-out-expo) var(--reveal-delay, 0ms),
+              opacity   var(--dur-reveal) var(--ease-out-expo) var(--reveal-delay, 0ms);
+}
+.js-enabled .linea.is-visible > i { transform: none; opacity: 1; }
+
+/* Indicador de scroll: una línea con un punto que la recorre. */
+.scrollind {
+  position: absolute; left: 50%; bottom: 26px;
+  transform: translateX(-50%);
+  width: 1px; height: 40px;
+  background: rgba(237, 230, 214, .22);
+  transition: opacity var(--dur-base) var(--ease-out-expo);
+}
+.scrollind::after {
+  content: ''; position: absolute; left: 50%; top: 0;
+  width: 5px; height: 5px; margin-left: -2px; border-radius: 50%;
+  background: var(--gold);
+  animation: scrollPunto 3s var(--ease-out-expo) infinite;
+}
+/* Dos segundos de recorrido y uno de pausa: sin la pausa se lee como una carga
+   en curso, que es exactamente lo que no es. */
+@keyframes scrollPunto {
+  0%          { transform: translateY(0);    opacity: 0; }
+  10%         { opacity: 1; }
+  60%         { transform: translateY(35px); opacity: 1; }
+  66%, 100%   { transform: translateY(35px); opacity: 0; }
+}
+.scrollind.is-ido { opacity: 0; pointer-events: none; }
+
+/* =========================================================
+   FASE 3 — Galería
+   ========================================================= */
+.tile { position: relative; overflow: hidden; }
+.tile img, .tile video {
+  transition: transform 700ms var(--ease-out-expo),
+              filter    700ms var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tile img, .tile video { filter: grayscale(1) brightness(.75); }
+  .tile:hover img, .tile:hover video,
+  .tile:focus-visible img, .tile:focus-visible video {
+    filter: grayscale(0) brightness(1);
+    transform: scale(1.08);
+  }
+}
+
+/* Pie que sube al pasar por encima. */
+.tile__pie {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 34px 14px 12px;
+  background: linear-gradient(180deg, transparent, rgba(13, 13, 13, .82));
+  color: var(--cream);
+  font: 300 11px/1.4 var(--sans);
+  letter-spacing: .08em;
+  text-align: left;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity   450ms var(--ease-out-expo),
+              transform 450ms var(--ease-out-expo);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover .tile__pie, .tile:focus-visible .tile__pie { opacity: 1; transform: none; }
+}
+/* Sin hover —táctil— el pie se enseña siempre: si no, no existiría. */
+@media (hover: none) { .tile__pie { opacity: 1; transform: none; } }
+
+/* Lightbox: el desplazamiento lateral del cambio de pieza. */
+#lb-figura { transition: opacity var(--dur-fast) var(--ease-out-expo),
+                         transform var(--dur-base) var(--ease-out-expo); }
+#lb-figura.sale-izq  { opacity: 0; transform: translateX(-20px); }
+#lb-figura.sale-der  { opacity: 0; transform: translateX(20px); }
+
+/* =========================================================
+   FASE 4 — Servicios
+   ========================================================= */
+.menu__row {
+  position: relative;
+  transition: transform 550ms var(--ease-out-expo),
+              background-color var(--dur-base) var(--ease-out-expo);
+}
+/* La línea guía entre nombre y precio, como en una carta impresa. */
+.menu__row::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: currentColor; opacity: .12;
+  transform: scaleX(.25); transform-origin: left;
+  transition: transform 550ms var(--ease-out-expo),
+              background-color 550ms var(--ease-out-expo),
+              opacity 550ms var(--ease-out-expo);
+}
+.menu__price { transition: color 550ms var(--ease-out-expo); }
+.menu__motif { display: inline-block; transition: transform 550ms var(--ease-out-expo); }
+
+@media (hover: hover) and (pointer: fine) {
+  .menu__row:hover { transform: translateX(16px); }
+  .menu__row:hover::after {
+    transform: scaleX(1);
+    background: var(--gold); opacity: .55;
+  }
+  .menu__row:hover .menu__price { color: var(--gold); }
+  /* Los destacados giran su flor: un guiño, no un salto. */
+  .menu__row--destacado:hover .menu__motif { transform: rotate(90deg); }
+}
+
+/* =========================================================
+   FASE 5 — Barberos y reseñas
+   ========================================================= */
+.barber__photo { transition: filter 700ms var(--ease-out-expo); }
+@media (hover: hover) and (pointer: fine) {
+  .barber__photo { filter: grayscale(1); }
+  .barber:hover .barber__photo, .barber:focus-visible .barber__photo { filter: grayscale(0); }
+  .barber__tag {
+    opacity: 0; transform: translateY(8px);
+    transition: opacity var(--dur-base) var(--ease-out-expo),
+                transform var(--dur-base) var(--ease-out-expo);
+  }
+  .barber:hover .barber__tag, .barber:focus-visible .barber__tag {
+    opacity: 1; transform: none;
+  }
+}
+
+/* Estrellas que se rellenan de izquierda a derecha. */
+.gscore__stars span { opacity: .18; transition: opacity var(--dur-base) var(--ease-out-expo); }
+.gscore__stars.is-visible span { opacity: 1; }
+
+/* Comilla grande detrás de cada reseña. */
+.rev { position: relative; }
+.rev::before {
+  content: '\\201C';
+  position: absolute; top: -18px; left: 4px;
+  font: 400 92px/1 var(--serif);
+  color: var(--cream); opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease-out-expo);
+}
+.rev.is-visible::before { opacity: .08; }
+
+/* =========================================================
+   FASE 6 — Botones y modal
+   ========================================================= */
+/* Destello diagonal, una pasada por hover. Va sobre un pseudo-elemento con
+   transform, no animando `left`, que obligaría a rehacer el layout. */
+.btn--gold { position: relative; overflow: hidden; }
+.btn--gold::after {
+  content: '';
+  position: absolute; top: -50%; bottom: -50%; left: -60%;
+  width: 40%;
+  background: rgba(255, 255, 255, .45);
+  transform: translateX(-180%) skewX(-20deg);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--gold:hover::after { animation: destello 450ms var(--ease-out-expo) 1; }
+}
+@keyframes destello {
+  from { transform: translateX(-180%) skewX(-20deg); }
+  to   { transform: translateX(420%)  skewX(-20deg); }
+}
+
+/* Secundarios: el dorado sube desde abajo recortando, no creciendo. */
+.btn--outline { position: relative; z-index: 0; }
+.btn--outline::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background: var(--gold);
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path var(--dur-base) var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--outline:hover::before { clip-path: inset(0 0 0 0); }
+  .btn--outline:hover { color: var(--ink); border-color: var(--gold); }
+}
+
+/* El CTA magnético lo mueve el JS; aquí solo el retorno suave. */
+.btn--iman { transition: transform var(--dur-slow) var(--ease-out-expo); }
+
+/* Modal: abrir con calma, cerrar rápido. Esperar a que se vaya algo que ya
+   decidiste cerrar se siente lento aunque dure menos. */
+.booking { transition: opacity 250ms var(--ease-out-expo); }
+.booking[hidden] { display: none; }
+.booking__panel {
+  transition: transform 400ms var(--ease-out-expo), opacity 400ms var(--ease-out-expo);
+}
+.booking.is-cerrando { transition-duration: 200ms; }
+.booking.is-cerrando .booking__panel { transition-duration: 200ms; }
+.js-enabled .booking:not(.is-abierto) .booking__panel {
+  transform: translateY(16px) scale(.98); opacity: 0;
+}
+.js-enabled .booking:not(.is-abierto) { opacity: 0; }
+
+/* Paso que entra y sale de lado. */
+.step { transition: opacity var(--dur-base) var(--ease-out-expo),
+                    transform var(--dur-base) var(--ease-out-expo); }
+.step.sale-izq { opacity: 0; transform: translateX(-24px); }
+.step.sale-der { opacity: 0; transform: translateX(24px); }
+
+/* La flor del final se traza. */
+.flor-trazo path, .flor-trazo circle, .flor-trazo line {
+  stroke-dasharray: var(--largo, 300);
+  stroke-dashoffset: var(--largo, 300);
+}
+.flor-trazo.is-visible path, .flor-trazo.is-visible circle, .flor-trazo.is-visible line {
+  animation: trazar 1200ms var(--ease-out-expo) forwards;
+}
+@keyframes trazar { to { stroke-dashoffset: 0; } }
+
+/* =========================================================
+   FASE 7 — Transversales
+   ========================================================= */
+/* Grano. Imagen estática y no animada: animarla obliga a repintar la pantalla
+   entera en cada cuadro, y por un efecto del 3% de opacidad no compensa. */
+.grano {
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none;
+  opacity: .03;
+  background-image: var(--grano);
+  background-size: 180px 180px;
+}
+
+/* Cursor. Solo con puntero fino; en táctil no existe. */
+.cursor, .cursor__anillo {
+  position: fixed; top: 0; left: 0; z-index: 9999;
+  pointer-events: none;
+  border-radius: 50%;
+  will-change: transform;
+}
+.cursor { width: 8px; height: 8px; background: var(--gold); margin: -4px 0 0 -4px; }
+.cursor__anillo {
+  width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border: 1px solid rgba(185, 151, 63, .5);
+  transform: scale(.2); opacity: 0;
+  transition: transform var(--dur-base) var(--ease-out-expo),
+              opacity var(--dur-base) var(--ease-out-expo);
+}
+.cursor__anillo.is-sobre { transform: scale(1); opacity: 1; }
+@media (hover: none), (pointer: coarse) { .cursor, .cursor__anillo { display: none; } }
+
+/* =========================================================
+   Sin movimiento — lo que añaden las fases 2 a 7
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .js-enabled .hero__zoom { animation: none !important; transform: none !important; }
+  .hero__par { transform: none !important; }
+  .js-enabled .linea > i { transform: none !important; opacity: 1 !important; }
+  .scrollind::after { animation: none !important; }
+
+  .tile img, .tile video,
+  .barber__photo { filter: none !important; }
+  .tile:hover img, .tile:hover video { transform: none !important; }
+  .tile__pie, .barber__tag { opacity: 1 !important; transform: none !important; }
+
+  .menu__row:hover { transform: none !important; }
+  .menu__row::after { transform: scaleX(1) !important; }
+  .menu__row--destacado:hover .menu__motif { transform: none !important; }
+
+  .gscore__stars span { opacity: 1 !important; }
+  .rev::before { opacity: .08 !important; }
+
+  .btn--gold:hover::after { animation: none !important; }
+  .btn--outline::before { transition: none !important; }
+  .btn--iman { transform: none !important; }
+
+  .js-enabled .booking:not(.is-abierto) .booking__panel { transform: none !important; }
+  .step.sale-izq, .step.sale-der { transform: none !important; }
+  .flor-trazo path, .flor-trazo circle, .flor-trazo line {
+    stroke-dashoffset: 0 !important; animation: none !important;
+  }
+
+  .cursor, .cursor__anillo { display: none !important; }
+  .grano { display: none !important; }
+}
