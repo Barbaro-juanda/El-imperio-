@@ -519,9 +519,13 @@
 
     const pasos = pasosActivos();
     const pos = pasos.indexOf(step) + 1;
-    counter.textContent = 'Paso ' + pos + ' de ' + pasos.length;
+    counter.textContent = step === 0
+      ? 'Tu cita actual'
+      : 'Paso ' + pos + ' de ' + pasos.length;
     summary.textContent = summaryFor(step);
-    heading.innerHTML = TITLES[step - 1];
+    heading.innerHTML = step === 0
+      ? 'Modificar tu <em>cita</em>'
+      : TITLES[step - 1];
     heading.hidden = step === PASOS;
 
     /* La barra se dibuja con un segmento por paso aplicable: si el de barbero
@@ -536,14 +540,25 @@
     progress.setAttribute('aria-valuemax', String(pasos.length));
     progress.setAttribute('aria-valuenow', String(pos));
 
-    stepFoot.hidden = step === PASOS;
-    backBtn.hidden = step === 1;
+    /* El paso 0 —buscar la cita— tiene sus propios botones dentro y no usa el
+       pie: «Continuar» ahí no significaría nada hasta que se haya encontrado
+       algo. */
+    stepFoot.hidden = step === PASOS || step === 0;
+    backBtn.hidden = step === 1 || step === 0;
+
+    /* La entrada al modo de cambio solo se ofrece al empezar de cero. A mitad
+       de una reserva estorba, y dentro del propio modo de cambio no tiene
+       sentido. */
+    const yaTengo = $('#yatengo');
+    if (yaTengo) yaTengo.hidden = step !== 1 || !!cambiando;
     stepFoot.dataset.single = String(step === 1);
 
     pintarCotizacion(step);
 
     const esConfirmacion = step === PASOS - 1;
-    nextBtn.textContent = esConfirmacion ? 'Confirmar reserva' : 'Continuar';
+    nextBtn.textContent = esConfirmacion
+      ? (cambiando ? 'Confirmar el cambio' : 'Confirmar reserva')
+      : 'Continuar';
     nextBtn.className = 'btn ' + (esConfirmacion ? 'btn--gold' : 'btn--wine');
     /* Con algo a convenir no se puede seguir: la agenda no sabe cuánto dura ni
        cuánto cuesta lo que se acordará, y apartar dos horas para una cita cuyo
@@ -1015,10 +1030,27 @@
           nombre: state.customer.name,
           telefono: state.customer.phone,
           email: state.customer.email
-        }
+        },
+        /* Si esto es un cambio, el servidor cancela la anterior — pero solo
+           DESPUÉS de que esta haya entrado. Si el cupo nuevo se lo llevó otro
+           entre medias, la petición falla y el cliente conserva la que tenía. */
+        reemplaza: cambiando
+          ? { codigo: cambiando.codigo, telefono: state.customer.phone }
+          : undefined
       })
     }).then(r => {
       state.codigo = r.codigo;
+      if (r.reemplazo) {
+        /* Se anuncia el cambio en la pantalla final: quien movió su cita
+           necesita ver que la anterior ya no está, o vuelve a llamar para
+           asegurarse. */
+        const done = document.querySelector('.step--done p');
+        if (done) {
+          done.textContent = 'Cambiamos tu cita. La anterior quedó cancelada y ' +
+            'te enviamos la nueva confirmación a tu celular.';
+        }
+      }
+      cambiando = null;
       return r;
     });
   }
@@ -1857,6 +1889,99 @@
       a.remove();
     });
   }
+
+
+  /* ------------------------------------------------------
+     Modificar una cita
+     ------------------------------------------------------
+     El cliente entra con su código y su celular, elige qué quiere cambiar y va
+     directo a ese paso. De ahí sigue con «Continuar» y «Atrás» como en una
+     reserva normal, y al confirmar se crea la nueva y se cancela la anterior.
+
+     Hasta ahora no existía: quien quería mover su cita reservaba otra vez y
+     acababa con dos. La vieja seguía bloqueando su hora, nadie iba a ocuparla y
+     el local no se enteraba hasta que el cliente no aparecía. */
+  let cambiando = null;   // la cita que se está reemplazando, o null
+
+  function entrarAModificar() {
+    cambiando = null;
+    $('#buscar-error').hidden = true;
+    $('#hallada').hidden = true;
+    $('#buscar-codigo').value = '';
+    $('#buscar-tel').value = '';
+    state.step = 0;
+    render();
+    openBooking(0);
+    setTimeout(() => $('#buscar-codigo').focus(), 80);
+  }
+
+  $('#ir-modificar').addEventListener('click', entrarAModificar);
+
+  $('#buscar-ir').addEventListener('click', async () => {
+    const err = $('#buscar-error');
+    err.hidden = true;
+    const codigo = $('#buscar-codigo').value.trim().toUpperCase();
+    const telefono = $('#buscar-tel').value.trim();
+    if (!codigo || !telefono) {
+      err.textContent = 'Necesitamos el código y el celular.';
+      err.hidden = false; return;
+    }
+    const b = $('#buscar-ir');
+    b.disabled = true;
+    b.textContent = 'Buscando…';
+    try {
+      const r = await pedir('/reservar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ buscar: { codigo, telefono } })
+      });
+      cambiando = r.cita;
+
+      /* Se precarga la cita entera en el estado. Así, cambie lo que cambie, lo
+         que no toca viaja igual que estaba: quien solo mueve la hora conserva
+         su barbero y sus servicios sin tener que volver a elegirlos. */
+      state.service = r.cita.servicios[0] || null;
+      state.extras  = r.cita.servicios.slice(1);
+      state.barber  = r.cita.profesional;
+      /* `state.date` es un objeto Date en todo el flujo, no una cadena: el
+         calendario lo compara con ymd() y el .ics lo formatea. Guardarlo como
+         texto aquí lo habría roto en el paso siguiente. */
+      const d = new Date(r.cita.inicio);
+      state.date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      state.slot = pad(d.getHours()) + ':' + pad(d.getMinutes());
+      state.customer = {
+        name: r.cita.cliente.nombre,
+        phone: r.cita.cliente.telefono,
+        email: r.cita.cliente.email || ''
+      };
+
+      const serviciosTxt = r.cita.servicios.map(id => (byId(id) || {}).name)
+        .filter(Boolean).join(' + ');
+      const caja = $('#hallada-cita');
+      caja.textContent = '';
+      const cuando = el('strong');
+      cuando.textContent = shortDate(state.date) + ' · ' + state.slot;
+      const qué = el('span');
+      qué.textContent = serviciosTxt || 'Tu cita';
+      caja.append(cuando, qué);
+      $('#hallada').hidden = false;
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo buscar';
+      err.hidden = false;
+    } finally {
+      b.disabled = false;
+      b.textContent = 'Buscar mi cita';
+    }
+  });
+
+  /* Cada opción manda al paso que le toca, ya relleno con lo que había. */
+  $$('[data-cambiar]').forEach(op => op.addEventListener('click', () => {
+    const destino = Number(op.getAttribute('data-cambiar'));
+    /* Si va a cambiar el servicio, la hora elegida puede dejar de valer —otro
+       servicio dura otra cosa—, así que se suelta y la vuelve a elegir. */
+    if (destino === 1) { state.slot = null; }
+    state.step = destino;
+    render();
+  }));
 
   /* ------------------------------------------------------
      Lightbox de la galería

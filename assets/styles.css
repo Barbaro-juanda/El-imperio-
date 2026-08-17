@@ -1787,3 +1787,42 @@ body.is-locked { overflow: hidden; }
 }
 .cotiza__otro { color: rgba(237, 230, 214, .62); }
 .cotiza__otro:hover, .cotiza__otro:focus-visible { color: var(--gold); }
+
+/* ---------------------------------------------------------
+   Modificar una cita
+   --------------------------------------------------------- */
+.buscar { display: flex; flex-direction: column; gap: 16px; max-width: 34rem; }
+.buscar label { display: flex; flex-direction: column; gap: 8px; }
+#buscar-codigo { text-transform: uppercase; letter-spacing: .3em; font-family: var(--sans); }
+
+.hallada { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--line-cream); }
+.hallada__cita {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 20px; margin-bottom: 24px;
+  border: 1px solid rgba(185, 151, 63, .3);
+  background: rgba(185, 151, 63, .05);
+}
+.hallada__cita strong { font: 300 clamp(1.1rem, 2.4vw, 1.4rem)/1.2 var(--serif); color: var(--cream); }
+.hallada__cita span { font: 300 12px/1.5 var(--sans); color: rgba(237, 230, 214, .68); }
+
+.hallada__ops { display: grid; gap: 10px; }
+@media (min-width: 720px) { .hallada__ops { grid-template-columns: repeat(3, 1fr); } }
+
+/* Cada opción manda directo a su paso. Se ven como piezas pulsables y no como
+   una lista, porque son la acción principal de esta pantalla. */
+.opcion {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 18px 20px;
+  border: 1px solid var(--line-cream);
+  background: none; color: var(--cream); cursor: pointer;
+  transition: border-color var(--dur-base) var(--ease-out-expo),
+              background-color var(--dur-base) var(--ease-out-expo);
+}
+.opcion strong { font: 400 13px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+.opcion span { font: 300 12px/1.5 var(--sans); color: rgba(237, 230, 214, .6); }
+.opcion:hover, .opcion:focus-visible {
+  border-color: var(--gold); background: rgba(185, 151, 63, .06);
+}
+
+/* La entrada al modo de cambio, discreta bajo el primer paso. */
+.yatengo { padding: 22px 0 0; text-align: center; }

@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=27">
+<link rel="stylesheet" href="assets/styles.css?v=28">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1141,6 +1141,42 @@
       <!-- Paso 1 — servicios. Un solo paso con los seis segmentos: quien viene
            solo por las cejas empieza por las cejas, no tiene que fingir un
            corte para llegar a ellas. Selección múltiple: la cita es la suma. -->
+      <!-- Paso 0: buscar la cita que se quiere cambiar. Vive fuera de la
+           numeración de los cinco pasos porque no es parte de reservar: es la
+           puerta de entrada al modo de cambio, y quien reserva de cero no la ve
+           nunca. -->
+      <section class="step" data-step="0" hidden>
+        <p class="step__hint">Escribe el código que te enviamos y el celular con el que reservaste.</p>
+        <div class="buscar">
+          <label>Código de la cita
+            <input id="buscar-codigo" type="text" inputmode="latin" autocapitalize="characters"
+                   maxlength="6" placeholder="ABC123" autocomplete="off">
+          </label>
+          <label>Celular
+            <input id="buscar-tel" type="tel" inputmode="numeric" placeholder="300 123 4567" autocomplete="tel">
+          </label>
+          <button class="btn btn--wine" type="button" id="buscar-ir">Buscar mi cita</button>
+          <p class="form__error" id="buscar-error" role="alert" hidden></p>
+        </div>
+
+        <!-- Lo que se encontró, y qué se quiere cambiar de ello. -->
+        <div class="hallada" id="hallada" hidden>
+          <div class="hallada__cita" id="hallada-cita"></div>
+          <p class="step__hint">¿Qué quieres cambiar?</p>
+          <div class="hallada__ops">
+            <button class="opcion" type="button" data-cambiar="1">
+              <strong>El servicio</strong><span>Otro corte, o añadir algo más</span>
+            </button>
+            <button class="opcion" type="button" data-cambiar="2">
+              <strong>El barbero</strong><span>Que te atienda otra persona</span>
+            </button>
+            <button class="opcion" type="button" data-cambiar="3">
+              <strong>El día o la hora</strong><span>Mover la cita a otro momento</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section class="step" data-step="1" hidden>
         <div class="segs" id="segs" role="group" aria-label="Segmentos de servicio"></div>
         <p class="step__hint" id="segs-hint">Elige uno o varios. Puedes combinar segmentos.</p>
@@ -1238,6 +1274,12 @@
       <button class="link-underline cotiza__otro" type="button" id="cotiza-quitar">Quitar y reservar lo demás <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
     </div>
 
+    <!-- Entrada al modo de cambio. Va aquí abajo y no arriba: quien llega a
+         reservar no debe tropezarse con ella, y quien viene a cambiar la busca. -->
+    <div class="yatengo" id="yatengo">
+      <button class="link-underline" type="button" id="ir-modificar">¿Ya tienes una cita? Modifícala <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
+    </div>
+
     <footer class="step__foot" id="step-foot">
       <button class="btn btn--ghost" type="button" id="back">← Atrás</button>
       <button class="btn btn--wine" type="button" id="next">Continuar</button>
@@ -1246,6 +1288,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=31"></script>
+<script src="assets/app.js?v=32"></script>
 </body>
 </html>
