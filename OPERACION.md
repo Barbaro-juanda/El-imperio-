@@ -132,6 +132,38 @@ curl -s https://el-imperio-lime.vercel.app/ | grep -o 'app.js?v=[0-9]*'
 
 ---
 
+## La base de datos
+
+El sitio usa el proyecto de Neon llamado **Barbaroneon** (`dark-paper-95451464`).
+Está escrito aquí porque hay **otro proyecto llamado `imperial-db`**
+(`young-hat-88354020`) con las mismas tablas y datos parecidos, y ya provocó un
+error caro: se le aplicaron tres migraciones creyendo que era la buena.
+
+> La señal para distinguirlas es la columna `servicio.descripcion`: la de
+> producción la tiene, la otra no. Y el nombre del proyecto NO sirve como
+> señal: la duplicada tiene el nombre que parece el correcto.
+
+`imperial-db` hay que borrarla desde **Vercel → Storage** (no desde Neon: la
+organización la gestiona Vercel y Neon rechaza el borrado). Antes de borrarla se
+sacó un respaldo, en `respaldos/imperial-db-antes-de-borrar/`.
+
+### Cómo se saca la conexión
+
+La `DATABASE_URL` está marcada como sensible en Vercel, así que **no se puede
+copiar desde su panel ni bajar con `vercel env pull`** —viene censurada como
+`[SENSITIVE]`—. El camino que funciona es la herramienta de Neon:
+
+```bash
+npx neonctl auth        # una vez, autoriza en el navegador
+npx neonctl connection-string --project-id dark-paper-95451464 \
+    --org-id org-delicate-sky-73333076
+```
+
+Ya está guardada en `.env.development.local` (ignorada por Git, permisos 600),
+así que `npm run migrar` y `npm run respaldo` funcionan sin más.
+
+---
+
 ## Secretos
 
 Tres variables, en Vercel → Settings → Environment Variables:
@@ -203,6 +235,10 @@ Cosas que solo puede hacer el dueño, porque exigen sus accesos o su criterio:
 
 - **Claves de cada profesional** — Disponibilidad → Profesionales. Sin ellas
   nadie entra a «Mi día» desde su celular.
+- **Borrar `imperial-db`** desde Vercel → Storage. Ya está respaldada.
+- **Descripción de «Cejas con cuchilla»** — es el único servicio que quedó sin
+  texto, porque existe en la base pero no en la lista escrita del sitio, así que
+  no había de dónde copiarla. Servicios → Editar.
 - **El secreto `DATABASE_URL` en GitHub**, para que el respaldo diario corra.
 - **Fotos** de quien no la tenga. Sin foto se enseña su inicial, que funciona,
   pero no es lo mismo.
