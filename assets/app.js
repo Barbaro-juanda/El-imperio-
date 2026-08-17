@@ -433,6 +433,17 @@
   function pasosActivos() {
     const items = seleccion().map(byId).filter(Boolean);
     const salta = items.length > 0 && items.every(s => s.sinBarbero);
+
+    /* Cambiando una cita se recorren SOLO los pasos que se pidieron cambiar, y
+       nunca el de los datos: el nombre y el celular ya están, y volver a pedir
+       un formulario entero para mover una hora es exactamente lo que hace que
+       la gente abandone y reserve otra vez. */
+    if (cambiando && quiereCambiar.length) {
+      return quiereCambiar
+        .filter(n => !(salta && n === PASO_BARBERO))
+        .concat([PASOS]);
+    }
+
     return [1, 2, 3, 4, 5].filter(n => !(salta && n === PASO_BARBERO));
   }
   const saltaBarbero = () => !pasosActivos().includes(PASO_BARBERO);
@@ -560,7 +571,7 @@
          ir directo a una cosa. */
       nextBtn.textContent = 'Continuar';
       nextBtn.className = 'btn btn--wine';
-      nextBtn.disabled = !cambiando;
+      nextBtn.disabled = !cambiando || !quiereCambiar.length;
     } else {
       backBtn.textContent = '← Atrás';
     }
@@ -568,7 +579,7 @@
 
     pintarCotizacion(step);
 
-    const esConfirmacion = step === PASOS - 1;
+    const esConfirmacion = step === PASOS - 1 || esUltimoDelCambio();
     nextBtn.textContent = esConfirmacion
       ? (cambiando ? 'Confirmar el cambio' : 'Confirmar reserva')
       : 'Continuar';
@@ -1060,17 +1071,18 @@
       })
     }).then(r => {
       state.codigo = r.codigo;
-      if (r.reemplazo) {
+      if (r.cambiada) {
         /* Se anuncia el cambio en la pantalla final: quien movió su cita
            necesita ver que la anterior ya no está, o vuelve a llamar para
            asegurarse. */
         const done = document.querySelector('.step--done p');
         if (done) {
-          done.textContent = 'Cambiamos tu cita. La anterior quedó cancelada y ' +
-            'te enviamos la nueva confirmación a tu celular.';
+          done.textContent = 'Cambiamos tu cita. Te enviamos la confirmación ' +
+            'actualizada a tu celular.';
         }
       }
       cambiando = null;
+      quiereCambiar = [];
       return r;
     });
   }
@@ -1143,20 +1155,28 @@
     n.hidden = !texto;
   }
 
+  /* En modo cambio, el último de los pasos elegidos es el que confirma: de ahí
+     se va directo a la pantalla final. */
+  const esUltimoDelCambio = () => {
+    if (!cambiando || !quiereCambiar.length) return false;
+    const pasos = pasosActivos().filter(n => n !== PASOS);
+    return state.step === pasos[pasos.length - 1];
+  };
+
   function goNext() {
-    /* Del paso 0 se pasa al 1: revisar la cita entera desde el principio. Los
-       tres botones de «¿qué quieres cambiar?» son el atajo a un paso concreto;
-       esto es el camino largo, para quien quiere mirarlo todo. */
+    /* Del paso 0 se arranca el recorrido con lo que se haya marcado. */
     if (state.step === 0) {
-      if (!cambiando) return;
-      state.step = 1;
+      if (!cambiando || !quiereCambiar.length) return;
+      state.step = pasosActivos()[0];
       render();
       panel.scrollTop = 0;
       return;
     }
 
-    if (state.step === PASO_DATOS) {
-      if (!validateForm()) {
+    if (state.step === PASO_DATOS || esUltimoDelCambio()) {
+      /* Solo se valida el formulario si se está en él. Cambiando una cita no se
+         pasa por ahí: los datos ya vinieron con la cita. */
+      if (state.step === PASO_DATOS && !validateForm()) {
         const bad = form.querySelector('.field--invalid input');
         if (bad) bad.focus();
         return;
@@ -1235,6 +1255,8 @@
 
   function salirDeModificar() {
     cambiando = null;
+    quiereCambiar = [];
+    $$('[data-cambiar]').forEach(o => o.setAttribute('aria-pressed', 'false'));
     state.service = null;
     state.extras = [];
     state.barber = null;
@@ -1319,6 +1341,7 @@
        tarde seguiría creyendo que se está modificando una cita y el botón final
        diría «Confirmar el cambio» en una reserva nueva. */
     cambiando = null;
+    quiereCambiar = [];
 
     /* El paso 0 no está en TITLES —no es un paso de la reserva, es la pantalla
        de buscar la cita— así que TITLES[-1] era `undefined` y `.replace`
@@ -1982,10 +2005,13 @@
      Hasta ahora no existía: quien quería mover su cita reservaba otra vez y
      acababa con dos. La vieja seguía bloqueando su hora, nadie iba a ocuparla y
      el local no se enteraba hasta que el cliente no aparecía. */
-  let cambiando = null;   // la cita que se está reemplazando, o null
+  let cambiando = null;      // la cita que se está cambiando, o null
+  let quiereCambiar = [];    // qué pasos pidió cambiar: [1,2,3]
 
   function entrarAModificar() {
     cambiando = null;
+    quiereCambiar = [];
+    $$('[data-cambiar]').forEach(o => o.setAttribute('aria-pressed', 'false'));
     $('#buscar-error').hidden = true;
     $('#hallada').hidden = true;
     $('#buscar-tel').value = '';
@@ -2060,13 +2086,28 @@
     $('#buscar-error').hidden = true;
   }
 
-  /* Cada opción manda al paso que le toca, ya relleno con lo que había. */
+  /* Se marcan las que se quieran y luego «Continuar»: quien viene a cambiar el
+     barbero Y la hora no debería tener que hacer el recorrido dos veces. */
   $$('[data-cambiar]').forEach(op => op.addEventListener('click', () => {
-    const destino = Number(op.getAttribute('data-cambiar'));
-    /* Si va a cambiar el servicio, la hora elegida puede dejar de valer —otro
-       servicio dura otra cosa—, así que se suelta y la vuelve a elegir. */
-    if (destino === 1) { state.slot = null; }
-    state.step = destino;
+    const n = Number(op.getAttribute('data-cambiar'));
+    const i = quiereCambiar.indexOf(n);
+    if (i === -1) quiereCambiar.push(n); else quiereCambiar.splice(i, 1);
+    quiereCambiar.sort();
+    op.setAttribute('aria-pressed', String(i === -1));
+
+    /* Cambiar el servicio suelta la hora: otro servicio dura otra cosa y el
+       cupo elegido podría no caber. Si además va a elegir hora, se la pedirá
+       igualmente; si no, se le pide sola. */
+    if (quiereCambiar.indexOf(1) !== -1 && quiereCambiar.indexOf(3) === -1) {
+      quiereCambiar.push(3);
+      quiereCambiar.sort();
+      const opHora = document.querySelector('[data-cambiar="3"]');
+      if (opHora) opHora.setAttribute('aria-pressed', 'true');
+    }
+
+    $('#hallada-pista').textContent = quiereCambiar.length
+      ? 'Pulsa Continuar y solo te preguntamos eso.'
+      : 'Marca lo que quieras cambiar y pulsa Continuar.';
     render();
   }));
 

@@ -1853,3 +1853,10 @@ body.is-locked { overflow: hidden; }
   color: rgba(13, 13, 13, .66);
   text-align: center;
 }
+
+/* Opción marcada: se pueden elegir varias, así que hace falta ver cuáles. */
+.opcion[aria-pressed="true"] {
+  border-color: var(--gold);
+  background: rgba(185, 151, 63, .12);
+}
+.opcion[aria-pressed="true"] strong { color: var(--gold); }

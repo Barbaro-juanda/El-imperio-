@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=31">
+<link rel="stylesheet" href="assets/styles.css?v=32">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1158,18 +1158,19 @@
         <!-- Lo que se encontró, y qué se quiere cambiar de ello. -->
         <div class="hallada" id="hallada" hidden>
           <div class="hallada__cita" id="hallada-cita"></div>
-          <p class="step__hint">¿Qué quieres cambiar?</p>
+          <p class="step__hint">¿Qué quieres cambiar? Puedes marcar varias.</p>
           <div class="hallada__ops">
-            <button class="opcion" type="button" data-cambiar="1">
+            <button class="opcion" type="button" data-cambiar="1" aria-pressed="false">
               <strong>El servicio</strong><span>Otro corte, o añadir algo más</span>
             </button>
-            <button class="opcion" type="button" data-cambiar="2">
+            <button class="opcion" type="button" data-cambiar="2" aria-pressed="false">
               <strong>El barbero</strong><span>Que te atienda otra persona</span>
             </button>
-            <button class="opcion" type="button" data-cambiar="3">
+            <button class="opcion" type="button" data-cambiar="3" aria-pressed="false">
               <strong>El día o la hora</strong><span>Mover la cita a otro momento</span>
             </button>
           </div>
+          <p class="step__hint" id="hallada-pista">Marca lo que quieras cambiar y pulsa Continuar.</p>
         </div>
       </section>
 
@@ -1290,6 +1291,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=35"></script>
+<script src="assets/app.js?v=36"></script>
 </body>
 </html>

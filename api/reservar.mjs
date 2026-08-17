@@ -127,6 +127,52 @@ export default async function handler(req, res) {
       ON CONFLICT (telefono) DO UPDATE SET nombre = EXCLUDED.nombre
       RETURNING id`;
 
+    /* ---------- cambiar una cita: se ACTUALIZA la que hay ----------
+
+       No se crea una nueva y se cancela la vieja. Ese fue el diseño anterior y
+       tenía un fallo grave: la restricción de solape mira profesional y rango
+       de horas mientras la cita esté confirmada, así que la cita vieja bloqueaba
+       a la nueva. Cambiar cualquier cosa SIN mover la hora —el barbero, un
+       servicio— chocaba consigo misma y el sistema decía «ese horario ya está
+       tomado». Lo estaba: por la propia cita que se quería cambiar.
+
+       Actualizando la misma fila el problema desaparece solo: una fila no
+       colisiona consigo misma. Y si el hueco nuevo lo tiene OTRO, el UPDATE
+       falla y la cita se queda exactamente como estaba. */
+    if (anterior) {
+      try {
+        const r = await sql`
+          UPDATE cita
+             SET profesional_id = ${profesional},
+                 inicio = ${inicio.toISOString()},
+                 fin = ${fin.toISOString()},
+                 total = ${total},
+                 nota = COALESCE(nota || ' · ', '') || 'Cambiada por el cliente'
+           WHERE id = ${anterior.id} AND estado = 'confirmada'
+           RETURNING id, codigo`;
+        if (!r.length) return json(res, 409, { error: 'Esa cita ya no se puede cambiar.' });
+
+        /* Los servicios se rehacen: pueden haber cambiado, y si no, quedan
+           igual. Borrar y volver a poner es más simple que averiguar cuáles
+           entraron y cuáles salieron, y son tres filas. */
+        await sql`DELETE FROM cita_servicio WHERE cita_id = ${r[0].id}`;
+        for (const s of servs) {
+          await sql`INSERT INTO cita_servicio (cita_id, servicio_id, precio)
+                    VALUES (${r[0].id}, ${s.id}, ${s.precio})`;
+        }
+        return json(res, 200, {
+          codigo: r[0].codigo, inicio: inicio.toISOString(), total, cambiada: true
+        });
+      } catch (e) {
+        if (e.code === '23P01') {
+          return json(res, 409, {
+            error: 'Ese horario lo acaban de tomar. Elige otro — tu cita sigue como estaba.'
+          });
+        }
+        throw e;
+      }
+    }
+
     const codigo = codigoCita();
     let cita;
     try {
@@ -151,28 +197,7 @@ export default async function handler(req, res) {
                 VALUES (${cita.id}, ${s.id}, ${s.precio})`;
     }
 
-    /* La anterior se cancela AQUÍ, y no antes.
-
-       El orden es la garantía de todo esto. Creando primero, si el cupo nuevo
-       se lo llevó otro entre medias, la petición falla arriba y el cliente se
-       queda con su cita de siempre. Cancelando primero, ese mismo tropiezo lo
-       dejaría sin ninguna de las dos —y sin forma de recuperar la que tenía—.
-
-       Si la cancelación fallara, quedarían dos citas: es lo que pasa hoy cuando
-       alguien reserva de nuevo para cambiar, así que el peor caso de esto es el
-       estado normal de antes. */
-    if (anterior) {
-      await sql`
-        UPDATE cita
-           SET estado = 'cancelada',
-               nota = COALESCE(nota || ' · ', '') || 'Cambiada por el cliente a la cita ' || ${cita.codigo}
-         WHERE id = ${anterior.id} AND estado = 'confirmada'`;
-    }
-
-    return json(res, 201, {
-      codigo: cita.codigo, inicio: inicio.toISOString(), total,
-      reemplazo: anterior ? anterior.codigo : null
-    });
+    return json(res, 201, { codigo: cita.codigo, inicio: inicio.toISOString(), total });
   } catch (e) {
     console.error('reservar', e);
     return json(res, 500, { error: 'No se pudo crear la cita' });
