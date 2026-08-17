@@ -96,15 +96,69 @@ a:hover { color: var(--gold); }
   background: linear-gradient(90deg, transparent, var(--wine), transparent);
 }
 
+/* Enlace de texto con regla fina debajo. Lo usan «Ver todo» en la galería y
+   «Ver en Google Maps» en Ubicación: uno es <button> y el otro <a>, y tienen
+   que verse idénticos.
+
+   El reset de arriba no es adorno. Sin él, el navegador le pinta al <button>
+   su caja gris con borde y relieve, que es lo que se veía: un control de
+   sistema operativo plantado en medio de una sección de papel. Un <a> no lo
+   sufre, y por eso los dos parecían cosas distintas. */
 .link-underline {
+  appearance: none; -webkit-appearance: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding: 0 0 7px;
+  cursor: pointer;
   font: 400 11px/1 var(--sans);
   letter-spacing: .24em; text-transform: uppercase;
   color: var(--ink);
-  border-bottom: 1px solid var(--wine);
-  padding-bottom: 6px;
   white-space: nowrap;
+  position: relative;
+  display: inline-flex; align-items: baseline; gap: .7em;
+  transition: color var(--dur-base) var(--ease-out-expo);
 }
-.link-underline:hover { color: var(--wine); }
+
+/* La regla va en un pseudo-elemento y no en border-bottom para poder
+   atenuarla: en reposo es una línea de las que ya recorren el sitio, no un
+   subrayado que grita «púlsame». Al pasar por encima toma su color y su peso,
+   que es cuando sí toca. */
+.link-underline::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: currentColor;
+  opacity: .22;
+  transition: opacity var(--dur-base) var(--ease-out-expo);
+}
+
+.link-underline:hover,
+.link-underline:focus-visible { color: var(--wine); }
+.link-underline:hover::after,
+.link-underline:focus-visible::after { opacity: 1; }
+
+/* La flor se separa del texto y se adelanta un poco al pasar por encima: la
+   misma insinuación de «hay algo más allá» que hace una flecha, sin meter una
+   flecha en un sitio que no tiene ninguna. */
+.link-underline__motif {
+  color: var(--gold-on-light);
+  font-size: .95em;
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+.link-underline:hover .link-underline__motif,
+.link-underline:focus-visible .link-underline__motif { transform: translateX(3px); }
+
+/* Sobre fondo oscuro cambia el color de la flor y el del hover. */
+.section--ink .link-underline { color: var(--cream); }
+.section--ink .link-underline .link-underline__motif { color: var(--gold); }
+.section--ink .link-underline:hover,
+.section--ink .link-underline:focus-visible { color: var(--gold); }
+
+@media (prefers-reduced-motion: reduce) {
+  .link-underline__motif { transform: none !important; }
+}
 
 /* ---------------------------------------------------------
    Buttons
