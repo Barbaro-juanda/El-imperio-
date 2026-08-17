@@ -1373,9 +1373,11 @@
        aparato: la cinta va despacio en un celular y más suelta en un monitor
        ancho, que es exactamente lo que hace falta en cada uno.
 
-       Treinta segundos porque una reseña ronda las doscientas letras y se lee
-       en unos quince; el resto es margen para quien llega a media tarjeta. */
-    const SEGUNDOS_A_LA_VISTA = 30;
+       Veinticuatro segundos, no treinta. Treinta daba tiempo de sobra pero se
+       arrastraba —una cinta que se mueve tan despacio parece atascada— y veinte
+       no alcanzaba a leerse en un celular. En medio: cómodo sin llegar a
+       aburrir. */
+    const SEGUNDOS_A_LA_VISTA = 24;
 
     function syncSpeed() {
       const vuelta = track.scrollWidth / 2;   // la mitad = un ciclo completo

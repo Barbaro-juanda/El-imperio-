@@ -170,6 +170,22 @@
       while (media.firstChild) par.appendChild(media.firstChild);
       zoom.appendChild(par);
       media.appendChild(zoom);
+
+      /* Volver a arrancar el video.
+
+         Mover un <video> de sitio en el DOM lo DETIENE: el navegador lo trata
+         como un elemento nuevo que aún no ha recibido permiso para reproducir.
+         Y aquí se mueve por fuerza, porque envolverlo en las dos capas exige
+         sacarlo de donde estaba.
+
+         En escritorio a veces se recuperaba solo y no se notó; en un celular se
+         quedaba parado en el póster, con el hero congelado. Que sea `muted` es
+         lo que permite volver a arrancarlo sin que nadie lo haya tocado: un
+         video con sonido no tendría esa segunda oportunidad. */
+      media.querySelectorAll('video').forEach(v => {
+        const p = v.play();
+        if (p && p.catch) p.catch(() => {});   // el póster cubre si el navegador dice que no
+      });
     }
 
     /* --- indicador de scroll --- */
