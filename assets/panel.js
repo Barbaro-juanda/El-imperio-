@@ -27,6 +27,10 @@
   const DURACIONES = [5, 10, 15, 20, 30, 45, 60, 90, 120, 150, 180];
   const PERIODOS = [['dia', 'Día'], ['semana', 'Semana'], ['quincena', 'Quincena'],
                     ['mes', 'Mes'], ['ano', 'Año']];
+  /* La dirección pública. Escrita una vez: en tres mensajes distintos, una
+     copia es la que se queda vieja el día que se ponga un dominio propio. */
+  const SITIO = 'el-imperio-lime.vercel.app';
+
   const MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', otro: 'Otro' };
 
   /* PASO son los minutos con los que la API ofrece cupos y con los que se
@@ -862,15 +866,30 @@
     const esHoy = ymd(new Date(c.inicio)) === ymd(new Date());
     const cuando = esHoy ? 'hoy' : 'el ' + dd;
 
+    /* El código y por dónde cambiar la cita.
+
+       Va en los mensajes que se mandan ANTES de la cita, no en los de después.
+       El cliente lo ve al reservar, pero si cerró la página lo perdió, y sin él
+       no puede entrar a modificarla: reservaría otra vez y acabaría con dos
+       citas, que es justo lo que la pantalla de cambios viene a evitar.
+
+       Solo si la cita sigue en pie y no ha pasado: mandarle a alguien cómo
+       cambiar una cita que ya se atendió no ayuda a nadie. */
+    const puedeCambiar = c.estado === 'confirmada' && new Date(c.inicio) > new Date();
+    const comoCambiar = puedeCambiar && c.codigo
+      ? ' Si necesitas moverla, entra a ' + SITIO + ' con el código ' + c.codigo +
+        ' y tu celular, y la cambias en un minuto.'
+      : '';
+
     const lista = [];
 
     lista.push({ id: 'recordar', rotulo: 'Recordar la cita',
       texto: '¡Hola ' + nom + '! Te recordamos tu cita en El Imperio ' + cuando +
-             ' a las ' + h + ' con ' + prof + '. Aquí te esperamos.' });
+             ' a las ' + h + ' con ' + prof + '. Aquí te esperamos.' + comoCambiar });
 
     lista.push({ id: 'confirmar', rotulo: 'Pedir confirmación',
       texto: '¡Hola ' + nom + '! ¿Nos confirmas tu cita de ' + cuando + ' a las ' + h +
-             ' con ' + prof + '? Con un sí nos basta y te guardamos el turno.' });
+             ' con ' + prof + '? Con un sí nos basta y te guardamos el turno.' + comoCambiar });
 
     /* Solo cuando la hora ya pasó y la cita sigue en pie: ofrecerlo antes sería
        preguntarle a alguien por qué se demora cuando todavía no se demora. */
@@ -886,6 +905,14 @@
       lista.push({ id: 'gracias', rotulo: 'Agradecer la visita',
         texto: '¡Gracias por venir, ' + nom + '! Fue un gusto atenderte. ' +
                'Si quedaste contento, una reseña en Google nos ayuda muchísimo.' });
+    }
+
+    if (puedeCambiar && c.codigo) {
+      lista.push({ id: 'cambiar', rotulo: 'Pedirle que la cambie él mismo',
+        texto: '¡Hola ' + nom + '! Necesitamos mover tu cita de ' + cuando + ' a las ' + h +
+               '. Puedes elegir tú la nueva hora en ' + SITIO + ' con el código ' + c.codigo +
+               ' y tu celular; la anterior se cancela sola al confirmar. Si prefieres, dinos ' +
+               'qué día te sirve y la movemos nosotros.' });
     }
 
     lista.push({ id: 'libre', rotulo: 'Abrir el chat en blanco', texto: '' });
