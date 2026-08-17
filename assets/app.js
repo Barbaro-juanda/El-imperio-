@@ -1359,16 +1359,37 @@
       track.appendChild(clone);
     });
 
-    /* Velocidad constante en px/s en vez de duración fija: con 3 reseñas o con
-       15, la cinta se mueve igual de rápido. */
-    /* 30 segundos por vuelta completa, no una velocidad fija en píxeles. Con
-       velocidad fija, añadir una reseña alarga la vuelta y el ritmo del bloque
-       cambia solo; con vuelta fija, el ritmo es siempre el mismo tenga tres
-       reseñas o quince. */
-    const VUELTA_S = 30;
+    /* La velocidad se calcula desde lo único que importa aquí: cuánto tiempo
+       está cada reseña delante de los ojos.
+
+       Antes fue velocidad fija en píxeles, y luego vuelta fija de 30 segundos.
+       Las dos estaban mal por la misma razón: ignoran el ancho de la pantalla.
+       El recorrido es el mismo en un celular y en un portátil, pero la ventana
+       no. En escritorio se ven varias reseñas a la vez y la siguiente ya
+       entrando; en un celular cabe una sola, y cruza los 330 px de pantalla en
+       la mitad de tiempo del que hace falta para leerla.
+
+       Atándolo al tiempo en pantalla, cada reseña dura lo mismo en cualquier
+       aparato: la cinta va despacio en un celular y más suelta en un monitor
+       ancho, que es exactamente lo que hace falta en cada uno.
+
+       Treinta segundos porque una reseña ronda las doscientas letras y se lee
+       en unos quince; el resto es margen para quien llega a media tarjeta. */
+    const SEGUNDOS_A_LA_VISTA = 30;
+
     function syncSpeed() {
-      const distance = track.scrollWidth / 2; // la mitad = un ciclo completo
-      if (distance > 0) track.style.setProperty('--marquee-duration', VUELTA_S + 's');
+      const vuelta = track.scrollWidth / 2;   // la mitad = un ciclo completo
+      if (vuelta <= 0) return;
+
+      const tarjeta = track.firstElementChild;
+      const anchoTarjeta = tarjeta ? tarjeta.getBoundingClientRect().width : 300;
+      const anchoVentana = track.parentElement.getBoundingClientRect().width;
+
+      /* Una tarjeta está a la vista mientras recorre su propio ancho más el de
+         la ventana: desde que asoma por un lado hasta que desaparece por el
+         otro. */
+      const velocidad = (anchoTarjeta + anchoVentana) / SEGUNDOS_A_LA_VISTA;
+      track.style.setProperty('--marquee-duration', Math.round(vuelta / velocidad) + 's');
     }
     syncSpeed();
     window.addEventListener('resize', syncSpeed);
