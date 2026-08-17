@@ -35,7 +35,7 @@ async function huella() {
     SELECT md5(string_agg(
              id || ':' || COALESCE(precio::text, '-') || ':' || minutos || ':' ||
              activo || ':' || nombre || ':' || COALESCE(descripcion, '') || ':' ||
-             segmento || ':' || solo_adicional, ',' ORDER BY id)) AS v
+             segmento || ':' || solo_adicional || ':' || precio_desde, ',' ORDER BY id)) AS v
       FROM servicio`;
   partes.push(a[0] && a[0].v);
 
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
        viene por las uñas no debería tener que «elegir» entre una opción. */
     const servicios = await sql`
       SELECT s.id, s.segmento, s.nombre, s.precio, s.minutos, s.descripcion,
-             s.solo_adicional,
+             s.solo_adicional, s.precio_desde,
              /* Se agrega p.id y no sp.profesional_id: el JOIN filtra por activo,
                 pero la fila de servicio_profesional sigue existiendo para quien
                 ya no está en el equipo. Contando el id de la tabla enlazada,

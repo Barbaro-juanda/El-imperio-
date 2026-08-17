@@ -164,6 +164,9 @@
   const SHOP = {
     name: 'The Imperial Clasic Barber',
     address: 'Prados de Sabaneta, Antioquia, Colombia',
+    /* El mismo número que sale en Ubicación. Escrito una vez: dos copias es
+       una que se queda vieja el día que lo cambien. */
+    whatsapp: '573145832948',
     utcOffsetHours: -5 // America/Bogota, sin horario de verano
   };
 
@@ -533,10 +536,15 @@
     backBtn.hidden = step === 1;
     stepFoot.dataset.single = String(step === 1);
 
+    pintarCotizacion(step);
+
     const esConfirmacion = step === PASOS - 1;
     nextBtn.textContent = esConfirmacion ? 'Confirmar reserva' : 'Continuar';
     nextBtn.className = 'btn ' + (esConfirmacion ? 'btn--gold' : 'btn--wine');
-    nextBtn.disabled = !canAdvance();
+    /* Con algo a convenir no se puede seguir: la agenda no sabe cuánto dura ni
+       cuánto cuesta lo que se acordará, y apartar dos horas para una cita cuyo
+       precio nadie ha dicho todavía es la cancelación más cara posible. */
+    nextBtn.disabled = !canAdvance() || (step === 1 && aConvenir().length > 0);
 
     /* Reflejar el estado en los selectores cada vez que se pinta, no solo al
        hacer clic. Si no, una selección hecha fuera del modal (el atajo del
@@ -547,7 +555,60 @@
     if (step === 3) { renderCalendar(); renderSlots(); cargarCupos(); }
   }
 
-  const precioTexto = s => (s.price === null ? (s.nota || 'Según diseño') : money(s.price));
+  const precioTexto = s => (s.price === null ? (s.nota || 'Consultar')
+                                            : (s.desde ? 'Desde ' : '') + money(s.price));
+
+  /* ------------------------------------------------------
+     Servicios que se cotizan antes
+     ------------------------------------------------------
+     Cinco de los treinta y dos no tienen precio fijo: un platinado depende del
+     largo, del color de partida y de lo castigado que venga el pelo, y eso no
+     se sabe hasta ver la cabeza. Son además los más largos —dos de ellos de dos
+     horas—, así que son justamente los que peor sienta perder.
+
+     Antes se podían reservar igual, y el precio aparecía en el mostrador. Eso
+     tiene dos finales malos: el cliente se echa atrás y se pierden dos horas de
+     agenda que ya no se venden, o se queda sintiéndose emboscado. Ninguno de
+     los dos lo arregla una cifra inventada.
+
+     Así que no abren agenda: llevan a WhatsApp, donde el local pide una foto,
+     da el precio y —si hay trato— crea la cita desde el panel. La hora se
+     aparta cuando hay acuerdo, no antes. */
+  const aConvenir = () =>
+    [state.service].concat(state.extras).filter(Boolean)
+      .map(byId).filter(s => s && s.price === null);
+
+  function pintarCotizacion(step) {
+    const caja = $('#cotiza');
+    if (!caja) return;
+    const pendientes = aConvenir();
+
+    /* Solo en el paso 1: más adelante ya no hay nada a convenir, porque no se
+       deja avanzar con ello. */
+    caja.hidden = step !== 1 || !pendientes.length;
+    if (caja.hidden) return;
+
+    const nombres = pendientes.map(s => s.name);
+    const otros = [state.service].concat(state.extras).filter(Boolean)
+      .map(byId).filter(s => s && s.price !== null);
+
+    $('#cotiza-txt').textContent = nombres.length === 1
+      ? nombres[0] + ' se cotiza antes: el precio depende de tu cabello y hay que verlo. Te lo damos por WhatsApp y ahí mismo te apartamos la hora.'
+      : 'Estos se cotizan antes —' + nombres.join(' y ') + '— porque el precio depende de tu cabello. Te lo damos por WhatsApp y ahí mismo te apartamos la hora.';
+
+    /* El mensaje llega escrito: quien pide un precio no tiene por qué redactar
+       nada, y al local le llega ya dicho qué quiere y con la foto pedida. */
+    const texto = '¡Hola! Quiero cotizar ' + nombres.join(' y ') +
+      (otros.length ? ' (y de paso ' + otros.map(s => s.name).join(' y ') + ')' : '') +
+      '. Les mando una foto de mi cabello para que me digan el precio.';
+    $('#cotiza-wa').href = 'https://wa.me/' + SHOP.whatsapp.replace(/\D/g, '') +
+                           '?text=' + encodeURIComponent(texto);
+
+    /* Salida para quien eligió una mezcla: se queda con lo que sí tiene precio
+       y reserva normal, en vez de tener que volver a empezar. */
+    const quitar2 = $('#cotiza-quitar');
+    quitar2.hidden = !otros.length;
+  }
 
   /* ---- paso 1: qué se va a hacer ----
      Un único paso segmentado. Antes había dos listas —«principales» y
@@ -1168,6 +1229,12 @@
     }, quieto ? 0 : 200);
   }
 
+  /* Deja solo lo que tiene precio y sigue con la reserva normal. */
+  $('#cotiza-quitar').addEventListener('click', () => {
+    aConvenir().forEach(s => quitar(s.id));
+    render();
+  });
+
   document.querySelectorAll('[data-book]').forEach(b =>
     b.addEventListener('click', () => {
       track('booking_started', { trigger_location: b.dataset.bookLocation || 'unknown' });
@@ -1458,6 +1525,10 @@
       /* Precio sin fijar no es un dato que falte: es «según diseño», y así se
          anuncia en vez de inventar una cifra. */
       nota: s.precio === null ? 'Consultar' : undefined,
+      /* Si el precio es un mínimo y no una cifra cerrada. Sin esto, la carta
+         anunciaba «$25.000» donde el local había puesto «Desde $25.000»: el
+         sitio prometía precio fijo por algo que varía. */
+      desde: !!s.precio_desde,
       /* Con un solo profesional no hay nada que elegir y el paso se salta.
          Sale de quién presta el servicio hoy, no de una lista escrita a mano
          que envejece en cuanto alguien entra o sale del equipo. */

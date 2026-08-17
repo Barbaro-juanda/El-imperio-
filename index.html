@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=3">
-<link rel="stylesheet" href="assets/styles.css?v=26">
+<link rel="stylesheet" href="assets/styles.css?v=27">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1218,6 +1218,16 @@
 
     </div>
 
+    <!-- Aviso y salida a WhatsApp cuando lo elegido lleva precio a convenir.
+         Vive aquí, en el pie, y no dentro del paso 1: aparece justo donde el
+         visitante iba a pulsar «Continuar», que es el momento en que le sirve
+         saber que ese camino no es el suyo. -->
+    <div class="cotiza" id="cotiza" hidden>
+      <p class="cotiza__txt" id="cotiza-txt"></p>
+      <a class="btn btn--gold" id="cotiza-wa" target="_blank" rel="noopener noreferrer">Pedir precio por WhatsApp</a>
+      <button class="link-underline cotiza__otro" type="button" id="cotiza-quitar">Quitar y reservar lo demás <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
+    </div>
+
     <footer class="step__foot" id="step-foot">
       <button class="btn btn--ghost" type="button" id="back">← Atrás</button>
       <button class="btn btn--wine" type="button" id="next">Continuar</button>
@@ -1226,6 +1236,6 @@
 </div>
 
 <script src="assets/motion.js?v=4" defer></script>
-<script src="assets/app.js?v=26"></script>
+<script src="assets/app.js?v=27"></script>
 </body>
 </html>

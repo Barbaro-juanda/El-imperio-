@@ -1767,3 +1767,23 @@ body.is-locked { overflow: hidden; }
   white-space: nowrap;
 }
 .section--ink .oficio__rot span { color: var(--gold); }
+
+/* ---------------------------------------------------------
+   Cotizar antes de reservar
+   Aparece en el pie del paso 1, justo donde el visitante iba
+   a pulsar «Continuar»: es el momento en que le sirve saber
+   que ese camino no es el suyo, ni antes ni después.
+   --------------------------------------------------------- */
+.cotiza {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+  padding: 20px 0 4px;
+  border-top: 1px solid var(--line-cream);
+}
+.cotiza__txt {
+  font: 300 14px/1.6 var(--sans);
+  color: rgba(237, 230, 214, .78);
+  max-width: 52ch;
+  margin: 0;
+}
+.cotiza__otro { color: rgba(237, 230, 214, .62); }
+.cotiza__otro:hover, .cotiza__otro:focus-visible { color: var(--gold); }
