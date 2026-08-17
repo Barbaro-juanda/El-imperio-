@@ -399,7 +399,6 @@ a:hover { color: var(--gold); }
 }
 .hero__trust a { color: inherit; border-bottom: 1px solid transparent; }
 .hero__trust a:hover { color: var(--wine); border-bottom-color: currentColor; }
-.hero__trust-sep { opacity: .5; }
 @media (min-width: 640px) { .hero__trust { font-size: 11px; } }
 
 /* ---------------------------------------------------------

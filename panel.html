@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=22">
+<link rel="stylesheet" href="assets/panel.css?v=23">
 </head>
 <body class="panel">
 
@@ -508,8 +508,8 @@
         <label>Comisión % <input id="pf-comision" type="number" min="0" max="100" step="5" value="50"></label>
         <label>Clave · mínimo 8 <input id="pf-clave" type="password" autocomplete="new-password" placeholder="Opcional, se puede poner después"></label>
       </div>
-      <label>Foto · ruta del archivo <input id="pf-foto" type="text" placeholder="assets/barbero-nombre.jpg — opcional"></label>
-      <p class="nota">Sin foto se enseña su inicial. La foto se sube al repositorio, no desde aquí.</p>
+      <label>Foto <span id="pf-foto"></span></label>
+      <p class="nota">Opcional. Sin foto se enseña su inicial, que también queda bien. Se puede poner después.</p>
       <p class="acceso__error" id="pf-error" role="alert" hidden></p>
       <menu>
         <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
@@ -542,6 +542,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=24"></script>
+<script src="assets/panel.js?v=25"></script>
 </body>
 </html>

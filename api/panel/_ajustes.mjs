@@ -9,6 +9,28 @@ import { hashClave } from '../_hash.mjs';
 
 const SEGMENTOS = ['cortes', 'color', 'depilacion', 'cejas', 'facial', 'unas', 'adicionales'];
 
+/* La foto del equipo llega de dos formas: como ruta —las que ya venían en el
+   repositorio— o como imagen incrustada, que es lo que manda el panel desde
+   que se elige con el selector de archivos.
+
+   El tope es generoso pero existe: esta foto viaja dentro del catálogo que
+   descarga TODO visitante de la página, así que una sin comprimir la haría
+   pesada para alguien que entra con datos móviles. El navegador ya la encoge a
+   800 px antes de subirla; esto es la red por si eso falla o alguien llama a la
+   API por su cuenta. */
+const TOPE_FOTO = 400 * 1024;
+
+function revisaFoto(valor) {
+  if (valor === null || valor === undefined) return null;
+  const v = String(valor);
+  if (/^assets\/[\w.-]+\.(jpe?g|png|webp)$/i.test(v)) return null;
+  if (!/^data:image\/(png|jpe?g|webp);base64,/.test(v)) {
+    return 'La foto debe ser una imagen';
+  }
+  if (v.length > TOPE_FOTO) return 'La foto pesa demasiado, vuelve a elegirla';
+  return null;
+}
+
 /* Identificador a partir del nombre: minúsculas, sin tildes y con guiones.
    Se deriva y no se pide para que quien crea el servicio no tenga que pensar
    en identificadores, que es cosa de la base y no del local. */
@@ -111,6 +133,9 @@ export default protegido(async (req, res) => {
       const choque = await sql`SELECT 1 FROM profesional WHERE slug = ${slug}`;
       if (choque.length) return json(res, 409, { error: 'Ya hay alguien con ese nombre en el equipo' });
 
+      const malaFoto = revisaFoto(p.foto);
+      if (malaFoto) return json(res, 400, { error: malaFoto });
+
       const r = await sql`
         INSERT INTO profesional (nombre, slug, foto, activo, comision, entra, sale)
         VALUES (${nombre}, ${slug}, ${p.foto || null}, TRUE, ${com}, ${entra}, ${sale})
@@ -180,6 +205,9 @@ export default protegido(async (req, res) => {
       if (!/^\d{2}:\d{2}$/.test(p.entra) || !/^\d{2}:\d{2}$/.test(p.sale)) {
         return json(res, 400, { error: 'Horas no válidas' });
       }
+      const malaFoto2 = p.foto === undefined ? null : revisaFoto(p.foto);
+      if (malaFoto2) return json(res, 400, { error: malaFoto2 });
+
       /* El nombre y la foto solo se tocan si vienen: un PATCH que no los manda
          significa «no los cambies», no «bórralos». */
       const nombre = p.nombre === undefined ? null : String(p.nombre).trim();

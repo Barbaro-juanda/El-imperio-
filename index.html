@@ -25,7 +25,7 @@
      queda con la copia en caché y los cambios de estilo no se ven —pasó en
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
-<link rel="stylesheet" href="assets/styles.css?v=21">
+<link rel="stylesheet" href="assets/styles.css?v=22">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -606,9 +606,12 @@
     <span class="rule" aria-hidden="true"></span>
     <p class="hero__sub">Barbería premium en Sabaneta</p>
     <button class="btn btn--wine btn--lg" type="button" data-book data-book-location="hero">Reserva tu cita</button>
+    <!-- Se quitó «Sin tarjeta de crédito». Venía de la plantilla original, que
+         era de un producto que sí la pide: aquí nadie esperaba tener que dar una
+         para reservar en una barbería, así que el mensaje respondía a una duda
+         que el visitante no tenía, y plantarla es peor que callarse. Queda la
+         reseña, que sí aporta. -->
     <div class="hero__trust">
-      <span>Sin tarjeta de crédito</span>
-      <span class="hero__trust-sep" aria-hidden="true">·</span>
       <a href="#resenas">★★★★★ Lo que dicen nuestros clientes</a>
     </div>
   </div>
@@ -714,52 +717,6 @@
           <span class="menu__name">Pigmentación</span>
           <span class="menu__desc">Densifica barba o cuero cabelludo.</span>
           <span class="menu__price">$20.000</span>
-          <span class="menu__dur">—</span>
-        </li>
-      </ul>
-    </div>
-    <div class="menu__group" data-rv>
-      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Color y tratamiento</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
-          <span class="menu__name">Colorimetría</span>
-          <span class="menu__desc">Platinados, rayos, plumillas y más.</span>
-          <span class="menu__price">Según diseño, color y cabello</span>
-          <span class="menu__dur">—</span>
-        </li>
-        <li class="menu__row">
-          <span class="menu__name">Freestyle</span>
-          <span class="menu__desc">Dibujo tallado en el cuero cabelludo.</span>
-          <span class="menu__price">Según diseño</span>
-          <span class="menu__dur">—</span>
-        </li>
-        <li class="menu__row">
-          <span class="menu__name">Hidrocauterización capilar</span>
-          <span class="menu__desc">Sella la cutícula y controla el frizz.</span>
-          <span class="menu__price">Según largo y densidad</span>
-          <span class="menu__dur">—</span>
-        </li>
-      </ul>
-    </div>
-    <div class="menu__group" data-rv>
-      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Depilación facial</h3>
-      <ul class="menu__list">
-        <li class="menu__row">
-          <span class="menu__name">Depilación de nariz y oídos</span>
-          <span class="menu__desc">Las dos zonas en una sola sesión.</span>
-          <span class="menu__price">Desde $25.000</span>
-          <span class="menu__dur">—</span>
-        </li>
-        <li class="menu__row">
-          <span class="menu__name">Depilación de fosas nasales</span>
-          <span class="menu__desc">Depilación con cera.</span>
-          <span class="menu__price">$15.000</span>
-          <span class="menu__dur">—</span>
-        </li>
-        <li class="menu__row">
-          <span class="menu__name">Depilación de oídos</span>
-          <span class="menu__desc">Depilación con cera.</span>
-          <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
       </ul>
@@ -889,6 +846,52 @@
           <span class="menu__name">Retiro de Semipermanente</span>
           <span class="menu__desc">Retiro del esmalte sin desgastar la uña.</span>
           <span class="menu__price">$5.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+    <div class="menu__group" data-rv>
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Color y tratamiento</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
+          <span class="menu__name">Colorimetría</span>
+          <span class="menu__desc">Platinados, rayos, plumillas y más.</span>
+          <span class="menu__price">Según diseño, color y cabello</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Freestyle</span>
+          <span class="menu__desc">Dibujo tallado en el cuero cabelludo.</span>
+          <span class="menu__price">Según diseño</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Hidrocauterización capilar</span>
+          <span class="menu__desc">Sella la cutícula y controla el frizz.</span>
+          <span class="menu__price">Según largo y densidad</span>
+          <span class="menu__dur">—</span>
+        </li>
+      </ul>
+    </div>
+    <div class="menu__group" data-rv>
+      <h3 class="menu__group-title"><span class="menu__motif" aria-hidden="true">⚜</span> Depilación facial</h3>
+      <ul class="menu__list">
+        <li class="menu__row">
+          <span class="menu__name">Depilación de nariz y oídos</span>
+          <span class="menu__desc">Las dos zonas en una sola sesión.</span>
+          <span class="menu__price">Desde $25.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Depilación de fosas nasales</span>
+          <span class="menu__desc">Depilación con cera.</span>
+          <span class="menu__price">$15.000</span>
+          <span class="menu__dur">—</span>
+        </li>
+        <li class="menu__row">
+          <span class="menu__name">Depilación de oídos</span>
+          <span class="menu__desc">Depilación con cera.</span>
+          <span class="menu__price">$15.000</span>
           <span class="menu__dur">—</span>
         </li>
       </ul>
@@ -1217,6 +1220,6 @@
   </div>
 </div>
 
-<script src="assets/app.js?v=19"></script>
+<script src="assets/app.js?v=20"></script>
 </body>
 </html>

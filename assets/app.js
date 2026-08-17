@@ -37,11 +37,11 @@
   /* No es constante: el catálogo del panel la reemplaza al cargar. */
   let SEGMENTOS = {
     cortes:     'Cortes',
-    color:      'Color y tratamiento',
-    depilacion: 'Depilación facial',
     cejas:      'Cejas',
     facial:     'Limpieza facial',
-    unas:       'Uñas'
+    unas:       'Uñas',
+    color:      'Color y tratamiento',
+    depilacion: 'Depilación facial'
   };
 
   /* Segmentos de los que solo tiene sentido llevar una cosa: no se piden dos
@@ -1483,6 +1483,20 @@
   /* La base guarda el segmento; el rótulo que ve el cliente vive aquí. Añadir
      una categoría nueva en el panel no debería obligar a tocar este archivo,
      así que un segmento desconocido se rotula con su propio nombre. */
+  /* Con qué segmentos abre la carta. Sale de qué busca la gente al entrar, no
+     del alfabeto —que es como los devuelve la base— ni de cuántos servicios
+     tiene cada uno.
+
+     Los que no estén en esta lista van después, en el orden en que vengan. Así,
+     una categoría nueva creada desde el panel aparece sin tener que tocar este
+     archivo: se coloca al final, que es donde corresponde hasta que alguien
+     decida otra cosa. */
+  const ORDEN_SEGMENTOS = ['cortes', 'cejas', 'facial', 'unas'];
+  const ordenSeg = k => {
+    const i = ORDEN_SEGMENTOS.indexOf(k);
+    return i === -1 ? 99 : i;
+  };
+
   const ROTULO_SEG = {
     cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
     cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas', adicionales: 'Adicionales'
@@ -1593,6 +1607,7 @@
          desaparece sola en vez de abrir en un vacío. */
       const vistos = [];
       SERVICES.forEach(s => { if (vistos.indexOf(s.group) === -1) vistos.push(s.group); });
+      vistos.sort((a, b) => ordenSeg(a) - ordenSeg(b));
       SEGMENTOS = {};
       vistos.forEach(k => { SEGMENTOS[k] = rotuloSeg(k); });
       if (vistos.indexOf(segActivo) === -1) segActivo = vistos[0];
@@ -1634,7 +1649,7 @@
     SERVICES.forEach(s => { (porGrupo[s.group] = porGrupo[s.group] || []).push(s); });
 
     menu.textContent = '';
-    Object.keys(porGrupo).forEach(g => {
+    Object.keys(porGrupo).sort((a, b) => ordenSeg(a) - ordenSeg(b)).forEach(g => {
       const grupo = el('div', 'menu__group');
       grupo.setAttribute('data-rv', '');
 

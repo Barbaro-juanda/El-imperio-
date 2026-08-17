@@ -1441,31 +1441,96 @@
       /* El nombre es lo que ve el cliente en la web y en la reserva, así que
          se corrige aquí y no pidiendo que se toque la base. */
       const nom = el('input'); nom.type = 'text'; nom.value = p.nombre; mk('Nombre', nom);
-      const foto = el('input'); foto.type = 'text'; foto.value = p.foto || '';
-      foto.placeholder = 'assets/…jpg — sin foto va su inicial'; mk('Foto', foto);
+      /* La foto no va con los demás campos porque no se escribe: se elige. */
+      let fotoNueva;
+      const lf = el('label', 'prof-fila__foto');
+      lf.appendChild(document.createTextNode('Foto'));
+      lf.appendChild(campoFoto(p.foto, dato => { fotoNueva = dato; guardar(); }));
+      campos.appendChild(lf);
 
       const guardar = () => api('/panel/ajustes', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profesional: { id: p.id, comision: Number(com.value) / 100,
           entra: entra.value, sale: sale.value, activo: p.activo,
           nombre: nom.value.trim() || undefined,
-          foto: foto.value.trim() || undefined,
+          foto: fotoNueva || undefined,
           clave: clave.value || undefined } })
       }).then(() => {
         if (clave.value) { clave.value = ''; clave.placeholder = '•••••• (ya tiene)'; }
         p.nombre = nom.value.trim() || p.nombre;
         avisar('Guardado');
       }).catch(er => avisar(er.message));
-      [com, entra, sale, clave, nom, foto].forEach(i => i.addEventListener('change', guardar));
+      [com, entra, sale, clave, nom].forEach(i => i.addEventListener('change', guardar));
 
       f.append(cab, campos);
       e.appendChild(f);
     });
   }
 
+  /* Selector de foto: miniatura + botón que abre la galería del aparato.
+
+     Antes esto era una caja de texto donde había que escribir «assets/algo.jpg»,
+     que es pedirle al local que sepa dónde viven los archivos del sitio y que
+     además tenga acceso para subirlos. Con el selector, la foto se toma con el
+     celular o se busca en el computador y ya está.
+
+     Se encoge a 800 px antes de subirla. La tarjeta la enseña a 400 px de alto
+     como mucho, así que 800 cubre las pantallas de doble densidad y de ahí para
+     arriba solo se está pagando peso: la foto viaja en el catálogo que carga
+     todo visitante de la página. */
+  function campoFoto(valorActual, alCambiar) {
+    const caja = el('div', 'fotocampo');
+
+    const mini = el('div', 'fotocampo__mini');
+    const pintar = v => {
+      mini.textContent = '';
+      if (v) {
+        const img = document.createElement('img');
+        img.src = v; img.alt = '';
+        mini.appendChild(img);
+      } else {
+        mini.textContent = 'sin foto';
+      }
+    };
+    pintar(valorActual);
+
+    const boton = el('label', 'bt bt--mini fotocampo__bt');
+    boton.textContent = valorActual ? 'Cambiar' : 'Poner foto';
+    const entrada = document.createElement('input');
+    entrada.type = 'file';
+    entrada.accept = 'image/*';
+    entrada.className = 'sr-only';
+    boton.appendChild(entrada);
+
+    entrada.addEventListener('change', async e => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      boton.textContent = 'Subiendo…';
+      try {
+        const dato = await encoger(f, 800, 0.72);
+        pintar(dato);
+        boton.textContent = 'Cambiar';
+        alCambiar(dato);
+      } catch (err) {
+        boton.textContent = 'Poner foto';
+        avisar(err.message || 'No se pudo leer la foto');
+      }
+      entrada.value = '';
+    });
+
+    caja.append(mini, boton);
+    return caja;
+  }
+
   /* ---------- alta de profesional ---------- */
+  let fotoNueva = null;
+
   $('#abrir-prof').addEventListener('click', () => {
-    ['#pf-nombre', '#pf-clave', '#pf-foto'].forEach(x => { $(x).value = ''; });
+    ['#pf-nombre', '#pf-clave'].forEach(x => { $(x).value = ''; });
+    fotoNueva = null;
+    const hueco = $('#pf-foto');
+    hueco.textContent = '';
+    hueco.appendChild(campoFoto(null, dato => { fotoNueva = dato; }));
     $('#pf-entra').value = '09:00';
     $('#pf-sale').value = '20:00';
     $('#pf-comision').value = 50;
@@ -1489,7 +1554,7 @@
         body: JSON.stringify({ profesional: { nombre,
           comision: Number($('#pf-comision').value) / 100,
           entra: $('#pf-entra').value, sale: $('#pf-sale').value,
-          foto: $('#pf-foto').value.trim() || null,
+          foto: fotoNueva || null,
           clave: clave || undefined } }) });
       $('#dlg-prof').close();
       avisar(nombre + ' entró al equipo');
@@ -2122,7 +2187,7 @@
      pesa tres o cuatro megas y aquí solo hace falta poder leer el monto y la
      fecha del recibo: a 900 px de ancho se lee perfectamente y baja a unos
      100 KB, que es lo que hace viable guardarla junto a la cita. */
-  function encoger(archivo) {
+  function encoger(archivo, max, calidad) {
     return new Promise((resolve, reject) => {
       const lector = new FileReader();
       lector.onerror = () => reject(new Error('No se pudo leer la foto'));
@@ -2130,13 +2195,13 @@
         const img = new Image();
         img.onerror = () => reject(new Error('Ese archivo no es una imagen'));
         img.onload = () => {
-          const max = 900;
-          const escala = Math.min(1, max / Math.max(img.width, img.height));
+          const tope = max || 900;
+          const escala = Math.min(1, tope / Math.max(img.width, img.height));
           const lienzo = document.createElement('canvas');
           lienzo.width = Math.round(img.width * escala);
           lienzo.height = Math.round(img.height * escala);
           lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
-          resolve(lienzo.toDataURL('image/jpeg', 0.72));
+          resolve(lienzo.toDataURL('image/jpeg', calidad || 0.72));
         };
         img.src = lector.result;
       };
