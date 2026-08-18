@@ -92,7 +92,12 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
     const hace = m => new Date(Date.now() - m * 60000).toISOString();
     return {
       profesionales: [{ id: 1, nombre: 'Emanuel Gómez' }, { id: 2, nombre: 'Jeronimo Garcia' },
-                      { id: 3, nombre: 'Valentina Romero' }],
+                      { id: 3, nombre: 'Valentina Romero' },
+                      /* Uno descansando: es un estado que el panel tiene que
+                         saber pintar y que, sin ponerlo aquí, solo se vería el
+                         día que pasara de verdad. Igual que la cita sin cobrar
+                         de abajo. */
+                      { id: 4, nombre: 'Simon', descansa: true, motivo: 'Descansa' }],
       citas: [
         { id: 1, codigo: 'AB3K7P', inicio: t(9, 0),   fin: t(10, 0),  estado: 'cumplida',   total: 45000, cobrado: 45000, metodo_pago: 'efectivo',      cliente: 'Andrés Mejía',   telefono: '+573001112233', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte VIP' },
         { id: 2, codigo: 'CD8M2Q', inicio: t(10, 30), fin: t(12, 0),  estado: 'confirmada', total: 60000, cliente: 'Santiago Ruiz',  telefono: '+573004445566', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte y Barba VIP' },
