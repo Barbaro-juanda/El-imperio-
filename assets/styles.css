@@ -1880,3 +1880,12 @@ body.is-locked { overflow: hidden; }
   opacity: .45;
   cursor: not-allowed;
 }
+
+/* Por qué hay días apagados en el calendario. Va debajo de la rejilla y en el
+   tono tenue: es una explicación, no una alarma —el local abre igual, solo que
+   con otra persona—. */
+.calendar__nota{
+  margin:.9rem 0 0;
+  font: 300 12px/1.7 var(--sans);
+  color: rgba(237, 230, 214, .62);   /* el mismo tenue que .step__hint */
+}

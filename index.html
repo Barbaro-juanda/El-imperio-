@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=35">
+<link rel="stylesheet" href="assets/styles.css?v=36">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1206,6 +1206,10 @@
             <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
           </div>
           <div class="calendar__grid" id="cal-grid" role="group" aria-label="Elige un día"></div>
+          <!-- Por qué hay días apagados. El tachado se ve, pero el motivo solo
+               estaba en el título del botón, y en un celular no hay ratón que
+               lo saque: había que escribirlo. -->
+          <p class="calendar__nota" id="cal-nota" hidden></p>
         </div>
 
         <div class="slots">
@@ -1295,6 +1299,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=42"></script>
+<script src="assets/app.js?v=43"></script>
 </body>
 </html>

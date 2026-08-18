@@ -905,6 +905,23 @@
 
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
     $('#cal-prev').disabled = month <= start;
+
+    /* Y se dice con letras. En plural —«los jueves»— porque es lo que pasa
+       todas las semanas, no una fecha suelta; y con la salida delante, que es
+       lo único que el cliente puede hacer al respecto. */
+    const nota = $('#cal-nota');
+    if (nota) {
+      const suyo2 = profPorId(state.barber);
+      const libres2 = (suyo2 && suyo2.dias_libres || []).slice().sort();
+      nota.hidden = !libres2.length;
+      if (libres2.length) {
+        const nombres = libres2.map(d => WEEKDAYS[d].toLowerCase() + (d === 6 ? 's' : d === 0 ? 's' : ''));
+        const dias = nombres.length === 1 ? 'los ' + nombres[0]
+                   : 'los ' + nombres.slice(0, -1).join(', ') + ' y los ' + nombres[nombres.length - 1];
+        nota.textContent = suyo2.nombre.split(' ')[0] + ' descansa ' + dias +
+                           '. Elige otro día o vuelve atrás para escoger a otra persona.';
+      }
+    }
   }
 
   function renderSlots() {
