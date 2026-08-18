@@ -51,8 +51,17 @@ export default async function handler(req, res) {
       : disponibles;
 
     if (!elegidos.length) {
-      /* Puede pasar que el único que presta el servicio esté descansando. No es
-         que el local esté cerrado: es que ese día no hay quien lo haga. */
+      /* Si a quien se pidió le toca descansar, se dice con su nombre. «Cerrado
+         ese día» sería mentira —el local abre— y además deja al cliente sin
+         saber qué hacer; con el nombre delante, la salida evidente es cambiar
+         de profesional o de día. */
+      const pedido = profesional && profs.find(p => String(p.id) === String(profesional));
+      if (pedido) {
+        return json(res, 200, { duracion, profesionales: [], cupos: {},
+                                descansa: pedido.nombre });
+      }
+      /* Sin nadie: no es que el local cierre, es que ese día no hay quien lo
+         haga. */
       return json(res, 200, { duracion, profesionales: [], cupos: {}, cerrado: true });
     }
 

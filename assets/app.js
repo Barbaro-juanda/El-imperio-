@@ -274,7 +274,9 @@
                             '&servicios=' + encodeURIComponent(ids.join(',')) +
                             '&profesional=' + state.barber);
       if (CUPOS.clave !== clave) return;            // llegó tarde, ya cambió la selección
-      CUPOS = { cargando: false, error: r.cerrado ? 'cerrado' : null,
+      CUPOS = { cargando: false,
+                error: r.descansa ? 'descansa' : r.cerrado ? 'cerrado' : null,
+                quien: r.descansa || null,
                 libres: (r.cupos && r.cupos[state.barber]) || [], clave };
     } catch (e) {
       if (CUPOS.clave !== clave) return;
@@ -825,6 +827,13 @@
       wrap.appendChild(barberCard(b, prof.id, id => {
         state.barber = id;
         state.slot = null;
+        /* Un día que valía para el anterior puede ser el libre del nuevo. Se
+           suelta la fecha en vez de arrastrarla: llegar al paso siguiente con
+           un día ya elegido y muerto es peor que llegar sin ninguno. */
+        const nuevo = profPorId(id);
+        if (state.date && nuevo && (nuevo.dias_libres || []).indexOf(state.date.getDay()) !== -1) {
+          state.date = null;
+        }
         CUPOS = { cargando: false, error: null, libres: [], clave: null };
         track('barber_selected', { barber_name: prof.nombre });
         syncBarberCards(wrap);
@@ -867,7 +876,15 @@
          lista de horarios la que responde «sin horas». Un día en que no viene
          nadie sí se sabe de antemano y sin preguntar nada: apagarlo evita que
          alguien lo pulse para descubrir que no había nada. */
-      const cerrado = SEMANA_CERRADA.indexOf(date.getDay()) !== -1 ? 'Cerrado' : null;
+      /* Dos motivos para apagar un día, y se distinguen porque el cliente hace
+         cosas distintas con cada uno. Si no viene nadie, la salida es otro día.
+         Si el que descansa es SU barbero, la salida puede ser otro barbero, y
+         para verlo tiene que leer el nombre. */
+      const suyo = profPorId(state.barber);
+      const cerrado = SEMANA_CERRADA.indexOf(date.getDay()) !== -1 ? 'Cerrado'
+        : (suyo && (suyo.dias_libres || []).indexOf(date.getDay()) !== -1)
+          ? suyo.nombre.split(' ')[0] + ' descansa'
+          : null;
       if (cerrado) {
         btn.classList.add('day--cerrado');
         btn.title = cerrado;
@@ -912,9 +929,14 @@
       /* Nunca se cae a horarios inventados: si no sabemos qué está libre, se
          dice. Mostrar cupos falsos haría que alguien reserve una hora que no
          existe y llegue al local para nada. */
-      count.textContent = CUPOS.error === 'cerrado' ? 'Cerrado ese día' : 'No pudimos ver la agenda';
+      count.textContent = CUPOS.error === 'descansa'
+                          ? (CUPOS.quien || '').split(' ')[0] + ' descansa ese día'
+                        : CUPOS.error === 'cerrado' ? 'Cerrado ese día'
+                        : 'No pudimos ver la agenda';
       const p = el('p', 'step__hint');
-      p.textContent = CUPOS.error === 'cerrado'
+      p.textContent = CUPOS.error === 'descansa'
+        ? 'Elige otro día, o vuelve atrás y escoge a otra persona del equipo.'
+        : CUPOS.error === 'cerrado'
         ? 'Elige otro día.'
         : 'Vuelve a intentarlo en un momento o escríbenos por WhatsApp.';
       grid.appendChild(p);
