@@ -244,7 +244,10 @@
                   (r.status === 404 ? SIN_API :
                    r.status >= 500 ? 'El servidor tardó en responder. Vuelve a intentarlo.' :
                    'Error ' + r.status);
-      throw Object.assign(new Error(msg), { estado: r.status });
+      /* El cuerpo entero viaja con el error, no solo el texto: hay respuestas
+         que traen una marca —«ya tienes una cita»— con la que quien llamó puede
+         hacer algo mejor que enseñar la frase. */
+      throw Object.assign(new Error(msg), { estado: r.status, datos: cuerpo || {} });
     }
     return cuerpo;
   }
@@ -1312,6 +1315,18 @@
            devuelve al paso de fecha con los horarios recargados, que es lo
            único que puede hacer. */
         avisoEnvio(e.message || 'No pudimos enviar la reserva. Inténtalo de nuevo.');
+
+        /* Si ya tenía cita, se le abre el «modificar» con la suya cargada. El
+           mensaje ya le dice dónde está el botón, pero mandarlo a buscarlo
+           después de un error es pedirle trabajo justo cuando menos ganas
+           tiene: aquí se sabe quién es y se le puede llevar. */
+        if (e.datos && e.datos.yaTiene) {
+          entrarAModificar();
+          $('#buscar-tel').value = state.customer.phone || '';
+          buscarCitaDelCliente();
+          return;
+        }
+
         if (e.estado === 409) {
           state.slot = null;
           CUPOS = { cargando: false, error: null, libres: [], clave: null };
@@ -2199,7 +2214,10 @@
     entrarAModificar();
   });
 
-  $('#buscar-ir').addEventListener('click', async () => {
+  /* Con nombre y no dentro del click, porque hay otro camino que necesita
+     lanzar la misma búsqueda: el de quien intentó reservar teniendo ya una
+     cita, al que se le abre esto con su celular ya escrito. */
+  async function buscarCitaDelCliente() {
     const err = $('#buscar-error');
     err.hidden = true;
     const telefono = $('#buscar-tel').value.trim();
@@ -2249,7 +2267,9 @@
       b.disabled = false;
       b.textContent = 'Buscar mi cita';
     }
-  });
+  }
+
+  $('#buscar-ir').addEventListener('click', buscarCitaDelCliente);
 
   /* Enseña la cita encontrada y las tres opciones. La usan los dos caminos: el
      que busca por celular y el botón «Modificar esta reserva» de la pantalla

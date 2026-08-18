@@ -96,6 +96,42 @@ export default async function handler(req, res) {
       }
     }
 
+    /* Una cita próxima por celular, y solo una. Es la regla que TODO el
+       «modificar» da por supuesta sin decirlo: para saber qué cita cambiar,
+       buscarCita coge «la próxima confirmada de ese celular». Si hubiera dos,
+       esa frase no significa nada —cambiaría siempre la primera y la otra
+       quedaría intocable— así que la suposición ya estaba ahí; lo que faltaba
+       era hacerla cierta.
+
+       Y es justo el hueco por el que se colaron dos citas a la misma hora: si
+       el navegador manda un cambio SIN la marca de cambio —porque perdió el
+       hilo a mitad, porque se recargó, porque falló el envío y se reintentó—,
+       aquí llegaba una reserva nueva del mismo cliente y se metía tan
+       tranquila al lado de la suya. Esa marca la pone el cliente, y de lo que
+       pone el cliente no se puede depender para cuidar los datos: la
+       comprobación tiene que estar de este lado.
+
+       No se aplica al panel, que crea citas por su propia ruta: en el local sí
+       hay motivos para dos citas del mismo celular —una madre que trae a dos
+       hijos apunta el suyo— y ahí decide una persona, no un formulario. */
+    if (!anterior) {
+      const yaTiene = await buscarCita(telefono);
+      if (yaTiene) {
+        const cuando = new Date(yaTiene.inicio);
+        const dia = cuando.toLocaleDateString('es-CO', {
+          weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Bogota'
+        });
+        const hh = cuando.toLocaleTimeString('es-CO', {
+          hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bogota'
+        });
+        return json(res, 409, {
+          yaTiene: true,
+          error: 'Ya tienes una cita el ' + dia + ' a las ' + hh + '. ' +
+                 'Para moverla o cambiarla usa «¿Ya reservaste? Modifica tu cita».'
+        });
+      }
+    }
+
     const servs = await sql`
       SELECT id, minutos, precio FROM servicio WHERE id = ANY(${servicios}) AND activo`;
     if (servs.length !== servicios.length) return json(res, 400, { error: 'Servicio no disponible' });
