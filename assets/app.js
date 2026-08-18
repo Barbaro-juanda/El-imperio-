@@ -829,9 +829,16 @@
         state.slot = null;
         /* Un día que valía para el anterior puede ser el libre del nuevo. Se
            suelta la fecha en vez de arrastrarla: llegar al paso siguiente con
-           un día ya elegido y muerto es peor que llegar sin ninguno. */
+           un día ya elegido y muerto es peor que llegar sin ninguno.
+
+           PERO solo si después se va a pasar por el calendario. Cambiando SOLO
+           el barbero no se pasa, y soltarla ahí dejaba la cita sin fecha: el
+           envío reventaba al construirla y el botón se quedaba en «Enviando…»
+           para siempre. En ese caso se conserva, y quien avisa es la guarda de
+           goNext, que sabe explicarlo. */
         const nuevo = profPorId(id);
-        if (state.date && nuevo && (nuevo.dias_libres || []).indexOf(state.date.getDay()) !== -1) {
+        if (state.date && nuevo && pasosActivos().indexOf(PASO_FECHA) !== -1 &&
+            (nuevo.dias_libres || []).indexOf(state.date.getDay()) !== -1) {
           state.date = null;
         }
         CUPOS = { cargando: false, error: null, libres: [], clave: null };
@@ -1262,9 +1269,16 @@
       nextBtn.textContent = 'Enviando…';
       avisoEnvio('');
 
-      submitBooking().catch(e => {
+      /* Si algo revienta ANTES de la petición —al construir la cita, por
+         ejemplo— submitBooking lanza de forma síncrona y el .catch de abajo no
+         llega a existir: el botón se queda en «Enviando…» y no hay forma de
+         seguir ni de saber por qué. Envolverlo en una promesa lleva también ese
+         fallo al mismo sitio donde se tratan los demás. */
+      Promise.resolve().then(submitBooking).catch(e => {
         nextBtn.disabled = false;
-        nextBtn.textContent = 'Confirmar reserva';
+        /* El rótulo vuelve al que tocaba: quien está cambiando una cita no ve
+           «Confirmar reserva», que le haría pensar que va a crear otra. */
+        nextBtn.textContent = cambiando ? 'Confirmar el cambio' : 'Confirmar reserva';
         /* 409 = el cupo se lo llevaron mientras llenaba el formulario. Se
            devuelve al paso de fecha con los horarios recargados, que es lo
            único que puede hacer. */
