@@ -65,21 +65,8 @@ export default protegido(async (req, res) => {
         if (r.length) meta = Number(r[0].valor) || meta;
       } catch (e) { /* sin tabla de ajustes todavía */ }
 
-      /* Los descansos futuros y los del mes pasado: hacia atrás no sirven para
-         decidir nada, y traerlos todos crecería sin tope. */
-      let descansos = [];
-      try {
-        descansos = await sql`
-          SELECT d.id, d.fecha, d.motivo, d.profesional_id, p.nombre AS profesional
-            FROM descanso d
-            LEFT JOIN profesional p ON p.id = d.profesional_id
-           WHERE d.fecha >= CURRENT_DATE - INTERVAL '30 days'
-           ORDER BY d.fecha`;
-      } catch (e) { /* sin la migración 15 todavía */ }
-
       return json(res, 200, {
         meta,
-        descansos,
         servicios,
         horario: horario.map(h => ({ ...h, abre: String(h.abre).slice(0,5), cierra: String(h.cierra).slice(0,5) })),
         equipo: equipo.map(p => ({ ...p, entra: String(p.entra).slice(0,5), sale: String(p.sale).slice(0,5),
@@ -125,59 +112,6 @@ export default protegido(async (req, res) => {
         ON CONFLICT DO NOTHING`;
 
       return json(res, 201, { id });
-    }
-
-    /* ---------------- días de descanso ----------------
-       Acepta un rango, no un día suelto: unas vacaciones son una semana y
-       marcarlas de una en una es siete veces el mismo trabajo. Sin `hasta` es
-       un solo día, que sigue siendo el caso corriente de un festivo. */
-    if (req.method === 'POST' && b.descanso) {
-      const d = b.descanso;
-      const FECHA = /^\d{4}-\d{2}-\d{2}$/;
-      if (!FECHA.test(d.desde || '')) return json(res, 400, { error: 'Fecha no válida' });
-      const hasta = FECHA.test(d.hasta || '') ? d.hasta : d.desde;
-      if (hasta < d.desde) {
-        return json(res, 400, { error: 'La fecha final va después de la inicial' });
-      }
-
-      /* Tope de un año. No es por capacidad —caben de sobra— sino porque un
-         rango de diez años casi siempre es un dedo que se equivocó de año al
-         escribir, y meterlo deja el calendario cerrado hasta 2036 sin que nadie
-         entienda por qué. */
-      const dias = Math.round(
-        (Date.parse(hasta + 'T00:00:00Z') - Date.parse(d.desde + 'T00:00:00Z')) / 86400000) + 1;
-      if (dias > 366) {
-        return json(res, 400, { error: 'Ese rango pasa de un año. Revisa las fechas.' });
-      }
-
-      /* Sin profesional es el local entero. Con uno, descansa solo esa persona
-         y los demás siguen atendiendo. */
-      const prof = d.profesional_id ? Number(d.profesional_id) : null;
-      const motivo = String(d.motivo || '').trim() || null;
-
-      /* Una sola sentencia genera todas las fechas del rango. `ON CONFLICT DO
-         NOTHING` deja pasar los días que ya estuvieran marcados en vez de
-         abortar el rango entero: quien añade una semana sobre un festivo que ya
-         existía espera que se sume, no que falle. */
-      const r = await sql`
-        INSERT INTO descanso (fecha, profesional_id, motivo)
-        SELECT g::date, ${prof}, ${motivo}
-          FROM generate_series(${d.desde}::date, ${hasta}::date, '1 day') AS g
-        ON CONFLICT DO NOTHING
-        RETURNING id`;
-
-      if (!r.length) {
-        return json(res, 409, { error: 'Esos días ya estaban marcados' });
-      }
-      return json(res, 201, { puestos: r.length, dias });
-    }
-
-    if (req.method === 'DELETE' && req.query.descanso) {
-      const id = Number(req.query.descanso);
-      if (!Number.isInteger(id)) return json(res, 400, { error: 'id no válido' });
-      const r = await sql`DELETE FROM descanso WHERE id = ${id} RETURNING id`;
-      if (!r.length) return json(res, 404, { error: 'Ese descanso no existe' });
-      return json(res, 200, { id });
     }
 
     /* Alta de profesional. */

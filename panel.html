@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=32">
+<link rel="stylesheet" href="assets/panel.css?v=33">
 </head>
 <body class="panel">
 
@@ -68,10 +68,6 @@
       <label class="sr-only" for="dia-picker">Ir a una fecha</label>
       <input type="date" id="dia-picker">
     </div>
-    <!-- Aviso de local cerrado. Va sobre las fichas y no dentro de la agenda
-         porque afecta a todo el día: quien lo lea tiene que verlo antes de
-         empezar a interpretar una rejilla vacía. -->
-    <p class="aviso-cerrado" id="aviso-cerrado" hidden></p>
     <div class="fichas" id="fichas"></div>
   </div>
 
@@ -391,14 +387,6 @@
       <div class="tarjeta__tit">Horario del negocio</div>
       <div class="horario" id="d-horario"></div>
     </div>
-    <div class="tarjeta">
-      <div class="tarjeta__cab">
-        <span class="tarjeta__tit">Días de descanso</span>
-        <button class="bt bt--vino" type="button" id="abrir-descanso">＋ Marcar descanso</button>
-      </div>
-      <p class="nota">Festivos, vacaciones o el día que alguien no viene. El horario semanal dice qué días abre el local; esto son las excepciones con fecha. Se apagan en el calendario del cliente.</p>
-      <div id="d-descansos"></div>
-    </div>
 
     <div class="tarjeta">
       <div class="tarjeta__cab">
@@ -653,30 +641,6 @@
     </form>
   </dialog>
 
-  <dialog id="dlg-descanso" class="hoja">
-    <form method="dialog">
-      <h2>Marcar descanso</h2>
-      <!-- Rango, no un día: unas vacaciones son una semana. Dejando «Hasta»
-           vacío queda un solo día, que es el caso del festivo. -->
-      <div class="par">
-        <label>Desde <input id="ds-desde" type="date"></label>
-        <label>Hasta <input id="ds-hasta" type="date"></label>
-      </div>
-      <p class="nota">Deja «Hasta» vacío si es un solo día.</p>
-      <label>¿Quién descansa?
-        <select id="ds-quien">
-          <option value="">Todo el local — ese día no se abre</option>
-        </select>
-      </label>
-      <label>Motivo <input id="ds-motivo" type="text" placeholder="Festivo, vacaciones… opcional"></label>
-      <p class="acceso__error" id="ds-error" role="alert" hidden></p>
-      <menu>
-        <button class="bt" value="cancel" type="submit" formnovalidate>Cancelar</button>
-        <button class="bt bt--vino" id="ds-guardar" type="button">Marcar</button>
-      </menu>
-    </form>
-  </dialog>
-
   <dialog id="dlg-bloqueo" class="hoja">
     <form method="dialog">
       <h2>Bloquear horas</h2>
@@ -701,6 +665,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=36"></script>
+<script src="assets/panel.js?v=38"></script>
 </body>
 </html>

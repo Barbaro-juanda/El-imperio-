@@ -51,31 +51,14 @@ export default protegido(async (req, res) => {
     const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
     const hor = await sql`SELECT abre, cierra, abierto FROM horario WHERE dow = ${dow}`;
 
-    /* Quién descansa ese día. La agenda tiene que decirlo, porque una columna
-       vacía y una columna de alguien que no viene se ven exactamente igual, y
-       confundirlas lleva a meterle una cita a quien no está.
-
-       Son dos motivos distintos y los dos cuentan: el día libre de todas las
-       semanas, y el descanso con fecha —el festivo, las vacaciones—. */
-    let descansoLocal = null;
-    let porFecha = [];
-    try {
-      const d = await sql`
-        SELECT profesional_id, motivo FROM descanso WHERE fecha = ${fecha}::date`;
-      const loc = d.find(x => x.profesional_id === null);
-      if (loc) descansoLocal = loc.motivo || 'Cerrado';
-      porFecha = d.filter(x => x.profesional_id !== null);
-    } catch (e) { /* sin la migración 15 todavía */ }
-
-    const equipo = profesionales.map(p => {
-      const f = porFecha.find(x => x.profesional_id === p.id);
-      const semanal = (p.dias_libres || []).map(Number).indexOf(dow) !== -1;
-      return { id: p.id, nombre: p.nombre,
-               descansa: !!f || semanal,
-               /* El motivo escrito gana al genérico: «Vacaciones» dice más que
-                  «Descansa», y quien lo escribió lo hizo para leerlo hoy. */
-               motivo: f ? (f.motivo || 'Descansa') : (semanal ? 'Descansa' : null) };
-    });
+    /* Quién tiene libre ese día de la semana. La agenda tiene que decirlo,
+       porque una columna vacía y una columna de alguien que no viene se ven
+       exactamente igual, y confundirlas lleva a meterle una cita a quien no
+       está. */
+    const equipo = profesionales.map(p => ({
+      id: p.id, nombre: p.nombre,
+      descansa: (p.dias_libres || []).map(Number).indexOf(dow) !== -1
+    }));
 
     const confirmadas = citas.filter(c => c.estado === 'confirmada' || c.estado === 'cumplida');
 
@@ -91,7 +74,7 @@ export default protegido(async (req, res) => {
 
     return json(res, 200, {
       rol: req.sesion.rol, comision,
-      citas, bloqueos, descansoLocal,
+      citas, bloqueos,
       profesionales: equipo,
       horario: hor[0] ? { abre: String(hor[0].abre).slice(0, 5),
                           cierra: String(hor[0].cierra).slice(0, 5),

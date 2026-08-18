@@ -25,8 +25,6 @@
 const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
                     [4,'J','Jueves'], [5,'V','Viernes'], [6,'S','Sábado'],
                     [0,'D','Domingo']];
-  const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const SEGMENTOS = { cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
                       cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas',
                       adicionales: 'Adicionales' };
@@ -97,7 +95,7 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
                          saber pintar y que, sin ponerlo aquí, solo se vería el
                          día que pasara de verdad. Igual que la cita sin cobrar
                          de abajo. */
-                      { id: 4, nombre: 'Simon', descansa: true, motivo: 'Descansa' }],
+                      { id: 4, nombre: 'Simon', descansa: true }],
       citas: [
         { id: 1, codigo: 'AB3K7P', inicio: t(9, 0),   fin: t(10, 0),  estado: 'cumplida',   total: 45000, cobrado: 45000, metodo_pago: 'efectivo',      cliente: 'Andrés Mejía',   telefono: '+573001112233', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte VIP' },
         { id: 2, codigo: 'CD8M2Q', inicio: t(10, 30), fin: t(12, 0),  estado: 'confirmada', total: 60000, cliente: 'Santiago Ruiz',  telefono: '+573004445566', profesional_id: 1, profesional: 'Emanuel Gómez',    servicios: 'Corte y Barba VIP' },
@@ -136,14 +134,6 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
         { id: 'shampoo-anticaida', nombre: 'Shampoo anticaída', marca: 'Nioxin', descripcion: null, precio: 62000, costo: 40000, existencias: 5, minimo: 2, activo: true },
         { id: 'talco-cuello', nombre: 'Talco para cuello', marca: null, descripcion: 'El que usamos en la silla.', precio: 15000, costo: 8000, existencias: 0, minimo: 2, activo: true },
         { id: 'gel-fijador', nombre: 'Gel fijador', marca: 'Ébano', descripcion: 'Descontinuado por el proveedor.', precio: 22000, costo: 12000, existencias: 0, minimo: 0, activo: false }
-      ],
-      descansos: [
-        { id: 1, fecha: '2026-08-25', motivo: 'Festivo', profesional_id: null, profesional: null },
-        { id: 2, fecha: '2026-09-01', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
-        { id: 3, fecha: '2026-09-02', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
-        { id: 4, fecha: '2026-09-03', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
-        { id: 5, fecha: '2026-09-04', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
-        { id: 6, fecha: '2026-09-05', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' }
       ],
       finanzas: {
         rango: { desde: '2026-08-01', hasta: '2026-08-17', dias: 17 },
@@ -253,8 +243,7 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
                                                        profesionales: MUESTRA.profesionales };
     if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios,
                                                       horario: MUESTRA.horarioSemana,
-                                                      equipo: MUESTRA.equipo, meta: 300000,
-                                                      descansos: MUESTRA.descansos };
+                                                      equipo: MUESTRA.equipo, meta: 300000 };
     if (ruta.startsWith('/panel/entrar'))    return { rol: ROL, nombre: 'Emanuel Gómez' };
     return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar
   }
@@ -533,15 +522,6 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
   }
 
   function pintarFichas() {
-    /* El día cerrado se anuncia arriba y con el motivo escrito. Una agenda
-       vacía se lee como «no hay citas», que es otra cosa; sin este aviso, el
-       25 de diciembre y un martes flojo se ven igual. */
-    const av = $('#aviso-cerrado');
-    if (av) {
-      av.hidden = !datos.descansoLocal;
-      av.textContent = datos.descansoLocal ? 'El local no abre este día · ' + datos.descansoLocal : '';
-    }
-
     const c = $('#fichas');
     c.textContent = '';
     const mk = (id, nombre, detalle) => {
@@ -564,10 +544,9 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
          uno significa «cabe una cita», el otro «hoy no está». Sin la palabra,
          ambos casos se ven como un cero y alguien acabaría llamando a quien no
          viene. Si además tiene citas se dice igual, porque entonces hay algo
-         que arreglar: alguien reservó antes de que se marcara el descanso. */
+         que arreglar: alguien reservó antes de que se marcara el día libre. */
       const b = mk(p.id, p.nombre, p.descansa
-        ? (n ? (p.motivo || 'Descansa') + ' · ' + n + (n === 1 ? ' cita' : ' citas')
-             : (p.motivo || 'Descansa'))
+        ? (n ? 'Descansa · ' + n + (n === 1 ? ' cita' : ' citas') : 'Descansa')
         : (n ? n + (n === 1 ? ' cita' : ' citas') : 'libre'));
       if (p.descansa) b.classList.add('is-descanso');
       c.appendChild(b);
@@ -655,7 +634,7 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
       const suyas = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada');
       const min = suyas.reduce((t, x) => t + (minLocal(x.fin) - minLocal(x.inicio)), 0);
       const pct = Math.min(100, Math.round(min / Math.max(1, cierra - abre) * 100));
-      s2.textContent = p.descansa ? (p.motivo || 'Descansa')
+      s2.textContent = p.descansa ? 'Descansa'
         : suyas.length
           ? suyas.length + (suyas.length === 1 ? ' cita · ' : ' citas · ') + pct + '%'
           : 'libre';
@@ -686,7 +665,7 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
         c.style.gridColumn = String(i + 2);
         const hhmm = aHHMM(min);
         /* En la columna de quien descansa no se abre el «crear cita». No es por
-           esconder nada —el dueño puede quitar el descanso y volver— sino
+           esconder nada —el dueño puede desmarcar el día y volver— sino
            porque una cita metida ahí no aparecería nunca en la reserva del
            cliente, y quedaría descuadrada sin que nada lo dijera. */
         if (!p.descansa) c.addEventListener('click', () => abrirCrear(p.id, hhmm));
@@ -1488,7 +1467,6 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
   function pintarDispo() {
     if (!ajustes) return;
     $('#aj-meta').value = META_LOCAL;
-    pintarDescansos();
     const h = $('#d-horario');
     h.textContent = '';
     (ajustes.horario || []).forEach(d => {
@@ -1681,161 +1659,6 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
   }
 
 
-  /* ---------- días de descanso ----------
-     El horario semanal dice qué días abre el local; esto son las excepciones
-     con fecha. Antes la única forma de cerrar un festivo era poner bloqueos
-     hora por hora, y eso es trabajo para algo que se sabe con meses de
-     antelación. */
-  function pintarDescansos() {
-    const c = $('#d-descansos');
-    if (!c) return;
-    c.textContent = '';
-    const lista = (ajustes && ajustes.descansos) || [];
-
-    if (!lista.length) {
-      const v = el('div', 'vacio');
-      const s = el('strong'); s.textContent = 'Sin días marcados';
-      const p = el('span');
-      p.textContent = 'Marca los festivos y las vacaciones y desaparecen del calendario del cliente.';
-      v.append(s, p); c.appendChild(v);
-      return;
-    }
-
-    /* Los días seguidos con el mismo motivo y la misma persona se juntan en una
-       fila: unas vacaciones de una semana son SIETE filas en la base, pero para
-       quien mira la pantalla son un solo descanso, y siete líneas idénticas
-       obligan a leerlas todas para entender que son la misma cosa. */
-    agrupar(lista).forEach(g => {
-      const f = el('div', 'descfila');
-      const izq = el('div');
-      const cuando = el('div', 'descfila__f');
-      cuando.textContent = g.dias.length === 1
-        ? fechaLargaISO(g.dias[0].fecha)
-        : rangoTexto(g.dias[0].fecha, g.dias[g.dias.length - 1].fecha) +
-          '  ·  ' + g.dias.length + ' días';
-      const quien = el('div', 'descfila__q');
-      /* Sin profesional es el local entero: se dice con esas palabras, porque
-         «—» obligaría a adivinar. */
-      quien.textContent = [g.profesional || 'Todo el local', g.motivo].filter(Boolean).join(' · ');
-      izq.append(cuando, quien);
-
-      /* Quitar el grupo entero, que es como se piensa: nadie quiere cancelar el
-         martes de sus vacaciones y dejar el resto. */
-      const q = boton(g.dias.length === 1 ? 'Quitar' : 'Quitar los ' + g.dias.length,
-                      () => quitarDescanso(g.dias));
-      q.classList.add('bt--borrar');
-      f.append(izq, q);
-      c.appendChild(f);
-    });
-  }
-
-  /* Junta días consecutivos con el mismo motivo y la misma persona. */
-  function agrupar(lista) {
-    const grupos = [];
-    lista.slice()
-      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
-      .forEach(d => {
-        const ult = grupos[grupos.length - 1];
-        const dia = Date.parse(String(d.fecha).slice(0, 10) + 'T12:00:00Z');
-        const seguido = ult &&
-          ult.profesional_id === d.profesional_id &&
-          (ult.motivo || '') === (d.motivo || '') &&
-          dia - ult.ultimo === 86400000;
-        if (seguido) { ult.dias.push(d); ult.ultimo = dia; return; }
-        grupos.push({ profesional_id: d.profesional_id, profesional: d.profesional,
-                      motivo: d.motivo, dias: [d], ultimo: dia });
-      });
-    return grupos;
-  }
-
-  /* «Del 1 al 5 de septiembre» cuando caen en el mismo mes, y «Del 30 ago al 3
-     sep» cuando lo cruzan. Repetir el mes en el primer caso sobra, y omitirlo
-     en el segundo confunde. */
-  function rangoTexto(a, b) {
-    const d1 = new Date(String(a).slice(0, 10) + 'T12:00:00Z');
-    const d2 = new Date(String(b).slice(0, 10) + 'T12:00:00Z');
-    if (d1.getUTCMonth() === d2.getUTCMonth()) {
-      return 'Del ' + d1.getUTCDate() + ' al ' + d2.getUTCDate() +
-             ' de ' + MESES[d2.getUTCMonth()].toLowerCase();
-    }
-    return 'Del ' + fechaCortaISO(a) + ' al ' + fechaCortaISO(b);
-  }
-
-  const fechaCortaISO = iso => {
-    const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
-    return d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
-  };
-
-  const fechaLargaISO = iso => {
-    const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
-    return DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
-  };
-
-  async function quitarDescanso(dias) {
-    try {
-      /* Uno tras otro y no en paralelo: son pocos, y en paralelo un fallo a
-         mitad deja el grupo medio borrado sin forma de saber cuáles cayeron. */
-      for (const d of dias) {
-        await api('/panel/ajustes?descanso=' + d.id, { method: 'DELETE' });
-      }
-      avisar(dias.length === 1 ? 'Día liberado' : dias.length + ' días liberados');
-      cargarAjustes();
-      cargarDia();
-    } catch (e) { avisar(e.message || 'No se pudo quitar'); }
-  }
-
-  $('#abrir-descanso').addEventListener('click', () => {
-    $('#ds-desde').value = ymd(new Date());
-    $('#ds-hasta').value = '';
-    $('#ds-motivo').value = '';
-    $('#ds-error').hidden = true;
-
-    /* La lista de quién descansa se rehace cada vez: el equipo cambia y una
-       lista pintada al arrancar se queda vieja. */
-    const sel = $('#ds-quien');
-    sel.textContent = '';
-    const todo = document.createElement('option');
-    todo.value = ''; todo.textContent = 'Todo el local — ese día no se abre';
-    sel.appendChild(todo);
-    ((ajustes && ajustes.equipo) || []).filter(p => p.activo).forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.id; o.textContent = 'Solo ' + p.nombre;
-      sel.appendChild(o);
-    });
-
-    $('#dlg-descanso').showModal();
-  });
-
-  $('#ds-guardar').addEventListener('click', async () => {
-    const err = $('#ds-error');
-    err.hidden = true;
-    const desde = $('#ds-desde').value;
-    const hasta = $('#ds-hasta').value;
-    if (!desde) { err.textContent = 'Elige la fecha de inicio.'; err.hidden = false; return; }
-    if (hasta && hasta < desde) {
-      err.textContent = 'La fecha final va después de la inicial.'; err.hidden = false; return;
-    }
-    const btn = $('#ds-guardar');
-    btn.disabled = true;
-    try {
-      const r = await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descanso: {
-          desde, hasta: hasta || null,
-          profesional_id: $('#ds-quien').value || null,
-          motivo: $('#ds-motivo').value.trim() || null
-        } }) });
-      $('#dlg-descanso').close();
-      avisar(r && r.puestos > 1 ? r.puestos + ' días marcados' : 'Día marcado como descanso');
-      cargarAjustes();
-      /* La agenda lo pinta apagado, así que hay que repintarla —esté a la vista
-         o no—. Condicionarlo a estar en la agenda dejaba el caso corriente sin
-         cubrir: se marca el descanso desde Disponibilidad y se pasa a la
-         agenda, que seguía enseñando el día como si nada. */
-      cargarDia();
-    } catch (e) {
-      err.textContent = e.message || 'No se pudo marcar'; err.hidden = false;
-    } finally { btn.disabled = false; }
-  });
 
   /* ---------- alta de profesional ---------- */
   let fotoNueva = null;

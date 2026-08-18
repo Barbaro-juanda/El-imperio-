@@ -42,34 +42,10 @@ export default async function handler(req, res) {
     if (!profs.length) return json(res, 200, { duracion, profesionales: [], cupos: {} });
 
     const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
-    /* Días de descanso. El del local cierra el día entero —antes incluso de
-       mirar el horario, porque da igual lo que diga—, y el de una persona la
-       saca a ella de la lista dejando a los demás atendiendo.
-
-       Va en su propio try: si la tabla no existe todavía, la reserva sigue
-       funcionando como antes en vez de caerse entera. */
-    let descansaLocal = false;
-    let descansan = [];
-    try {
-      const d = await sql`
-        SELECT profesional_id FROM descanso WHERE fecha = ${fecha}::date`;
-      descansaLocal = d.some(x => x.profesional_id === null);
-      descansan = d.map(x => x.profesional_id).filter(x => x !== null);
-    } catch (e) { /* sin la migración 15 todavía */ }
-
-    if (descansaLocal) {
-      return json(res, 200, { duracion, profesionales: [], cupos: {}, cerrado: true });
-    }
-
-    /* Quien descansa ese día sale de la lista, por las dos vías: el descanso
-       con fecha —un festivo, unas vacaciones— y el día libre de todas las
-       semanas, que es el corriente: «Valentina no viene los lunes».
-
-       Se filtra AQUÍ y no arriba porque los descansos se acaban de leer:
-       hacerlo antes obligaría a consultarlos dos veces o a arrastrar el filtro
-       por medio archivo. */
-    const disponibles = profs.filter(p =>
-      descansan.indexOf(p.id) === -1 && (p.dias_libres || []).indexOf(dow) === -1);
+    /* Quien tiene libre ese día de la semana sale de la lista: «Valentina no
+       viene los lunes». Se filtra AQUÍ y no en la consulta de arriba porque el
+       día de la semana se acaba de calcular. */
+    const disponibles = profs.filter(p => (p.dias_libres || []).indexOf(dow) === -1);
     const elegidos = profesional
       ? disponibles.filter(p => String(p.id) === String(profesional))
       : disponibles;

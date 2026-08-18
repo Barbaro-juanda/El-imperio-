@@ -165,11 +165,8 @@
      de llevar a ninguna parte. */
   const INSTAGRAM_URL = 'https://www.instagram.com/theimperialclasic_/';
 
-  /* Días cerrados por descanso, del catálogo. Vacío hasta que llegue. */
-  let DESCANSOS = {};
-  /* Y los días de la semana en que no hay nadie: cuando todo el equipo tiene
-     ese día libre. Es una regla que se repite, no una fecha suelta, y por eso
-     va aparte en vez de rellenar el calendario de fechas hasta el infinito. */
+  /* Los días de la semana en que no hay nadie: cuando todo el equipo tiene ese
+     día libre. Llega del catálogo; vacío hasta entonces. */
   let SEMANA_CERRADA = [];
 
   const SHOP = {
@@ -867,11 +864,10 @@
       /* Se descartan los días pasados y los que el local cierra. Saber si un
          día tiene cupo exigiría una consulta por casilla —treinta y una al
          pintar el mes—, así que para eso el calendario deja elegir y es la
-         lista de horarios la que responde «sin horas». Un día de descanso sí se
-         sabe de antemano y sin preguntar nada: apagarlo evita que alguien lo
-         pulse para descubrir que no había nada. */
-      const cerrado = DESCANSOS[ymd(date)] ||
-                      (SEMANA_CERRADA.indexOf(date.getDay()) !== -1 ? 'Cerrado' : null);
+         lista de horarios la que responde «sin horas». Un día en que no viene
+         nadie sí se sabe de antemano y sin preguntar nada: apagarlo evita que
+         alguien lo pulse para descubrir que no había nada. */
+      const cerrado = SEMANA_CERRADA.indexOf(date.getDay()) !== -1 ? 'Cerrado' : null;
       if (cerrado) {
         btn.classList.add('day--cerrado');
         btn.title = cerrado;
@@ -1868,8 +1864,6 @@
 
     /* Días que el local cierra. Se guardan como texto «AAAA-MM-DD» para
        compararlos con ymd() sin cuentas de zona horaria de por medio. */
-    DESCANSOS = {};
-    (cat.descansos || []).forEach(d => { DESCANSOS[d.fecha] = d.motivo || 'Cerrado'; });
     SEMANA_CERRADA = (cat.semanaCerrada || []).map(Number);
     if (state.month) renderCalendar();
     cargarGaleria();
