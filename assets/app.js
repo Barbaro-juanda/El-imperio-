@@ -167,6 +167,10 @@
 
   /* Días cerrados por descanso, del catálogo. Vacío hasta que llegue. */
   let DESCANSOS = {};
+  /* Y los días de la semana en que no hay nadie: cuando todo el equipo tiene
+     ese día libre. Es una regla que se repite, no una fecha suelta, y por eso
+     va aparte en vez de rellenar el calendario de fechas hasta el infinito. */
+  let SEMANA_CERRADA = [];
 
   const SHOP = {
     name: 'The Imperial Clasic Barber',
@@ -866,7 +870,8 @@
          lista de horarios la que responde «sin horas». Un día de descanso sí se
          sabe de antemano y sin preguntar nada: apagarlo evita que alguien lo
          pulse para descubrir que no había nada. */
-      const cerrado = DESCANSOS[ymd(date)];
+      const cerrado = DESCANSOS[ymd(date)] ||
+                      (SEMANA_CERRADA.indexOf(date.getDay()) !== -1 ? 'Cerrado' : null);
       if (cerrado) {
         btn.classList.add('day--cerrado');
         btn.title = cerrado;
@@ -1865,6 +1870,7 @@
        compararlos con ymd() sin cuentas de zona horaria de por medio. */
     DESCANSOS = {};
     (cat.descansos || []).forEach(d => { DESCANSOS[d.fecha] = d.motivo || 'Cerrado'; });
+    SEMANA_CERRADA = (cat.semanaCerrada || []).map(Number);
     if (state.month) renderCalendar();
     cargarGaleria();
 

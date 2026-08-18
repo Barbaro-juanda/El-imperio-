@@ -8,7 +8,7 @@
 <title>Panel · El Imperio</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/styles.css?v=7">
-<link rel="stylesheet" href="assets/panel.css?v=31">
+<link rel="stylesheet" href="assets/panel.css?v=32">
 </head>
 <body class="panel">
 
@@ -68,6 +68,10 @@
       <label class="sr-only" for="dia-picker">Ir a una fecha</label>
       <input type="date" id="dia-picker">
     </div>
+    <!-- Aviso de local cerrado. Va sobre las fichas y no dentro de la agenda
+         porque afecta a todo el día: quien lo lea tiene que verlo antes de
+         empezar a interpretar una rejilla vacía. -->
+    <p class="aviso-cerrado" id="aviso-cerrado" hidden></p>
     <div class="fichas" id="fichas"></div>
   </div>
 
@@ -697,6 +701,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=34"></script>
+<script src="assets/panel.js?v=35"></script>
 </body>
 </html>

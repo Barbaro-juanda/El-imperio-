@@ -1314,3 +1314,24 @@
   background:var(--vino); border-color:var(--vino); color:#fff;
 }
 .dia-chip:focus-visible{ outline:2px solid var(--vino); outline-offset:2px; }
+
+/* Descansos en la agenda -------------------------------------------------- */
+/* Una columna vacía y la de alguien que no viene se ven igual si nada las
+   separa, y confundirlas termina en una cita metida a quien no está. */
+.aviso-cerrado{
+  margin:0 0 .9rem; padding:.7rem 1rem;
+  border-left:3px solid var(--vino); border-radius:0 4px 4px 0;
+  background:rgba(155,48,64,.08); color:var(--tinta); font-size:.9rem;
+}
+.ficha-prof.is-descanso{ opacity:.6; }
+.ficha-prof.is-descanso .ficha-prof__d{ color:var(--vino); }
+.rej__cab--descanso{ opacity:.65; }
+.rej__cab--descanso small{ color:var(--vino); }
+/* Rayado y sin cursor: dice «aquí no» sin necesidad de leer nada, y al no
+   responder al clic no hay forma de crear una cita que la reserva del cliente
+   nunca mostraría. */
+.rej__celda--descanso{
+  cursor:default;
+  background-image:repeating-linear-gradient(45deg,
+    transparent 0 6px, rgba(155,48,64,.10) 6px 12px);
+}

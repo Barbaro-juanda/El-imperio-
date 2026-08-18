@@ -528,6 +528,15 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
   }
 
   function pintarFichas() {
+    /* El día cerrado se anuncia arriba y con el motivo escrito. Una agenda
+       vacía se lee como «no hay citas», que es otra cosa; sin este aviso, el
+       25 de diciembre y un martes flojo se ven igual. */
+    const av = $('#aviso-cerrado');
+    if (av) {
+      av.hidden = !datos.descansoLocal;
+      av.textContent = datos.descansoLocal ? 'El local no abre este día · ' + datos.descansoLocal : '';
+    }
+
     const c = $('#fichas');
     c.textContent = '';
     const mk = (id, nombre, detalle) => {
@@ -546,7 +555,17 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
     c.appendChild(mk('todos', 'Todo el equipo', total + (total === 1 ? ' cita' : ' citas')));
     (datos.profesionales || []).forEach(p => {
       const n = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada').length;
-      c.appendChild(mk(p.id, p.nombre, n ? n + (n === 1 ? ' cita' : ' citas') : 'libre'));
+      /* «Libre» y «Descansa» no son lo mismo y la ficha tiene que distinguirlos:
+         uno significa «cabe una cita», el otro «hoy no está». Sin la palabra,
+         ambos casos se ven como un cero y alguien acabaría llamando a quien no
+         viene. Si además tiene citas se dice igual, porque entonces hay algo
+         que arreglar: alguien reservó antes de que se marcara el descanso. */
+      const b = mk(p.id, p.nombre, p.descansa
+        ? (n ? (p.motivo || 'Descansa') + ' · ' + n + (n === 1 ? ' cita' : ' citas')
+             : (p.motivo || 'Descansa'))
+        : (n ? n + (n === 1 ? ' cita' : ' citas') : 'libre'));
+      if (p.descansa) b.classList.add('is-descanso');
+      c.appendChild(b);
     });
   }
 
@@ -631,9 +650,11 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
       const suyas = (datos.citas || []).filter(x => x.profesional_id === p.id && x.estado !== 'cancelada');
       const min = suyas.reduce((t, x) => t + (minLocal(x.fin) - minLocal(x.inicio)), 0);
       const pct = Math.min(100, Math.round(min / Math.max(1, cierra - abre) * 100));
-      s2.textContent = suyas.length
-        ? suyas.length + (suyas.length === 1 ? ' cita · ' : ' citas · ') + pct + '%'
-        : 'libre';
+      s2.textContent = p.descansa ? (p.motivo || 'Descansa')
+        : suyas.length
+          ? suyas.length + (suyas.length === 1 ? ' cita · ' : ' citas · ') + pct + '%'
+          : 'libre';
+      if (p.descansa) c.classList.add('rej__cab--descanso');
       c.appendChild(s2);
       /* Barra de ocupación bajo cada nombre: de un vistazo se ve quién está
          cargado y quién tiene la mañana muerta. */
@@ -654,15 +675,21 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
       g.appendChild(h);
 
       profs.forEach((p, i) => {
-        const c = el('div', 'rej__celda' + (pt ? ' rej__celda--pt' : ''));
+        const c = el('div', 'rej__celda' + (pt ? ' rej__celda--pt' : '') +
+                          (p.descansa ? ' rej__celda--descanso' : ''));
         c.style.gridRow = String(f + 2);
         c.style.gridColumn = String(i + 2);
         const hhmm = aHHMM(min);
-        c.addEventListener('click', () => abrirCrear(p.id, hhmm));
+        /* En la columna de quien descansa no se abre el «crear cita». No es por
+           esconder nada —el dueño puede quitar el descanso y volver— sino
+           porque una cita metida ahí no aparecería nunca en la reserva del
+           cliente, y quedaría descuadrada sin que nada lo dijera. */
+        if (!p.descansa) c.addEventListener('click', () => abrirCrear(p.id, hhmm));
         c.addEventListener('dragover', ev => { if (arrastrando) { ev.preventDefault(); c.classList.add('destino'); } });
         c.addEventListener('dragleave', () => c.classList.remove('destino'));
         c.addEventListener('drop', ev => {
           ev.preventDefault(); c.classList.remove('destino');
+          if (p.descansa) { avisar(p.nombre + ' descansa ese día'); return; }
           if (arrastrando) mover(arrastrando.id, hhmm, p.id);
         });
         g.appendChild(c);
@@ -1564,7 +1591,10 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
           if (l.length === 7) { avisar('Alguien tiene que trabajar algún día'); return; }
           p.dias_libres = l.sort();
           pintar();
-          guardar();
+          /* La agenda del día que se esté mirando puede ser justo el que se
+             acaba de cerrar, así que se repinta en cuanto el guardado responde
+             —no antes, o enseñaría lo contrario de lo que hay en la base. */
+          guardar().then(() => cargarDia());
         });
         cuadros.appendChild(b);
       });
@@ -1745,6 +1775,7 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
       }
       avisar(dias.length === 1 ? 'Día liberado' : dias.length + ' días liberados');
       cargarAjustes();
+      cargarDia();
     } catch (e) { avisar(e.message || 'No se pudo quitar'); }
   }
 
@@ -1791,8 +1822,11 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
       $('#dlg-descanso').close();
       avisar(r && r.puestos > 1 ? r.puestos + ' días marcados' : 'Día marcado como descanso');
       cargarAjustes();
-      /* La agenda lo pinta apagado, así que hay que repintarla. */
-      if (vista === 'agenda') cargarDia();
+      /* La agenda lo pinta apagado, así que hay que repintarla —esté a la vista
+         o no—. Condicionarlo a estar en la agenda dejaba el caso corriente sin
+         cubrir: se marca el descanso desde Disponibilidad y se pasa a la
+         agenda, que seguía enseñando el día como si nada. */
+      cargarDia();
     } catch (e) {
       err.textContent = e.message || 'No se pudo marcar'; err.hidden = false;
     } finally { btn.disabled = false; }

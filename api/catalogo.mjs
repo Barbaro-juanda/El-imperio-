@@ -44,8 +44,13 @@ async function huella() {
                           ',' ORDER BY dow)) AS v FROM horario`;
   partes.push(b2[0] && b2[0].v);
 
+  /* Los días libres entran aquí y no en su propia parte: son una columna del
+     profesional, y separarlos obligaría a una consulta más para vigilar lo
+     mismo. Cambiar el día libre de alguien puede cerrar un día entero en el
+     calendario del cliente, así que tiene que mover la huella. */
   const c = await sql`
-    SELECT md5(string_agg(id || ':' || nombre || ':' || COALESCE(foto, '') || ':' || activo,
+    SELECT md5(string_agg(id || ':' || nombre || ':' || COALESCE(foto, '') || ':' || activo
+                          || ':' || COALESCE(array_to_string(dias_libres, '-'), ''),
                           ',' ORDER BY id)) AS v FROM profesional`;
   partes.push(c[0] && c[0].v);
 
@@ -143,6 +148,26 @@ export default async function handler(req, res) {
       descansos = d;
     } catch (e) { /* sin la migración 15 todavía */ }
 
+    /* Los días de la semana en que NO hay nadie. Sale de cruzar los días libres
+       de todo el equipo activo: si los siete barberos descansan el lunes, el
+       lunes está cerrado aunque el horario diga que abre, y el calendario del
+       cliente tiene que apagarlo en vez de dejarle elegirlo y descubrir después
+       que no hay ni una hora.
+
+       Que descanse UNA persona no cierra nada, y por eso se exige que sean
+       todos: los demás siguen atendiendo. */
+    let semanaCerrada = [];
+    try {
+      const w = await sql`
+        SELECT g AS dow FROM generate_series(0, 6) AS g
+         WHERE NOT EXISTS (
+           SELECT 1 FROM profesional p
+            WHERE p.activo AND NOT (g = ANY(COALESCE(p.dias_libres, '{}'::smallint[])))
+         )
+           AND EXISTS (SELECT 1 FROM profesional WHERE activo)`;
+      semanaCerrada = w.map(x => Number(x.dow));
+    } catch (e) { /* sin la migración 16 todavía */ }
+
     /* El equipo que sale en «El Equipo». Solo los activos y en el orden en que
        entraron, que es el que el local reconoce. No sale la comisión, ni el
        horario personal, ni si tiene clave: eso es de dentro.
@@ -220,6 +245,7 @@ export default async function handler(req, res) {
       productos,
       equipo,
       descansos,
+      semanaCerrada,
       version: await huella()
     }));
   } catch (e) {
