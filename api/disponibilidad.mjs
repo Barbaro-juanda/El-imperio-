@@ -32,11 +32,11 @@ export default async function handler(req, res) {
        cada uno de los servicios, no solo alguno. Si no, se ofrecerían cupos
        con alguien que no hace la mitad de la cita. */
     const profs = await sql`
-      SELECT p.id, p.nombre
+      SELECT p.id, p.nombre, p.dias_libres
         FROM profesional p
         JOIN servicio_profesional sp ON sp.profesional_id = p.id
        WHERE p.activo AND sp.servicio_id = ANY(${ids})
-       GROUP BY p.id, p.nombre
+       GROUP BY p.id, p.nombre, p.dias_libres
       HAVING COUNT(DISTINCT sp.servicio_id) = ${ids.length}
        ORDER BY p.nombre`;
     if (!profs.length) return json(res, 200, { duracion, profesionales: [], cupos: {} });
@@ -61,10 +61,15 @@ export default async function handler(req, res) {
       return json(res, 200, { duracion, profesionales: [], cupos: {}, cerrado: true });
     }
 
-    /* Quien descansa ese día sale de la lista. Se filtra AQUÍ y no arriba
-       porque los descansos se acaban de leer: hacerlo antes obligaría a
-       consultarlos dos veces o a arrastrar el filtro por medio archivo. */
-    const disponibles = profs.filter(p => descansan.indexOf(p.id) === -1);
+    /* Quien descansa ese día sale de la lista, por las dos vías: el descanso
+       con fecha —un festivo, unas vacaciones— y el día libre de todas las
+       semanas, que es el corriente: «Valentina no viene los lunes».
+
+       Se filtra AQUÍ y no arriba porque los descansos se acaban de leer:
+       hacerlo antes obligaría a consultarlos dos veces o a arrastrar el filtro
+       por medio archivo. */
+    const disponibles = profs.filter(p =>
+      descansan.indexOf(p.id) === -1 && (p.dias_libres || []).indexOf(dow) === -1);
     const elegidos = profesional
       ? disponibles.filter(p => String(p.id) === String(profesional))
       : disponibles;

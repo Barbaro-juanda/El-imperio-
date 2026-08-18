@@ -20,6 +20,11 @@
   const MESES3 = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   /* Nombres largos para los rangos: «del 1 al 5 de septiembre» se lee, «del 1
      al 5 de sep» se descifra. */
+/* Lunes primero, que es como se lee la semana; el número es el que usan
+   Postgres y JavaScript, donde el domingo es el 0. */
+const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
+                    [4,'J','Jueves'], [5,'V','Viernes'], [6,'S','Sábado'],
+                    [0,'D','Domingo']];
   const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const SEGMENTOS = { cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
@@ -113,7 +118,7 @@
       equipo: [
         { id: 1, nombre: 'Emanuel Gómez',    comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: true },
         { id: 2, nombre: 'Jeronimo Garcia',  comision: .5, entra: '11:00', sale: '20:00', activo: true,  tiene_clave: false },
-        { id: 3, nombre: 'Valentina Romero', comision: .5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true },
+        { id: 3, nombre: 'Valentina Romero', comision: .5, entra: '09:00', sale: '18:00', activo: true,  tiene_clave: true, dias_libres: [1] },
         { id: 4, nombre: 'Simon',            comision: .5, entra: '09:00', sale: '20:00', activo: true,  tiene_clave: false, foto: 'assets/barbero-simon.jpg' }
       ],
       horarioSemana: [0, 1, 2, 3, 4, 5, 6].map(dow => ({
@@ -1525,11 +1530,52 @@
       lf.appendChild(campoFoto(p.foto, dato => { fotoNueva = dato; guardar(); }));
       campos.appendChild(lf);
 
+      /* Los días que no trabaja. Van como siete cuadritos y no como una lista
+         desplegable porque la pregunta real es «¿qué días?», en plural: con
+         cuadritos se ven de un vistazo los que están marcados y los que no, y
+         marcar el segundo no obliga a volver a abrir nada.
+
+         El orden empieza en lunes, que es como se lee una semana aquí, aunque
+         por dentro el domingo sea el 0 —así lo numeran Postgres y JavaScript, y
+         cambiarlo solo para que la fila quede bonita sería pedir un error—. */
+      const dias = el('div', 'prof-libres');
+      const rot = el('span', 'prof-libres__rot');
+      rot.textContent = 'No trabaja';
+      dias.appendChild(rot);
+      const cuadros = el('div', 'prof-libres__dias');
+      SEMANA_INI.forEach(([dow, letra, nombreDia]) => {
+        const b = el('button', 'dia-chip');
+        b.type = 'button';
+        b.textContent = letra;
+        /* Dos letras iguales seguidas —martes y miércoles— no se distinguen
+           solas, así que el nombre entero va en el título y en el lector. */
+        b.title = nombreDia;
+        b.setAttribute('aria-label', nombreDia);
+        const pintar = () => {
+          const on = (p.dias_libres || []).indexOf(dow) !== -1;
+          b.classList.toggle('is-on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        };
+        pintar();
+        b.addEventListener('click', () => {
+          const l = (p.dias_libres || []).slice();
+          const i = l.indexOf(dow);
+          if (i === -1) l.push(dow); else l.splice(i, 1);
+          if (l.length === 7) { avisar('Alguien tiene que trabajar algún día'); return; }
+          p.dias_libres = l.sort();
+          pintar();
+          guardar();
+        });
+        cuadros.appendChild(b);
+      });
+      dias.appendChild(cuadros);
+
       const guardar = () => api('/panel/ajustes', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profesional: { id: p.id, comision: Number(com.value) / 100,
           entra: entra.value, sale: sale.value, activo: p.activo,
           nombre: nom.value.trim() || undefined,
+          dias_libres: p.dias_libres || [],
           foto: fotoNueva || undefined,
           clave: clave.value || undefined } })
       }).then(() => {
@@ -1539,7 +1585,7 @@
       }).catch(er => avisar(er.message));
       [com, entra, sale, clave, nom].forEach(i => i.addEventListener('change', guardar));
 
-      f.append(cab, campos);
+      f.append(cab, campos, dias);
       e.appendChild(f);
     });
   }

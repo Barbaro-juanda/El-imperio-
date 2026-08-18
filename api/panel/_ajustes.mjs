@@ -53,7 +53,7 @@ export default protegido(async (req, res) => {
       /* clave_hash NO sale de aquí. El panel solo necesita saber si esa persona
          ya tiene clave, no cuál es. */
       const equipo = await sql`
-        SELECT id, nombre, foto, comision, entra, sale, activo,
+        SELECT id, nombre, foto, comision, entra, sale, activo, dias_libres,
                (clave_hash IS NOT NULL) AS tiene_clave
           FROM profesional ORDER BY nombre`;
       /* La meta vive en la base y no en el código: cambiarla no puede exigir
@@ -83,6 +83,7 @@ export default protegido(async (req, res) => {
         servicios,
         horario: horario.map(h => ({ ...h, abre: String(h.abre).slice(0,5), cierra: String(h.cierra).slice(0,5) })),
         equipo: equipo.map(p => ({ ...p, entra: String(p.entra).slice(0,5), sale: String(p.sale).slice(0,5),
+                                  dias_libres: (p.dias_libres || []).map(Number),
                                   comision: Number(p.comision) }))
       });
     }
@@ -279,11 +280,27 @@ export default protegido(async (req, res) => {
       const nombre = p.nombre === undefined ? null : String(p.nombre).trim();
       if (nombre !== null && !nombre) return json(res, 400, { error: 'El nombre no puede quedar vacío' });
 
+      /* Los días libres se saneen antes de escribirlos: solo enteros de 0 a 6,
+         sin repetidos y ordenados. Guardar basura aquí no daría error al
+         escribir —el array acepta cualquier número— pero dejaría a alguien
+         invisible en la reserva sin que nada lo explicara.
+
+         Igual que el nombre: si no vienen, es «no los toques». Que vengan
+         vacíos SÍ es una orden —«trabaja todos los días»— y por eso se
+         distingue undefined de []. */
+      const libres = p.dias_libres === undefined ? null
+        : [...new Set((Array.isArray(p.dias_libres) ? p.dias_libres : [])
+            .map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort();
+      if (libres && libres.length === 7) {
+        return json(res, 400, { error: 'No puede descansar los siete días. Para eso, quítalo del equipo.' });
+      }
+
       await sql`
         UPDATE profesional
            SET comision = ${com}, entra = ${p.entra}, sale = ${p.sale},
                activo = ${p.activo !== false},
                nombre = COALESCE(${nombre}, nombre),
+               dias_libres = COALESCE(${libres}::smallint[], dias_libres),
                foto = COALESCE(${p.foto === undefined ? null : p.foto}, foto)
          WHERE id = ${p.id}`;
 

@@ -1280,3 +1280,37 @@
 .descfila:last-child { border-bottom: 0; }
 .descfila__f { font: 400 14px/1.3 var(--sans); text-transform: capitalize; }
 .descfila__q { font: 300 12px/1.4 var(--sans); color: var(--tenue); margin-top: 3px; }
+
+/* Los días que no trabaja cada profesional -------------------------------- */
+/* Cuelgan bajo sus campos, con una raya arriba: son suyos, pero no son otro
+   campo de texto más —no se escriben, se marcan— y mezclarlos en la misma
+   rejilla los haría pasar por uno. */
+.prof-libres{
+  display:flex; align-items:center; gap:.9rem; flex-wrap:wrap;
+  margin-top:.9rem; padding-top:.9rem;
+  border-top:1px solid var(--linea);
+}
+.prof-libres__rot{
+  font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--tenue);
+}
+.prof-libres__dias{ display:flex; gap:.4rem; }
+
+.dia-chip{
+  width:2.1rem; height:2.1rem;
+  border:1px solid var(--linea); border-radius:50%;
+  background:transparent; color:var(--tinta);
+  font:inherit; font-size:.82rem; line-height:1;
+  cursor:pointer;
+  transition:background .18s var(--ease-out-expo),
+             border-color .18s var(--ease-out-expo),
+             color .18s var(--ease-out-expo);
+}
+.dia-chip:hover{ border-color:var(--vino); }
+/* Marcado = no trabaja. Se pinta en vino y no en verde a propósito: es un día
+   cerrado, no un logro, y el color tiene que leerse igual que el resto de lo
+   que cierra la agenda. */
+.dia-chip.is-on{
+  background:var(--vino); border-color:var(--vino); color:#fff;
+}
+.dia-chip:focus-visible{ outline:2px solid var(--vino); outline-offset:2px; }
