@@ -18,6 +18,10 @@
   const DIAS  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const DIAS3 = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const MESES3 = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  /* Nombres largos para los rangos: «del 1 al 5 de septiembre» se lee, «del 1
+     al 5 de sep» se descifra. */
+  const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const SEGMENTOS = { cortes: 'Cortes', color: 'Color y tratamiento', depilacion: 'Depilación facial',
                       cejas: 'Cejas', facial: 'Limpieza facial', unas: 'Uñas',
                       adicionales: 'Adicionales' };
@@ -125,7 +129,11 @@
       ],
       descansos: [
         { id: 1, fecha: '2026-08-25', motivo: 'Festivo', profesional_id: null, profesional: null },
-        { id: 2, fecha: '2026-09-02', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' }
+        { id: 2, fecha: '2026-09-01', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
+        { id: 3, fecha: '2026-09-02', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
+        { id: 4, fecha: '2026-09-03', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
+        { id: 5, fecha: '2026-09-04', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' },
+        { id: 6, fecha: '2026-09-05', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' }
       ],
       finanzas: {
         rango: { desde: '2026-08-01', hasta: '2026-08-17', dias: 17 },
@@ -1612,39 +1620,91 @@
       return;
     }
 
-    lista.forEach(d => {
+    /* Los días seguidos con el mismo motivo y la misma persona se juntan en una
+       fila: unas vacaciones de una semana son SIETE filas en la base, pero para
+       quien mira la pantalla son un solo descanso, y siete líneas idénticas
+       obligan a leerlas todas para entender que son la misma cosa. */
+    agrupar(lista).forEach(g => {
       const f = el('div', 'descfila');
       const izq = el('div');
       const cuando = el('div', 'descfila__f');
-      cuando.textContent = fechaLargaISO(d.fecha);
+      cuando.textContent = g.dias.length === 1
+        ? fechaLargaISO(g.dias[0].fecha)
+        : rangoTexto(g.dias[0].fecha, g.dias[g.dias.length - 1].fecha) +
+          '  ·  ' + g.dias.length + ' días';
       const quien = el('div', 'descfila__q');
       /* Sin profesional es el local entero: se dice con esas palabras, porque
          «—» obligaría a adivinar. */
-      quien.textContent = [d.profesional || 'Todo el local', d.motivo].filter(Boolean).join(' · ');
+      quien.textContent = [g.profesional || 'Todo el local', g.motivo].filter(Boolean).join(' · ');
       izq.append(cuando, quien);
 
-      const q = boton('Quitar', () => quitarDescanso(d));
+      /* Quitar el grupo entero, que es como se piensa: nadie quiere cancelar el
+         martes de sus vacaciones y dejar el resto. */
+      const q = boton(g.dias.length === 1 ? 'Quitar' : 'Quitar los ' + g.dias.length,
+                      () => quitarDescanso(g.dias));
       q.classList.add('bt--borrar');
       f.append(izq, q);
       c.appendChild(f);
     });
   }
 
+  /* Junta días consecutivos con el mismo motivo y la misma persona. */
+  function agrupar(lista) {
+    const grupos = [];
+    lista.slice()
+      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
+      .forEach(d => {
+        const ult = grupos[grupos.length - 1];
+        const dia = Date.parse(String(d.fecha).slice(0, 10) + 'T12:00:00Z');
+        const seguido = ult &&
+          ult.profesional_id === d.profesional_id &&
+          (ult.motivo || '') === (d.motivo || '') &&
+          dia - ult.ultimo === 86400000;
+        if (seguido) { ult.dias.push(d); ult.ultimo = dia; return; }
+        grupos.push({ profesional_id: d.profesional_id, profesional: d.profesional,
+                      motivo: d.motivo, dias: [d], ultimo: dia });
+      });
+    return grupos;
+  }
+
+  /* «Del 1 al 5 de septiembre» cuando caen en el mismo mes, y «Del 30 ago al 3
+     sep» cuando lo cruzan. Repetir el mes en el primer caso sobra, y omitirlo
+     en el segundo confunde. */
+  function rangoTexto(a, b) {
+    const d1 = new Date(String(a).slice(0, 10) + 'T12:00:00Z');
+    const d2 = new Date(String(b).slice(0, 10) + 'T12:00:00Z');
+    if (d1.getUTCMonth() === d2.getUTCMonth()) {
+      return 'Del ' + d1.getUTCDate() + ' al ' + d2.getUTCDate() +
+             ' de ' + MESES[d2.getUTCMonth()].toLowerCase();
+    }
+    return 'Del ' + fechaCortaISO(a) + ' al ' + fechaCortaISO(b);
+  }
+
+  const fechaCortaISO = iso => {
+    const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+    return d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
+  };
+
   const fechaLargaISO = iso => {
     const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
     return DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
   };
 
-  async function quitarDescanso(d) {
+  async function quitarDescanso(dias) {
     try {
-      await api('/panel/ajustes?descanso=' + d.id, { method: 'DELETE' });
-      avisar('Día liberado');
+      /* Uno tras otro y no en paralelo: son pocos, y en paralelo un fallo a
+         mitad deja el grupo medio borrado sin forma de saber cuáles cayeron. */
+      for (const d of dias) {
+        await api('/panel/ajustes?descanso=' + d.id, { method: 'DELETE' });
+      }
+      avisar(dias.length === 1 ? 'Día liberado' : dias.length + ' días liberados');
       cargarAjustes();
     } catch (e) { avisar(e.message || 'No se pudo quitar'); }
   }
 
   $('#abrir-descanso').addEventListener('click', () => {
-    $('#ds-fecha').value = ymd(new Date());
+    $('#ds-desde').value = ymd(new Date());
+    $('#ds-hasta').value = '';
     $('#ds-motivo').value = '';
     $('#ds-error').hidden = true;
 
@@ -1667,19 +1727,23 @@
   $('#ds-guardar').addEventListener('click', async () => {
     const err = $('#ds-error');
     err.hidden = true;
-    const fecha = $('#ds-fecha').value;
-    if (!fecha) { err.textContent = 'Elige la fecha.'; err.hidden = false; return; }
+    const desde = $('#ds-desde').value;
+    const hasta = $('#ds-hasta').value;
+    if (!desde) { err.textContent = 'Elige la fecha de inicio.'; err.hidden = false; return; }
+    if (hasta && hasta < desde) {
+      err.textContent = 'La fecha final va después de la inicial.'; err.hidden = false; return;
+    }
     const btn = $('#ds-guardar');
     btn.disabled = true;
     try {
-      await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ descanso: {
-          fecha,
+          desde, hasta: hasta || null,
           profesional_id: $('#ds-quien').value || null,
           motivo: $('#ds-motivo').value.trim() || null
         } }) });
       $('#dlg-descanso').close();
-      avisar('Día marcado como descanso');
+      avisar(r && r.puestos > 1 ? r.puestos + ' días marcados' : 'Día marcado como descanso');
       cargarAjustes();
       /* La agenda lo pinta apagado, así que hay que repintarla. */
       if (vista === 'agenda') cargarDia();

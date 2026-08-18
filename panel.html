@@ -390,7 +390,7 @@
     <div class="tarjeta">
       <div class="tarjeta__cab">
         <span class="tarjeta__tit">Días de descanso</span>
-        <button class="bt bt--vino" type="button" id="abrir-descanso">＋ Marcar día</button>
+        <button class="bt bt--vino" type="button" id="abrir-descanso">＋ Marcar descanso</button>
       </div>
       <p class="nota">Festivos, vacaciones o el día que alguien no viene. El horario semanal dice qué días abre el local; esto son las excepciones con fecha. Se apagan en el calendario del cliente.</p>
       <div id="d-descansos"></div>
@@ -651,8 +651,14 @@
 
   <dialog id="dlg-descanso" class="hoja">
     <form method="dialog">
-      <h2>Marcar día de descanso</h2>
-      <label>Fecha <input id="ds-fecha" type="date"></label>
+      <h2>Marcar descanso</h2>
+      <!-- Rango, no un día: unas vacaciones son una semana. Dejando «Hasta»
+           vacío queda un solo día, que es el caso del festivo. -->
+      <div class="par">
+        <label>Desde <input id="ds-desde" type="date"></label>
+        <label>Hasta <input id="ds-hasta" type="date"></label>
+      </div>
+      <p class="nota">Deja «Hasta» vacío si es un solo día.</p>
       <label>¿Quién descansa?
         <select id="ds-quien">
           <option value="">Todo el local — ese día no se abre</option>
@@ -691,6 +697,6 @@
   <div class="aviso" id="aviso" hidden role="status"></div>
 </div>
 
-<script src="assets/panel.js?v=32"></script>
+<script src="assets/panel.js?v=33"></script>
 </body>
 </html>

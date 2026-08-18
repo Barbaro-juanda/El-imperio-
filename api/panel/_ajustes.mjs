@@ -126,30 +126,49 @@ export default protegido(async (req, res) => {
       return json(res, 201, { id });
     }
 
-    /* ---------------- días de descanso ---------------- */
+    /* ---------------- días de descanso ----------------
+       Acepta un rango, no un día suelto: unas vacaciones son una semana y
+       marcarlas de una en una es siete veces el mismo trabajo. Sin `hasta` es
+       un solo día, que sigue siendo el caso corriente de un festivo. */
     if (req.method === 'POST' && b.descanso) {
       const d = b.descanso;
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '')) {
-        return json(res, 400, { error: 'Fecha no válida' });
+      const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+      if (!FECHA.test(d.desde || '')) return json(res, 400, { error: 'Fecha no válida' });
+      const hasta = FECHA.test(d.hasta || '') ? d.hasta : d.desde;
+      if (hasta < d.desde) {
+        return json(res, 400, { error: 'La fecha final va después de la inicial' });
       }
+
+      /* Tope de un año. No es por capacidad —caben de sobra— sino porque un
+         rango de diez años casi siempre es un dedo que se equivocó de año al
+         escribir, y meterlo deja el calendario cerrado hasta 2036 sin que nadie
+         entienda por qué. */
+      const dias = Math.round(
+        (Date.parse(hasta + 'T00:00:00Z') - Date.parse(d.desde + 'T00:00:00Z')) / 86400000) + 1;
+      if (dias > 366) {
+        return json(res, 400, { error: 'Ese rango pasa de un año. Revisa las fechas.' });
+      }
+
       /* Sin profesional es el local entero. Con uno, descansa solo esa persona
          y los demás siguen atendiendo. */
       const prof = d.profesional_id ? Number(d.profesional_id) : null;
+      const motivo = String(d.motivo || '').trim() || null;
 
-      try {
-        const r = await sql`
-          INSERT INTO descanso (fecha, profesional_id, motivo)
-          VALUES (${d.fecha}::date, ${prof}, ${String(d.motivo || '').trim() || null})
-          RETURNING id`;
-        return json(res, 201, { id: r[0].id });
-      } catch (e) {
-        /* 23505 = ya existe ese descanso. No es un fallo: es que ya estaba
-           puesto, y decirlo así evita que alguien lo intente tres veces. */
-        if (e.code === '23505') {
-          return json(res, 409, { error: 'Ese día ya está marcado como descanso' });
-        }
-        throw e;
+      /* Una sola sentencia genera todas las fechas del rango. `ON CONFLICT DO
+         NOTHING` deja pasar los días que ya estuvieran marcados en vez de
+         abortar el rango entero: quien añade una semana sobre un festivo que ya
+         existía espera que se sume, no que falle. */
+      const r = await sql`
+        INSERT INTO descanso (fecha, profesional_id, motivo)
+        SELECT g::date, ${prof}, ${motivo}
+          FROM generate_series(${d.desde}::date, ${hasta}::date, '1 day') AS g
+        ON CONFLICT DO NOTHING
+        RETURNING id`;
+
+      if (!r.length) {
+        return json(res, 409, { error: 'Esos días ya estaban marcados' });
       }
+      return json(res, 201, { puestos: r.length, dias });
     }
 
     if (req.method === 'DELETE' && req.query.descanso) {
