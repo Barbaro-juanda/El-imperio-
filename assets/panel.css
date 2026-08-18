@@ -1330,3 +1330,18 @@
   background-image:repeating-linear-gradient(45deg,
     transparent 0 6px, rgba(155,48,64,.10) 6px 12px);
 }
+
+/* La palabra sobre la columna de quien descansa. El rayado solo dice «aquí no
+   pasa nada»; sin la palabra hay que adivinar si es que descansa, si el día
+   está cerrado o si algo falló al cargar. */
+.descansa-banda{
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;                 /* no tapa el arrastre ni el rayado */
+}
+.descansa-banda span{
+  /* En vertical porque la columna es alta y estrecha: en horizontal el nombre
+     se corta o hay que encogerlo hasta no leerse. */
+  writing-mode:vertical-rl; transform:rotate(180deg);
+  font-size:.72rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--vino); opacity:.75;
+}

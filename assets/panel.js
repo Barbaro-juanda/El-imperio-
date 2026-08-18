@@ -763,6 +763,20 @@ const SEMANA_INI = [[1,'L','Lunes'], [2,'M','Martes'], [3,'M','Miércoles'],
 
     /* Huecos de media hora o más: son los que de verdad se pueden vender. */
     profs.forEach((p, i) => {
+      /* En la columna de quien descansa no hay nada que vender, así que en vez
+         de los huecos —«＋ 09:00» repetido todo el día, que es una invitación a
+         agendar justo donde no se puede— va una sola banda que lo dice. El
+         rayado ya avisaba, pero un rayado sin palabra hay que adivinarlo. */
+      if (p.descansa) {
+        const banda = el('div', 'descansa-banda');
+        banda.style.gridColumn = String(i + 2);
+        banda.style.gridRow = '2 / span ' + filas;
+        const t = el('span');
+        t.textContent = p.nombre.split(' ')[0] + ' descansa hoy';
+        banda.appendChild(t);
+        g.appendChild(banda);
+        return;
+      }
       const rangos = (ocupadas[i] || []).sort((a, b) => a[0] - b[0]);
       let cursor = 0;
       const marcar = (a, b) => {
