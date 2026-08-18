@@ -504,7 +504,10 @@
     const extras = state.extras.length ? '+' + state.extras.length : '';
     if (step === 1) return '⚜ Reserva';
     if (step === 2) return [s && s.name, extras].filter(Boolean).join(' ');
-    if (step === 3) return [s && s.name, (b && b.name) || especialista].filter(Boolean).join(' · ');
+    /* `b.nombre`, no `b.name`: el equipo viene de la API y ahí el campo se
+       llama nombre. Con `b.name` esto era siempre undefined, así que el hueco
+       lo tapaba «Especialista» y el barbero elegido no salió nunca. */
+    if (step === 3) return [s && s.name, (b && b.nombre) || especialista].filter(Boolean).join(' · ');
     if (step === 4) return state.date && state.slot ? shortDate(state.date) + ' · ' + state.slot : '';
     return 'Confirmada';
   }
