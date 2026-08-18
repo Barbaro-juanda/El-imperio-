@@ -1211,6 +1211,14 @@
 
   /* En modo cambio, el último de los pasos elegidos es el que confirma: de ahí
      se va directo a la pantalla final. */
+  /* La fecha que se conserva puede ser el día libre de quien se acaba de
+     elegir. Pasa justo cuando se cambia SOLO el barbero: entonces no se pasa
+     por el calendario y esa fecha no la mira nadie. */
+  function chocaConSuDescanso() {
+    const p = profPorId(state.barber);
+    return !!(p && state.date && (p.dias_libres || []).indexOf(state.date.getDay()) !== -1);
+  }
+
   const esUltimoDelCambio = () => {
     if (!cambiando || !quiereCambiar.length) return false;
     const pasos = pasosActivos().filter(n => n !== PASOS);
@@ -1228,6 +1236,17 @@
     }
 
     if (state.step === PASO_DATOS || esUltimoDelCambio()) {
+      /* Se para antes de enviar y se dice por qué. El servidor también lo
+         rechaza —es quien manda— pero enterarse aquí evita mandar una petición
+         que ya se sabe perdida, y sobre todo evita el susto de ver un error
+         rojo después de pulsar «Confirmar». */
+      if (cambiando && chocaConSuDescanso()) {
+        const p = profPorId(state.barber);
+        avisoEnvio(p.nombre.split(' ')[0] + ' descansa el día que tienes reservado. ' +
+                   'Vuelve atrás y marca también «el día o la hora» para mover la cita.');
+        return;
+      }
+
       /* Solo se valida el formulario si se está en él. Cambiando una cita no se
          pasa por ahí: los datos ya vinieron con la cita. */
       if (state.step === PASO_DATOS && !validateForm()) {

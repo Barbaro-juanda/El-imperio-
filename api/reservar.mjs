@@ -119,6 +119,27 @@ export default async function handler(req, res) {
       return json(res, 409, { error: 'Ese horario ya pasó o está muy cerca. Elige otro.' });
     }
 
+    /* Que ese día no sea su día libre. Faltaba, y por eso se colaban citas
+       sobre una columna que la agenda pintaba como descanso: la reserva y la
+       disponibilidad estaban comprobando cosas distintas. La disponibilidad los
+       filtraba de la lista, pero es un endpoint de consulta —no manda nada—, y
+       cualquier camino que no pasara por él entraba sin preguntar. El que lo
+       hacía a diario era el propio cambio de cita: al cambiar SOLO el barbero
+       se conserva la fecha de siempre, y esa fecha puede ser el día libre del
+       nuevo sin que nadie lo mire.
+
+       Va aquí porque esto sí es la puerta de entrada: lo que no pase por esta
+       comprobación no existe. */
+    const dowCita = new Date(fecha + 'T12:00:00Z').getUTCDay();
+    const quien = await sql`
+      SELECT nombre, dias_libres FROM profesional WHERE id = ${profesional}`;
+    if (quien[0] && (quien[0].dias_libres || []).map(Number).indexOf(dowCita) !== -1) {
+      return json(res, 409, {
+        error: quien[0].nombre.split(' ')[0] + ' descansa ese día. Elige otra fecha, ' +
+               'o a otra persona del equipo.'
+      });
+    }
+
     const total = servs.reduce((t, s) => t + (s.precio || 0), 0);
 
     const cl = await sql`
