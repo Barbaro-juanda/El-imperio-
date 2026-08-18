@@ -436,9 +436,16 @@
   /* El paso de barbero no siempre aplica: las uñas las atiende una sola
      especialista. Solo se salta si NADA de lo elegido necesita barbero —una
      cita de corte + manicura sí tiene barbero que elegir. */
-  function pasosActivos() {
+  /* ¿Lo elegido necesita barbero? Depende SOLO de los servicios. Es distinto
+     de «el paso del barbero está en el recorrido», que además depende de qué
+     se pidió cambiar, y confundir las dos cosas costaba caro: ver más abajo. */
+  function sinBarberoPorServicio() {
     const items = seleccion().map(byId).filter(Boolean);
-    const salta = items.length > 0 && items.every(s => s.sinBarbero);
+    return items.length > 0 && items.every(s => s.sinBarbero);
+  }
+
+  function pasosActivos() {
+    const salta = sinBarberoPorServicio();
 
     /* Cambiando una cita se recorren SOLO los pasos que se pidieron cambiar, y
        nunca el de los datos: el nombre y el celular ya están, y volver a pedir
@@ -490,7 +497,10 @@
   function summaryFor(step) {
     const s = state.service ? byId(state.service) : null;
     const b = state.barber !== null ? profPorId(state.barber) : null;
-    const especialista = saltaBarbero() ? 'Especialista' : null;
+    /* «Especialista» solo si el servicio no lleva barbero. Con saltaBarbero()
+       aquí, cambiar una cita sin marcar «el barbero» ponía «Especialista» en el
+       resumen de un Corte VIP, que sí tiene barbero y además lo tenía elegido. */
+    const especialista = sinBarberoPorServicio() ? 'Especialista' : null;
     const extras = state.extras.length ? '+' + state.extras.length : '';
     if (step === 1) return '⚜ Reserva';
     if (step === 2) return [s && s.name, extras].filter(Boolean).join(' ');
@@ -700,8 +710,13 @@
         }
       }
     }
-    /* Cambiar la selección puede activar o desactivar el paso de barbero. */
-    if (saltaBarbero()) state.barber = null;
+    /* Cambiar la selección puede activar o desactivar el paso de barbero. Se
+       mira el SERVICIO, no el recorrido: con saltaBarbero() aquí, cambiar el
+       servicio de una cita sin haber marcado «el barbero» borraba el barbero
+       que ya tenía —el paso no estaba en el recorrido, luego «no hace falta»—.
+       Y sin barbero no se piden cupos, así que el paso de la hora se quedaba
+       en «Sin horas» sin decir por qué. */
+    if (sinBarberoPorServicio()) state.barber = null;
     CUPOS = { cargando: false, error: null, libres: [], clave: null };
     cargarProfesionales();
     render();
@@ -802,6 +817,17 @@
     }
     /* Si el elegido ya no puede con la nueva selección, se suelta. */
     if (state.barber !== null && !profPorId(state.barber)) { state.barber = null; state.slot = null; }
+
+    /* Y si eso pasa cambiando una cita sin haber pedido cambiar de barbero, el
+       paso se añade solo. Si no, quedaría una cita sin barbero y sin ninguna
+       pantalla donde elegirlo: otra vez «Sin horas» y sin salida. */
+    if (cambiando && state.barber === null && !sinBarberoPorServicio() &&
+        quiereCambiar.length && quiereCambiar.indexOf(PASO_BARBERO) === -1) {
+      quiereCambiar.push(PASO_BARBERO);
+      quiereCambiar.sort();
+      const op = document.querySelector('[data-cambiar="' + PASO_BARBERO + '"]');
+      if (op) op.setAttribute('aria-pressed', 'true');
+    }
     /* Con una sola opción no hay nada que elegir: se asigna y el paso se salta. */
     if (PROFS.length === 1) state.barber = PROFS[0].id;
     renderPickBarbers();
