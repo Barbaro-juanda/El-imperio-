@@ -165,8 +165,16 @@ export default async function handler(req, res) {
         });
       } catch (e) {
         if (e.code === '23P01') {
+          /* El choque tiene dos causas y el cliente hace cosas distintas con
+             cada una. Si NO movió la hora, no se la ha quitado nadie: es que el
+             servicio nuevo dura más y ahora se mete en la cita de al lado. Decir
+             «lo acaban de tomar» ahí manda a buscar un culpable que no existe y
+             esconde la salida, que es mover la cita. */
+          const mismaHora = Math.abs(new Date(anterior.inicio) - inicio) < 60000;
           return json(res, 409, {
-            error: 'Ese horario lo acaban de tomar. Elige otro — tu cita sigue como estaba.'
+            error: mismaHora
+              ? 'Ese servicio no cabe en tu hora de siempre: hay otra cita justo después. Marca también «el día o la hora» y elige otro momento — la tuya sigue como estaba.'
+              : 'Ese horario lo acaban de tomar. Elige otro — tu cita sigue como estaba.'
           });
         }
         throw e;

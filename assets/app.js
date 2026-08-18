@@ -2209,15 +2209,16 @@
     quiereCambiar.sort();
     op.setAttribute('aria-pressed', String(i === -1));
 
-    /* Cambiar el servicio suelta la hora: otro servicio dura otra cosa y el
-       cupo elegido podría no caber. Si además va a elegir hora, se la pedirá
-       igualmente; si no, se le pide sola. */
-    if (quiereCambiar.indexOf(1) !== -1 && quiereCambiar.indexOf(3) === -1) {
-      quiereCambiar.push(3);
-      quiereCambiar.sort();
-      const opHora = document.querySelector('[data-cambiar="3"]');
-      if (opHora) opHora.setAttribute('aria-pressed', 'true');
-    }
+    /* Solo se marca lo que se pulsó. Antes, marcar «el servicio» encendía
+       también «el día o la hora» —con la idea de que otro servicio dura otra
+       cosa y el cupo podría no caber—, y eso hacía dos daños: encendía una
+       casilla que nadie había tocado, y al desmarcar el servicio la dejaba
+       encendida, así que quien deshacía su clic acababa con «el día o la hora»
+       marcado sin saber por qué.
+
+       Si el servicio nuevo no cabe en la hora de siempre, lo dice el servidor
+       al confirmar y la cita se queda como estaba. Vale más un aviso al final
+       que tocarle las casillas por detrás a quien está mirándolas. */
 
     $('#hallada-pista').textContent = quiereCambiar.length
       ? 'Pulsa Continuar y solo te preguntamos eso.'
