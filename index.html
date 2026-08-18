@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=33">
+<link rel="stylesheet" href="assets/styles.css?v=34">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -1263,9 +1263,16 @@
              porque es cuando el cliente todavía está mirando. -->
         <p class="receipt__llave" id="receipt-llave"></p>
         <div class="done__actions">
-          <button class="btn btn--ink" type="button" id="add-calendar">Añadir al calendario</button>
+          <button class="btn btn--ink" type="button" id="add-calendar">Añadir a Google Calendar</button>
           <button class="btn btn--outline" type="button" id="restart">Modificar esta reserva</button>
         </div>
+        <!-- Salida para quien no usa Google. El calendario del iPhone y Outlook
+             entienden el archivo, y en Colombia media clientela lleva iPhone:
+             mandarlos a Google sería mandarlos a una cuenta que no usan. Va
+             discreto porque es la minoría. -->
+        <p class="done__otro">
+          <button class="link-underline" type="button" id="add-ics">¿Usas otro calendario? Descarga el evento <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
+        </p>
       </section>
 
     </div>
@@ -1288,6 +1295,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=37"></script>
+<script src="assets/app.js?v=38"></script>
 </body>
 </html>

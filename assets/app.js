@@ -1095,11 +1095,17 @@
            'T' + pad(utc.getUTCHours()) + pad(utc.getUTCMinutes()) + '00Z';
   }
 
-  /* Un evento .ics necesita hora de fin obligatoriamente. Como la carta no
-     maneja duraciones, se reserva un bloque neutro que NO se muestra en ninguna
-     parte del sitio: solo evita que el calendario del cliente cree un evento
-     inválido o de duración cero. */
-  const ICS_BLOQUE_MIN = 60;
+  /* Cuánto dura la cita de verdad, sumando lo elegido. Es el dato que la agenda
+     del local ya usa para repartir cupos, así que el evento del cliente queda
+     ocupando exactamente lo mismo que su silla.
+
+     Con respaldo de una hora por si algún servicio llegara sin duración: un
+     evento de cero minutos lo pintan mal casi todos los calendarios. */
+  function duracionCita() {
+    const suma = seleccion().map(byId).filter(Boolean)
+      .reduce((t, s) => t + (Number(s.min) || 0), 0);
+    return suma > 0 ? suma : 60;
+  }
 
   function downloadIcs() {
     const svc = byId(state.service);
@@ -1112,7 +1118,7 @@
       'UID:' + ymd(state.date) + '-' + state.slot.replace(':', '') + '@imperialclasic.co',
       'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''),
       'DTSTART:' + icsStamp(state.date, state.slot, 0),
-      'DTEND:'   + icsStamp(state.date, state.slot, ICS_BLOQUE_MIN),
+      'DTEND:'   + icsStamp(state.date, state.slot, duracionCita()),
       'SUMMARY:' + titulo + ' · ' + SHOP.name,
       'LOCATION:' + SHOP.address,
       'DESCRIPTION:' + (state.barber !== null ? 'Barbero: ' + ((profPorId(state.barber) || {}).nombre || '') : 'Atiende nuestra especialista') + '. Llega cinco minutos antes.',
@@ -1276,7 +1282,51 @@
     renderCalendar();
   });
 
-  $('#add-calendar').addEventListener('click', () => { track('add_to_calendar_click', {}); downloadIcs(); });
+  /* Lleva a Google Calendar con la cita ya escrita.
+
+     Antes descargaba un archivo .ics. Eso funciona, pero descargar algo en un
+     celular es un callejón: aparece un archivo en la carpeta de descargas y hay
+     que saber qué hacer con él. Un enlace abre el calendario con todo puesto y
+     solo queda pulsar «Guardar».
+
+     Las horas van en UTC —el sufijo Z— y no en hora local: el evento es a las
+     once y media en Sabaneta, y escribirlo sin zona haría que el calendario de
+     alguien que viaja lo colocara a otra hora. */
+  function urlGoogleCalendar() {
+    const nombres = seleccion().map(id => (byId(id) || {}).name).filter(Boolean);
+    const quien = state.barber !== null
+      ? (profPorId(state.barber) || {}).nombre || ''
+      : 'Nuestra especialista';
+
+    const detalle = [
+      nombres.join(' + '),
+      quien ? 'Te atiende: ' + quien : '',
+      'Llega cinco minutos antes — el tinto va por la casa.',
+      '',
+      '¿Necesitas cambiarla? Entra a ' + location.origin +
+        ' y busca tu cita con tu celular, ' + state.customer.phone + '.'
+    ].filter(Boolean).join('\n');
+
+    const p = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: (nombres.join(' + ') || 'Cita') + ' · ' + SHOP.name,
+      dates: icsStamp(state.date, state.slot, 0) + '/' +
+             icsStamp(state.date, state.slot, duracionCita()),
+      details: detalle,
+      location: SHOP.address
+    });
+    return 'https://calendar.google.com/calendar/render?' + p.toString();
+  }
+
+  $('#add-calendar').addEventListener('click', () => {
+    track('add_to_calendar_click', { destino: 'google' });
+    window.open(urlGoogleCalendar(), '_blank', 'noopener');
+  });
+
+  $('#add-ics').addEventListener('click', () => {
+    track('add_to_calendar_click', { destino: 'ics' });
+    downloadIcs();
+  });
   /* Este botón REINICIABA la reserva desde el paso 1, dejando la recién creada
      en pie: el cliente creía estar cambiándola y terminaba con dos citas. Era
      la trampa exacta que la pantalla de cambios vino a resolver, puesta en el

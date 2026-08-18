@@ -1865,3 +1865,9 @@ body.is-locked { overflow: hidden; }
   background: rgba(185, 151, 63, .12);
 }
 .opcion[aria-pressed="true"] strong { color: var(--gold); }
+
+/* La salida al .ics, bajo los dos botones de la pantalla final. */
+.done__otro { margin: 18px 0 0; text-align: center; }
+.done__otro .link-underline { color: rgba(13, 13, 13, .6); }
+.done__otro .link-underline:hover,
+.done__otro .link-underline:focus-visible { color: var(--wine); }
