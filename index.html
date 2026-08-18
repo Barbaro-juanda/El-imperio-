@@ -27,7 +27,7 @@
      desarrollo, con las pestañas del paso 1 saliendo sin estilo. Subir el
      número al tocar styles.css o app.js. -->
 <link rel="stylesheet" href="assets/motion.css?v=4">
-<link rel="stylesheet" href="assets/styles.css?v=32">
+<link rel="stylesheet" href="assets/styles.css?v=33">
 
 <!--
   GA4 — reemplazar G-XXXXXXXXXX por el Measurement ID real antes de publicar.
@@ -625,6 +625,11 @@
          reseña, que sí aporta. -->
     <div class="hero__trust">
       <a href="#resenas">★★★★★ Lo que dicen nuestros clientes</a>
+      <span class="hero__trust-sep" aria-hidden="true">·</span>
+      <!-- `data-modificar` y no un id con su manejador: motion.js reescribe el
+           innerHTML de este bloque para animarlo por líneas, lo que destruye
+           cualquier manejador puesto antes. La delegación sobrevive a eso. -->
+      <button type="button" data-modificar>¿Ya reservaste? Modifica tu cita</button>
     </div>
   </div>
 </section>
@@ -1175,14 +1180,6 @@
       </section>
 
       <section class="step" data-step="1" hidden>
-        <!-- Lo primero del primer paso. Estaba al final, después de la lista de
-             treinta y dos servicios: había que desplazar la pantalla entera para
-             encontrarlo, así que no lo veía nadie. Quien viene a cambiar su cita
-             lo busca al abrir, no al fondo. -->
-        <div class="yatengo" id="yatengo">
-          <span>¿Ya tienes una cita con nosotros?</span>
-          <button class="link-underline" type="button" id="ir-modificar">Modifícala aquí <span class="link-underline__motif" aria-hidden="true">⚜</span></button>
-        </div>
         <div class="segs" id="segs" role="group" aria-label="Segmentos de servicio"></div>
         <p class="step__hint" id="segs-hint">Elige uno o varios. Puedes combinar segmentos.</p>
         <ul class="pick-list" id="pick-services" aria-live="polite"></ul>
@@ -1291,6 +1288,6 @@
 </div>
 
 <script src="assets/motion.js?v=6" defer></script>
-<script src="assets/app.js?v=36"></script>
+<script src="assets/app.js?v=37"></script>
 </body>
 </html>

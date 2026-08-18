@@ -448,8 +448,25 @@ a:hover { color: var(--gold); }
   letter-spacing: .1em; text-transform: uppercase;
   color: rgba(237, 230, 214, .62);
 }
-.hero__trust a { color: inherit; border-bottom: 1px solid transparent; }
-.hero__trust a:hover { color: var(--wine); border-bottom-color: currentColor; }
+/* El botón de modificar se viste igual que el enlace de las reseñas: es la
+   misma clase de cosa —una salida secundaria bajo el botón principal— y
+   distinguirlos solo añadiría ruido bajo el titular. Hace falta el reset porque
+   es un <button> y el navegador le pinta su caja gris si no. */
+.hero__trust a,
+.hero__trust button {
+  color: inherit;
+  border: 0; border-bottom: 1px solid transparent;
+  background: none; padding: 0;
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+  cursor: pointer;
+}
+.hero__trust a:hover, .hero__trust a:focus-visible,
+.hero__trust button:hover, .hero__trust button:focus-visible {
+  color: var(--wine); border-bottom-color: currentColor;
+}
+
+/* El punto que los separa. Se atenúa para que no compita con los dos textos. */
+.hero__trust-sep { opacity: .45; }
 @media (min-width: 640px) { .hero__trust { font-size: 11px; } }
 
 /* ---------------------------------------------------------
@@ -1832,19 +1849,7 @@ body.is-locked { overflow: hidden; }
   border-color: var(--gold); background: rgba(185, 151, 63, .06);
 }
 
-/* La entrada al modo de cambio. Arriba del primer paso y con su propio marco:
-   estuvo al final, después de la lista de treinta y dos servicios, y allí no la
-   veía nadie — había que desplazar la pantalla entera para encontrarla. */
-.yatengo {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
-  padding: 12px 16px; margin-bottom: 22px;
-  border: 1px solid rgba(185, 151, 63, .28);
-  background: rgba(185, 151, 63, .06);
-}
-.yatengo > span {
-  font: 300 13px/1.4 var(--sans);
-  color: rgba(237, 230, 214, .74);
-}
+
 
 /* La llave para volver a la cita, bajo el recibo. */
 .receipt__llave {

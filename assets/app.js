@@ -560,9 +560,6 @@
     /* La entrada al modo de cambio solo se ofrece al empezar de cero. A mitad
        de una reserva estorba, y dentro del propio modo de cambio no tiene
        sentido. */
-    const yaTengo = $('#yatengo');
-    if (yaTengo) yaTengo.hidden = step !== 1 || !!cambiando;
-
     if (step === 0) {
       backBtn.textContent = '← Salir';
       /* «Continuar» no se activa hasta haber encontrado la cita: antes de eso
@@ -2017,11 +2014,22 @@
     $('#buscar-tel').value = '';
     state.step = 0;
     render();
+    /* Desde el hero el modal está cerrado y hay que abrirlo; desde dentro ya lo
+       está y `openBooking` solo recoloca. Sirve para los dos. */
     openBooking(0);
     setTimeout(() => $('#buscar-tel').focus(), 80);
   }
 
-  $('#ir-modificar').addEventListener('click', entrarAModificar);
+  /* Delegado en el documento. El enlace vive en el hero, y motion.js reescribe
+     ese bloque para animarlo por líneas: un manejador puesto sobre el botón
+     concreto moriría al reemplazarse el nodo. Delegando sobrevive, y además
+     funciona para cualquier «modificar» que se añada mañana en otro sitio. */
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-modificar]');
+    if (!b) return;
+    e.preventDefault();
+    entrarAModificar();
+  });
 
   $('#buscar-ir').addEventListener('click', async () => {
     const err = $('#buscar-error');
