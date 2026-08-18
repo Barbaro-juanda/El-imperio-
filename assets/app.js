@@ -2192,6 +2192,12 @@
         email: r.cita.cliente.email || ''
       };
 
+      /* Se pide el equipo YA, con los servicios de la cita. Sin esto PROFS
+         llegaba vacío —el paso del barbero decía «elige primero un servicio»
+         teniendo uno— y el calendario del paso siguiente no sabía los días
+         libres de nadie: dejaba elegir el día de descanso del barbero. */
+      await cargarProfesionales();
+
       mostrarHallada({ inicio: new Date(r.cita.inicio), servicios: r.cita.servicios });
     } catch (e) {
       err.textContent = e.message || 'No se pudo buscar';
