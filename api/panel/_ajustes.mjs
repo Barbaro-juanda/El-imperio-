@@ -65,8 +65,21 @@ export default protegido(async (req, res) => {
         if (r.length) meta = Number(r[0].valor) || meta;
       } catch (e) { /* sin tabla de ajustes todavía */ }
 
+      /* Los descansos futuros y los del mes pasado: hacia atrás no sirven para
+         decidir nada, y traerlos todos crecería sin tope. */
+      let descansos = [];
+      try {
+        descansos = await sql`
+          SELECT d.id, d.fecha, d.motivo, d.profesional_id, p.nombre AS profesional
+            FROM descanso d
+            LEFT JOIN profesional p ON p.id = d.profesional_id
+           WHERE d.fecha >= CURRENT_DATE - INTERVAL '30 days'
+           ORDER BY d.fecha`;
+      } catch (e) { /* sin la migración 15 todavía */ }
+
       return json(res, 200, {
         meta,
+        descansos,
         servicios,
         horario: horario.map(h => ({ ...h, abre: String(h.abre).slice(0,5), cierra: String(h.cierra).slice(0,5) })),
         equipo: equipo.map(p => ({ ...p, entra: String(p.entra).slice(0,5), sale: String(p.sale).slice(0,5),
@@ -111,6 +124,40 @@ export default protegido(async (req, res) => {
         ON CONFLICT DO NOTHING`;
 
       return json(res, 201, { id });
+    }
+
+    /* ---------------- días de descanso ---------------- */
+    if (req.method === 'POST' && b.descanso) {
+      const d = b.descanso;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '')) {
+        return json(res, 400, { error: 'Fecha no válida' });
+      }
+      /* Sin profesional es el local entero. Con uno, descansa solo esa persona
+         y los demás siguen atendiendo. */
+      const prof = d.profesional_id ? Number(d.profesional_id) : null;
+
+      try {
+        const r = await sql`
+          INSERT INTO descanso (fecha, profesional_id, motivo)
+          VALUES (${d.fecha}::date, ${prof}, ${String(d.motivo || '').trim() || null})
+          RETURNING id`;
+        return json(res, 201, { id: r[0].id });
+      } catch (e) {
+        /* 23505 = ya existe ese descanso. No es un fallo: es que ya estaba
+           puesto, y decirlo así evita que alguien lo intente tres veces. */
+        if (e.code === '23505') {
+          return json(res, 409, { error: 'Ese día ya está marcado como descanso' });
+        }
+        throw e;
+      }
+    }
+
+    if (req.method === 'DELETE' && req.query.descanso) {
+      const id = Number(req.query.descanso);
+      if (!Number.isInteger(id)) return json(res, 400, { error: 'id no válido' });
+      const r = await sql`DELETE FROM descanso WHERE id = ${id} RETURNING id`;
+      if (!r.length) return json(res, 404, { error: 'Ese descanso no existe' });
+      return json(res, 200, { id });
     }
 
     /* Alta de profesional. */

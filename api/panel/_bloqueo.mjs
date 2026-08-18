@@ -1,6 +1,12 @@
 /* POST   /api/panel/bloqueo { profesional_id|null, fecha, desde, hasta, motivo }
    DELETE /api/panel/bloqueo?id=…
-   Cerrar horas: un almuerzo, una tarde libre, un festivo del local entero. */
+   Cerrar horas: un almuerzo, una tarde libre, un festivo del local entero.
+
+   SOLO EL DUEÑO. Antes podía hacerlo cualquier profesional desde «Mi día», y
+   eso convierte la agenda en algo que cada quien recorta por su cuenta: un
+   barbero se cierra la tarde del viernes, el local pierde los cupos y nadie se
+   entera hasta que los ve desaparecidos. Quién trabaja y cuándo es una decisión
+   del negocio, no de cada silla. */
 import { sql, json, aUTC } from '../_db.mjs';
 import { protegido } from '../_auth.mjs';
 
@@ -32,4 +38,4 @@ export default protegido(async (req, res) => {
     console.error('bloqueo', e);
     return json(res, 500, { error: 'No se pudo guardar' });
   }
-});
+}, { soloDueno: true });

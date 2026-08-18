@@ -165,6 +165,9 @@
      de llevar a ninguna parte. */
   const INSTAGRAM_URL = 'https://www.instagram.com/theimperialclasic_/';
 
+  /* Días cerrados por descanso, del catálogo. Vacío hasta que llegue. */
+  let DESCANSOS = {};
+
   const SHOP = {
     name: 'The Imperial Clasic Barber',
     address: 'Prados de Sabaneta, Antioquia, Colombia',
@@ -857,11 +860,19 @@
       btn.textContent = String(n);
       btn.setAttribute('aria-label', longDate(date));
 
-      /* Solo se descartan los días pasados. Saber si un día concreto tiene
-         cupo exigiría una consulta por casilla —treinta y una al pintar el
-         mes—, así que el calendario deja elegir y es la lista de horarios la
-         que responde «sin horas» o «cerrado ese día». */
-      btn.disabled = date < today;
+      /* Se descartan los días pasados y los que el local cierra. Saber si un
+         día tiene cupo exigiría una consulta por casilla —treinta y una al
+         pintar el mes—, así que para eso el calendario deja elegir y es la
+         lista de horarios la que responde «sin horas». Un día de descanso sí se
+         sabe de antemano y sin preguntar nada: apagarlo evita que alguien lo
+         pulse para descubrir que no había nada. */
+      const cerrado = DESCANSOS[ymd(date)];
+      if (cerrado) {
+        btn.classList.add('day--cerrado');
+        btn.title = cerrado;
+        btn.setAttribute('aria-label', longDate(date) + ' — ' + cerrado);
+      }
+      btn.disabled = date < today || !!cerrado;
       btn.setAttribute('aria-pressed', String(!!state.date && ymd(state.date) === ymd(date)));
 
       btn.addEventListener('click', () => {
@@ -1849,6 +1860,12 @@
     }
 
     catalogoVersion = cat.version || catalogoVersion;
+
+    /* Días que el local cierra. Se guardan como texto «AAAA-MM-DD» para
+       compararlos con ymd() sin cuentas de zona horaria de por medio. */
+    DESCANSOS = {};
+    (cat.descansos || []).forEach(d => { DESCANSOS[d.fecha] = d.motivo || 'Cerrado'; });
+    if (state.month) renderCalendar();
     cargarGaleria();
 
     if (cat.equipo && cat.equipo.length) {

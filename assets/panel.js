@@ -123,6 +123,10 @@
         { id: 'talco-cuello', nombre: 'Talco para cuello', marca: null, descripcion: 'El que usamos en la silla.', precio: 15000, costo: 8000, existencias: 0, minimo: 2, activo: true },
         { id: 'gel-fijador', nombre: 'Gel fijador', marca: 'Ébano', descripcion: 'Descontinuado por el proveedor.', precio: 22000, costo: 12000, existencias: 0, minimo: 0, activo: false }
       ],
+      descansos: [
+        { id: 1, fecha: '2026-08-25', motivo: 'Festivo', profesional_id: null, profesional: null },
+        { id: 2, fecha: '2026-09-02', motivo: 'Vacaciones', profesional_id: 3, profesional: 'Valentina Romero' }
+      ],
       finanzas: {
         rango: { desde: '2026-08-01', hasta: '2026-08-17', dias: 17 },
         ingresos: { total: 4820000, servicios: 4310000, productos: 385000, otros: 125000,
@@ -231,7 +235,8 @@
                                                        profesionales: MUESTRA.profesionales };
     if (ruta.startsWith('/panel/ajustes'))   return { servicios: MUESTRA.servicios,
                                                       horario: MUESTRA.horarioSemana,
-                                                      equipo: MUESTRA.equipo, meta: 300000 };
+                                                      equipo: MUESTRA.equipo, meta: 300000,
+                                                      descansos: MUESTRA.descansos };
     if (ruta.startsWith('/panel/entrar'))    return { rol: ROL, nombre: 'Emanuel Gómez' };
     return { ok: true };   // crear, cobrar, mover, bloquear: se aceptan sin guardar
   }
@@ -1133,7 +1138,6 @@
     const m = Math.ceil((new Date().getHours() * 60 + new Date().getMinutes()) / PASO) * PASO;
     abrirCrear(YO.profId, aHHMM(m));
   });
-  $('#mi-bloquear').addEventListener('click', () => abrirBloqueo());
 
   /* ---------- el dueño mirando «Mi día» ----------
      Es una ayuda de revisión: sirve para ver lo que ve un profesional en su
@@ -1439,6 +1443,7 @@
   function pintarDispo() {
     if (!ajustes) return;
     $('#aj-meta').value = META_LOCAL;
+    pintarDescansos();
     const h = $('#d-horario');
     h.textContent = '';
     (ajustes.horario || []).forEach(d => {
@@ -1585,6 +1590,103 @@
     caja.append(mini, boton);
     return caja;
   }
+
+
+  /* ---------- días de descanso ----------
+     El horario semanal dice qué días abre el local; esto son las excepciones
+     con fecha. Antes la única forma de cerrar un festivo era poner bloqueos
+     hora por hora, y eso es trabajo para algo que se sabe con meses de
+     antelación. */
+  function pintarDescansos() {
+    const c = $('#d-descansos');
+    if (!c) return;
+    c.textContent = '';
+    const lista = (ajustes && ajustes.descansos) || [];
+
+    if (!lista.length) {
+      const v = el('div', 'vacio');
+      const s = el('strong'); s.textContent = 'Sin días marcados';
+      const p = el('span');
+      p.textContent = 'Marca los festivos y las vacaciones y desaparecen del calendario del cliente.';
+      v.append(s, p); c.appendChild(v);
+      return;
+    }
+
+    lista.forEach(d => {
+      const f = el('div', 'descfila');
+      const izq = el('div');
+      const cuando = el('div', 'descfila__f');
+      cuando.textContent = fechaLargaISO(d.fecha);
+      const quien = el('div', 'descfila__q');
+      /* Sin profesional es el local entero: se dice con esas palabras, porque
+         «—» obligaría a adivinar. */
+      quien.textContent = [d.profesional || 'Todo el local', d.motivo].filter(Boolean).join(' · ');
+      izq.append(cuando, quien);
+
+      const q = boton('Quitar', () => quitarDescanso(d));
+      q.classList.add('bt--borrar');
+      f.append(izq, q);
+      c.appendChild(f);
+    });
+  }
+
+  const fechaLargaISO = iso => {
+    const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+    return DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MESES3[d.getUTCMonth()].toLowerCase();
+  };
+
+  async function quitarDescanso(d) {
+    try {
+      await api('/panel/ajustes?descanso=' + d.id, { method: 'DELETE' });
+      avisar('Día liberado');
+      cargarAjustes();
+    } catch (e) { avisar(e.message || 'No se pudo quitar'); }
+  }
+
+  $('#abrir-descanso').addEventListener('click', () => {
+    $('#ds-fecha').value = ymd(new Date());
+    $('#ds-motivo').value = '';
+    $('#ds-error').hidden = true;
+
+    /* La lista de quién descansa se rehace cada vez: el equipo cambia y una
+       lista pintada al arrancar se queda vieja. */
+    const sel = $('#ds-quien');
+    sel.textContent = '';
+    const todo = document.createElement('option');
+    todo.value = ''; todo.textContent = 'Todo el local — ese día no se abre';
+    sel.appendChild(todo);
+    ((ajustes && ajustes.equipo) || []).filter(p => p.activo).forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = 'Solo ' + p.nombre;
+      sel.appendChild(o);
+    });
+
+    $('#dlg-descanso').showModal();
+  });
+
+  $('#ds-guardar').addEventListener('click', async () => {
+    const err = $('#ds-error');
+    err.hidden = true;
+    const fecha = $('#ds-fecha').value;
+    if (!fecha) { err.textContent = 'Elige la fecha.'; err.hidden = false; return; }
+    const btn = $('#ds-guardar');
+    btn.disabled = true;
+    try {
+      await api('/panel/ajustes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descanso: {
+          fecha,
+          profesional_id: $('#ds-quien').value || null,
+          motivo: $('#ds-motivo').value.trim() || null
+        } }) });
+      $('#dlg-descanso').close();
+      avisar('Día marcado como descanso');
+      cargarAjustes();
+      /* La agenda lo pinta apagado, así que hay que repintarla. */
+      if (vista === 'agenda') cargarDia();
+    } catch (e) {
+      err.textContent = e.message || 'No se pudo marcar'; err.hidden = false;
+    } finally { btn.disabled = false; }
+  });
 
   /* ---------- alta de profesional ---------- */
   let fotoNueva = null;

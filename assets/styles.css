@@ -1871,3 +1871,12 @@ body.is-locked { overflow: hidden; }
 .done__otro .link-underline { color: rgba(13, 13, 13, .6); }
 .done__otro .link-underline:hover,
 .done__otro .link-underline:focus-visible { color: var(--wine); }
+
+/* Día cerrado por descanso. Se distingue de un día pasado —que también está
+   apagado— con la raya: uno «ya no se puede» y el otro «ese día no abrimos»,
+   y el cliente merece saber cuál de los dos es. */
+.day--cerrado {
+  text-decoration: line-through;
+  opacity: .45;
+  cursor: not-allowed;
+}

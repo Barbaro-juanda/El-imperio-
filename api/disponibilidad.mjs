@@ -41,15 +41,44 @@ export default async function handler(req, res) {
        ORDER BY p.nombre`;
     if (!profs.length) return json(res, 200, { duracion, profesionales: [], cupos: {} });
 
-    const elegidos = profesional
-      ? profs.filter(p => String(p.id) === String(profesional))
-      : profs;
-
     const dow = new Date(fecha + 'T12:00:00Z').getUTCDay();
+    /* Días de descanso. El del local cierra el día entero —antes incluso de
+       mirar el horario, porque da igual lo que diga—, y el de una persona la
+       saca a ella de la lista dejando a los demás atendiendo.
+
+       Va en su propio try: si la tabla no existe todavía, la reserva sigue
+       funcionando como antes en vez de caerse entera. */
+    let descansaLocal = false;
+    let descansan = [];
+    try {
+      const d = await sql`
+        SELECT profesional_id FROM descanso WHERE fecha = ${fecha}::date`;
+      descansaLocal = d.some(x => x.profesional_id === null);
+      descansan = d.map(x => x.profesional_id).filter(x => x !== null);
+    } catch (e) { /* sin la migración 15 todavía */ }
+
+    if (descansaLocal) {
+      return json(res, 200, { duracion, profesionales: [], cupos: {}, cerrado: true });
+    }
+
+    /* Quien descansa ese día sale de la lista. Se filtra AQUÍ y no arriba
+       porque los descansos se acaban de leer: hacerlo antes obligaría a
+       consultarlos dos veces o a arrastrar el filtro por medio archivo. */
+    const disponibles = profs.filter(p => descansan.indexOf(p.id) === -1);
+    const elegidos = profesional
+      ? disponibles.filter(p => String(p.id) === String(profesional))
+      : disponibles;
+
+    if (!elegidos.length) {
+      /* Puede pasar que el único que presta el servicio esté descansando. No es
+         que el local esté cerrado: es que ese día no hay quien lo haga. */
+      return json(res, 200, { duracion, profesionales: [], cupos: {}, cerrado: true });
+    }
+
     const hor = await sql`
       SELECT abre, cierra, abierto FROM horario WHERE dow = ${dow}`;
     if (!hor.length || !hor[0].abierto) {
-      return json(res, 200, { duracion, profesionales: profs, cupos: {}, cerrado: true });
+      return json(res, 200, { duracion, profesionales: elegidos, cupos: {}, cerrado: true });
     }
 
     const abre   = aUTC(fecha, String(hor[0].abre).slice(0, 5));

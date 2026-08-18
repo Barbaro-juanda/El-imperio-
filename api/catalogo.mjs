@@ -58,6 +58,15 @@ async function huella() {
       FROM servicio_profesional`;
   partes.push(e[0] && e[0].v);
 
+  /* Los descansos. Marcar un festivo desde el panel tiene que apagar ese día en
+     el calendario del cliente sin que nadie recargue. */
+  try {
+    const dsc = await sql`
+      SELECT md5(string_agg(fecha::text || ':' || COALESCE(profesional_id::text, 'local'),
+                            ',' ORDER BY fecha, profesional_id)) AS v FROM descanso`;
+    partes.push(dsc[0] && dsc[0].v);
+  } catch (e) { partes.push('sin-descansos'); }
+
   /* La galería. Entra en la huella para que una foto nueva llegue a la página
      sin recargar, igual que un precio. No se resume su contenido —serían megas
      de base64 en cada comprobación— sino qué fotos hay y cuándo se tocaron, que
@@ -119,6 +128,20 @@ export default async function handler(req, res) {
        ORDER BY s.segmento, s.nombre`;
 
     const horario = await sql`SELECT dow, abre, cierra, abierto FROM horario ORDER BY dow`;
+
+    /* Los días que el local cierra entero, para que el calendario del cliente
+       los pinte apagados en vez de dejarle pulsar y descubrir que no hay nada.
+       Solo los del local: que Valentina esté de vacaciones no cierra el día, y
+       decirlo en la portada sería contar de más sobre el equipo. */
+    let descansos = [];
+    try {
+      const d = await sql`
+        SELECT to_char(fecha, 'YYYY-MM-DD') AS fecha, motivo
+          FROM descanso
+         WHERE profesional_id IS NULL AND fecha >= CURRENT_DATE
+         ORDER BY fecha`;
+      descansos = d;
+    } catch (e) { /* sin la migración 15 todavía */ }
 
     /* El equipo que sale en «El Equipo». Solo los activos y en el orden en que
        entraron, que es el que el local reconoce. No sale la comisión, ni el
@@ -196,6 +219,7 @@ export default async function handler(req, res) {
       })),
       productos,
       equipo,
+      descansos,
       version: await huella()
     }));
   } catch (e) {
